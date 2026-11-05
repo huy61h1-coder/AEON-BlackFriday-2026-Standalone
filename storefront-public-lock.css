@@ -1,0 +1,61 @@
+/*
+ * Keep management controls hidden for visitors. A verified admin session may
+ * use the same add/edit tools on the storefront.
+ */
+
+body:not(.admin-preview) .storefront-admin-toolbar,
+body:not(.admin-preview) .storefront-product-admin-actions,
+body:not(.admin-preview) .catalog-admin-add {
+  display: none !important;
+}
+
+body.admin-preview .product,
+body .storefront-admin-grid .product {
+  outline: 0 !important;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.22) !important;
+}
+
+/* The public Black Friday catalogue uses the top search.  Legacy in-catalogue
+   sorting and the management brand panel are not part of this locked view. */
+#collection > .catalog-controls,
+#collection > .brand-directory {
+  display: none !important;
+}
+
+#collection > .products {
+  margin-top: 0 !important;
+}
+
+@media (min-width: 761px) {
+  .site-header nav {
+    display: flex !important;
+    position: static !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: clamp(1.4rem, 2.6vw, 3.25rem) !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: auto !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .site-header .menu-toggle {
+    display: none !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .site-header nav {
+    display: none !important;
+  }
+
+  .site-header nav.show {
+    display: flex !important;
+  }
+
+  .site-header .menu-toggle {
+    display: inline-flex !important;
+  }
+}

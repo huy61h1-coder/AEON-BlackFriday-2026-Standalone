@@ -1,0 +1,32 @@
+[build]
+  command = "echo \"No build step required\""
+  publish = "."
+
+[functions]
+  directory = "netlify/functions"
+
+[[redirects]]
+  from = "/api/import-products"
+  to = "/.netlify/functions/import-products"
+  status = 200
+
+# HTML must never be retained by the browser or Netlify edge cache.  Versioned
+# CSS/JS URLs in index.html then guarantee that every deployment loads one
+# coherent storefront release instead of mixing old and new interface files.
+[[headers]]
+  for = "/"
+  [headers.values]
+    Cache-Control = "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0"
+    CDN-Cache-Control = "no-store"
+    Netlify-CDN-Cache-Control = "no-store"
+    Pragma = "no-cache"
+    X-AEON-Build = "20261104-public-lock-v7"
+
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0"
+    CDN-Cache-Control = "no-store"
+    Netlify-CDN-Cache-Control = "no-store"
+    Pragma = "no-cache"
+    X-AEON-Build = "20261104-public-lock-v7"

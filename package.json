@@ -1,0 +1,21 @@
+{
+  "name": "aeon-black-friday-2026",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Website danh mục và đặt hàng AEON BlackFriday 2026.",
+  "scripts": {
+    "start": "node server.js",
+    "check": "node --check server.js && node --check storefront-state.js && node --check data.js && node --check app.js && node --check admin.js && node --check product-import.js && node scripts/check-storefront-regressions.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@tesseract.js-data/vie": "^1.0.0",
+    "exceljs": "^4.4.0",
+    "pdf-parse": "^2.4.5",
+    "pdfkit": "^0.19.1",
+    "tesseract.js": "^7.0.0",
+    "xlsx": "^0.18.5"
+  }
+}

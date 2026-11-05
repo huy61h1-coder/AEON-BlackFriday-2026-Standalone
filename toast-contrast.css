@@ -1,0 +1,17 @@
+/* Keep transient storefront messages readable when the theme uses light text. */
+.toast {
+  background: #171111 !important;
+  color: #fffaf4 !important;
+  border: 1px solid color-mix(in srgb, var(--red, #e21d3f) 70%, #171111);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .38);
+}
+
+.success-modal > div {
+  background: var(--cream, #080808);
+  color: var(--ink, #fffaf4);
+  border: 1px solid var(--line, #413735);
+}
+
+.success-modal p:not(.eyebrow) {
+  color: var(--muted, #c5bfba);
+}

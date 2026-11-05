@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">AEON Black Friday 2026</title>
+  <desc id="desc">Không gian mua sắm Black Friday với các hộp quà và sản phẩm giảm giá.</desc>
+  <defs>
+    <radialGradient id="glow"><stop stop-color="#ff3b5f" stop-opacity=".9"/><stop offset="1" stop-color="#7e001b" stop-opacity="0"/></radialGradient>
+    <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#050505"/><stop offset=".55" stop-color="#17110e"/><stop offset="1" stop-color="#050505"/></linearGradient>
+    <linearGradient id="red" x2="0" y2="1"><stop stop-color="#ff4968"/><stop offset="1" stop-color="#b8082d"/></linearGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="24" stdDeviation="20" flood-opacity=".55"/></filter>
+  </defs>
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <circle cx="1210" cy="340" r="430" fill="url(#glow)" opacity=".5"/>
+  <g opacity=".14" fill="#fff"><circle cx="1130" cy="140" r="5"/><circle cx="1440" cy="255" r="8"/><circle cx="1025" cy="315" r="4"/><circle cx="1335" cy="90" r="3"/></g>
+  <g font-family="Arial,Helvetica,sans-serif" fill="#fff">
+    <text x="110" y="205" font-size="34" font-weight="700" letter-spacing="9">AEON VIETNAM</text>
+    <text x="105" y="395" font-size="142" font-weight="900" letter-spacing="-8">BLACK</text>
+    <text x="105" y="525" font-size="142" font-weight="900" letter-spacing="-8" fill="#ef2349">FRIDAY</text>
+    <rect x="110" y="575" width="460" height="74" rx="37" fill="#ef2349"/>
+    <text x="340" y="624" text-anchor="middle" font-size="29" font-weight="800" letter-spacing="3">25.11 — 01.12.2026</text>
+    <text x="110" y="710" font-size="28" fill="#d9d0cb">SĂN DEAL ĐỈNH • GIÁ CỰC TỐT • SỐ LƯỢNG CÓ HẠN</text>
+  </g>
+  <g transform="translate(970 235)" filter="url(#shadow)">
+    <path d="M60 120h420v410H60z" fill="url(#red)"/>
+    <path d="M24 84h492v105H24z" fill="#f7d7b1"/>
+    <path d="M246 84h48v446h-48z" fill="#f7d7b1"/>
+    <path d="M270 84C200-20 95 0 138 77c28 50 132 7 132 7Z" fill="#ef2349" stroke="#f7d7b1" stroke-width="13"/>
+    <path d="M270 84C340-20 445 0 402 77c-28 50-132 7-132 7Z" fill="#ef2349" stroke="#f7d7b1" stroke-width="13"/>
+    <circle cx="270" cy="84" r="28" fill="#f7d7b1"/>
+    <text x="270" y="330" text-anchor="middle" font-family="Arial" font-weight="900" font-size="72" fill="#fff">-50%</text>
+    <text x="270" y="385" text-anchor="middle" font-family="Arial" font-weight="700" font-size="24" fill="#fff">SELECTED ITEMS</text>
+  </g>
+  <path d="M920 790c180-120 450-105 590 0" fill="none" stroke="#ef2349" stroke-width="3" opacity=".55"/>
+</svg>

@@ -1,0 +1,252 @@
+/* Black Friday campaign layer — preserves the existing storefront structure. */
+:root { --bf-black:#090909; --bf-panel:#151515; --bf-panel-2:#1e1e1e; --bf-red:#e21d3f; --bf-gold:#f7c948; --bf-white:#fffaf4; --bf-line:rgba(255,255,255,.14); }
+body { background:var(--bf-black)!important; color:var(--bf-white)!important; }
+body::before { content:''; position:fixed; inset:0; pointer-events:none; z-index:-1; opacity:.55; background:radial-gradient(circle at 78% 8%,rgba(226,29,63,.18),transparent 25%),radial-gradient(circle at 8% 42%,rgba(247,201,72,.10),transparent 22%),linear-gradient(120deg,#080808,#15100f 55%,#090909); }
+.site-header { background:rgba(9,9,9,.94)!important; border-bottom:1px solid var(--bf-line)!important; box-shadow:0 6px 22px rgba(0,0,0,.28); }
+.site-header nav a,.cart-button,.menu-toggle,.brand small { color:var(--bf-white)!important; }
+.site-header { position:relative; }
+.site-header nav { display:none!important; }
+.site-header nav.show { display:flex!important; }
+.site-header .menu-toggle { display:block!important; order:4; margin-left:12px; font-size:26px; line-height:1; }
+.site-header nav a:hover,.cart-button:hover { color:var(--bf-gold)!important; }
+.brand { color:var(--bf-white)!important; }
+.brand span { color:var(--bf-white); text-shadow:0 0 18px rgba(226,29,63,.4); }
+.cart-button b { background:var(--bf-red)!important; box-shadow:0 0 0 3px rgba(226,29,63,.18); }
+.black-friday-bar { min-height:31px; display:flex; gap:26px; align-items:center; justify-content:center; padding:6px 18px; background:linear-gradient(90deg,#9e102a,#e21d3f 48%,#9e102a); color:#fff; letter-spacing:.13em; font-size:10px; font-weight:800; }
+.black-friday-bar strong { color:var(--bf-gold); font-size:11px; }
+.hero { position:relative; background:linear-gradient(115deg,#090909 0%,#17100f 55%,#42101d 125%)!important; min-height:590px; }
+.hero::before { content:'BLACK\A FRIDAY'; white-space:pre; position:absolute; right:7vw; top:7%; font:800 clamp(65px,10vw,160px)/.78 'Be Vietnam Pro',sans-serif; letter-spacing:-.09em; color:transparent; -webkit-text-stroke:1px rgba(247,201,72,.16); opacity:.85; pointer-events:none; }
+.hero h1,.hero h1 em { color:var(--bf-white)!important; text-shadow:0 8px 30px rgba(0,0,0,.5); }
+.hero h1 em { color:var(--bf-red)!important; }
+.hero .intro,.intro { color:rgba(255,250,244,.74)!important; }
+.eyebrow { color:var(--bf-gold)!important; }
+.hero-art img { mix-blend-mode:normal!important; filter:contrast(1.06) saturate(.9); }
+.moon { background:radial-gradient(circle,#f7c948 0%,#e21d3f 65%,transparent 66%)!important; opacity:.55; }
+.button.primary,.product-add,.product-choose,.product-contact { background:var(--bf-red)!important; border-color:var(--bf-red)!important; color:#fff!important; box-shadow:0 8px 20px rgba(226,29,63,.22); }
+.button.primary:hover,.product-add:hover,.product-choose:hover,.product-contact:hover { background:#ff3154!important; transform:translateY(-2px); }
+.button.light { color:var(--bf-black)!important; background:var(--bf-gold)!important; }
+.benefits,.steps article { border-color:var(--bf-line)!important; background:#0e0e0e; }
+.benefits div { border-color:var(--bf-line)!important; }
+.benefits strong,.steps b { color:var(--bf-gold)!important; }
+.benefits span,.steps p { color:rgba(255,250,244,.76)!important; }
+.story,.how { background:#101010!important; }
+.story-visual { background:linear-gradient(135deg,#2b0c15,#090909)!important; }
+.orb-one { background:#f7c948!important; }.orb-two { background:var(--bf-red)!important; }
+.story p:not(.eyebrow),.checkout-copy p:not(.eyebrow) { color:rgba(255,250,244,.72)!important; }
+.text-link { color:var(--bf-white)!important; border-color:var(--bf-gold)!important; }.text-link span{color:var(--bf-gold)!important;}
+.collection { background:#080808!important; }
+.catalog-controls,.brand-directory { background:var(--bf-panel)!important; border-color:var(--bf-line)!important; }
+.catalog-controls,.catalog-result,.brand-directory,.brand-directory h2,.brand-directory p { color:var(--bf-white)!important; }
+.catalog-control-filters select,.catalog-control-filters label select,.top-product-search { background:#111!important; border-color:var(--bf-line)!important; color:var(--bf-white)!important; }
+.top-product-search input { color:var(--bf-white)!important; }.top-product-search input::placeholder { color:rgba(255,250,244,.58)!important; }
+.brand-filter,.brand-directory button { background:#222!important; border-color:rgba(247,201,72,.32)!important; color:var(--bf-white)!important; }
+.brand-filter:hover,.brand-filter.is-active,.brand-directory button:hover { background:var(--bf-gold)!important; color:#111!important; }
+.product { background:var(--bf-panel)!important; border-color:var(--bf-line)!important; box-shadow:0 12px 28px rgba(0,0,0,.22)!important; }
+.product:hover { box-shadow:0 17px 34px rgba(226,29,63,.18)!important; }
+.product-info { background:var(--bf-panel)!important; }.product-info h3,.product-brand { color:var(--bf-white)!important; }.product-info p { color:rgba(255,250,244,.68)!important; }
+.product-bottom { border-color:var(--bf-line)!important; }.price { color:var(--bf-gold)!important; }.regular-price { color:rgba(255,250,244,.62)!important; }.discount-percent { background:var(--bf-red)!important; color:#fff!important; }.tag { background:var(--bf-red)!important; }
+.gift-banner { background:linear-gradient(105deg,#7f1024,#e21d3f 50%,#18080d)!important; }.gift-banner .eyebrow { color:var(--bf-gold)!important; }
+.gift-shape { color:var(--bf-gold)!important; border-color:rgba(247,201,72,.5)!important; }.gift-shape:before{border-color:rgba(247,201,72,.24)!important;}
+.checkout { background:#111!important; }.checkout form,.cart-drawer,.success-modal>div { background:var(--bf-panel-2)!important; color:var(--bf-white)!important; }
+input,textarea { color:var(--bf-white)!important; border-color:var(--bf-line)!important; }.checkout label{color:var(--bf-white)!important;}
+footer { background:#050505!important; border-top:1px solid var(--bf-line); } footer p,footer a { color:rgba(255,250,244,.72)!important; }
+.hotline-widget,.zalo-chat-button { filter:saturate(1.08); }
+/* High-contrast text for dark Black Friday surfaces. Light panels retain their
+   original dark text, so form fields and download menus remain readable. */
+.brand-directory h3,.brand-directory h4,.brand-directory-toggle,.catalog-control-filters label,.catalog-result { color:var(--bf-white)!important; }
+.brand-directory-head p,.catalog-control-filters label span,.catalog-controls small { color:rgba(255,250,244,.76)!important; }
+.catalog-control-filters select option { background:#171717; color:var(--bf-white); }
+.cart-drawer h2,.cart-drawer h3,.cart-drawer .drawer-head button,.cart-drawer .cart-total,.cart-drawer .cart-line-total,.cart-drawer .quantity,.cart-drawer .remove { color:var(--bf-white)!important; }
+.cart-drawer .cart-item p,.cart-drawer .cart-total small,.cart-drawer .empty-cart,.cart-drawer .cart-promotion { color:rgba(255,250,244,.76)!important; }
+.cart-drawer .cart-promotion b,.cart-drawer .quantity button { color:var(--bf-gold)!important; }
+.checkout-copy .note,.checkout .form-error,.checkout label span { color:rgba(255,250,244,.76)!important; }
+.checkout input::placeholder,.checkout textarea::placeholder { color:rgba(255,250,244,.56)!important; }
+.catalog-empty { background:var(--bf-panel-2)!important; border-color:var(--bf-line)!important; color:var(--bf-white)!important; }
+.catalog-empty h3 { color:var(--bf-white)!important; }.catalog-empty p { color:rgba(255,250,244,.76)!important; }
+/* Keep product imagery on a clean white canvas; product name and price stay
+   on the Black Friday dark card surface. */
+.product { background:var(--bf-panel)!important; border-color:var(--bf-line)!important; }
+.product-media { background:#fff!important; }
+.product-media:has(.product-image-placeholder),.detail-art:has(.detail-image-placeholder) { background:#fff!important; }
+.product-media:has(.product-image-placeholder)::before,.detail-art:has(.detail-image-placeholder)::before { background:transparent!important; }
+.product-image-placeholder,.detail-image-placeholder { background:#fff!important; color:#625c58!important; border-color:#d8d0c5!important; }
+.product-info { background:var(--bf-panel)!important; }
+.product-info h3 { color:var(--bf-white)!important; }.product-brand { color:var(--bf-red)!important; }
+.product-info p { color:rgba(255,250,244,.68)!important; }.product-bottom { border-color:var(--bf-line)!important; }
+.price { color:var(--bf-gold)!important; }.regular-price { color:rgba(255,250,244,.62)!important; }
+/* The product detail dialog is a light panel over the dark campaign.  Reset
+   inherited campaign text so every product field remains readable. */
+.product-modal-card,.product-modal-card .detail-copy { background:#fff!important; color:#242224!important; }
+/* Use literal high-contrast values here: the administrator can customize
+   --ink, so a variable can otherwise become white inside this light dialog. */
+.product-modal-card #productDetailBody .detail-copy h2,.product-modal-card #productDetailBody .detail-copy dd,.product-modal-card #productDetailBody .detail-description,.product-modal-card #productDetailBody .detail-meta { color:#242224!important; }
+.product-modal-card #productDetailBody .detail-copy dt { color:#625c58!important; }
+.product-modal-card #productDetailBody .detail-copy h2,
+.product-modal-card #productDetailBody .detail-copy p,
+.product-modal-card #productDetailBody .detail-copy dd,
+.product-modal-card #productDetailBody .detail-copy dt,
+.product-modal-card #productDetailBody .detail-copy span,
+.product-modal-card #productDetailBody .detail-copy strong {
+  color:#242224!important;
+  -webkit-text-fill-color: currentColor;
+}
+.product-modal-card #productDetailBody .detail-copy p.detail-brand,
+.product-modal-card #productDetailBody .detail-copy p.detail-meta,
+.product-modal-card #productDetailBody .detail-copy dt { color:#625c58!important; }
+.product-modal-card #productDetailBody .detail-copy p.detail-brand { color:var(--bf-red)!important; }
+.product-modal-card #productDetailBody .detail-copy p.detail-price { color:var(--bf-red)!important; }
+.storefront-admin-editor-card,
+.storefront-admin-editor-card label,
+.storefront-admin-editor-card input,
+.storefront-admin-editor-card textarea,
+.storefront-admin-editor-card select,
+.storefront-admin-editor-card small,
+.storefront-admin-editor-card h2,
+.storefront-admin-editor-card p { color:#242224!important; -webkit-text-fill-color:#242224!important; }
+.storefront-admin-editor-card input,
+.storefront-admin-editor-card textarea,
+.storefront-admin-editor-card select { background:#fff!important; border-color:#cfc5b9!important; }
+.product-modal-card #productDetailBody .detail-copy,
+.product-modal-card #productDetailBody .detail-copy * {
+  opacity:1!important;
+  filter:none!important;
+  mix-blend-mode:normal!important;
+}
+.product-modal-card #productDetailBody .detail-copy h2 { color:#171717!important; -webkit-text-fill-color:#171717!important; }
+.product-modal-card #productDetailBody .detail-copy dd { color:#242224!important; -webkit-text-fill-color:#242224!important; }
+.product-modal-card .detail-variant-picker { background:#fcfaf6!important; color:#242224!important; }
+.product-modal-card .detail-variant-head>span { color:#625c58!important; }
+.product-modal-card .detail-variant-head b { color:var(--wine)!important; }
+.product-modal-card .detail-variant-options button,.product-modal-card .quantity-button { background:#fff!important; color:#242224!important; }
+.product-modal-card .detail-actions .button { color:#fff!important; }
+.product-modal-card .modal-close { color:#242224!important; }
+.bf-gift-promo{position:absolute;z-index:6;inset:0;overflow:hidden;pointer-events:none}
+.bf-gift-photo{position:absolute;z-index:4;right:13px;bottom:35px;display:grid;place-items:center;width:35%;max-width:102px;min-width:62px;height:52%;max-height:106px;min-height:62px;border:2px solid #f7c948;border-radius:50%;background:radial-gradient(circle,#fff 54%,#fff7dc 72%,rgba(247,201,72,.2) 73%);box-shadow:0 0 0 4px rgba(247,201,72,.22),0 8px 18px rgba(0,0,0,.22)}
+.bf-gift-photo img{display:block;width:100%;height:100%;padding:5px;border-radius:50%;object-fit:contain}
+.bf-gift-photo [data-image-placeholder]{color:#b20e2b;font-size:28px;font-weight:900}
+.bf-gift-ribbon{position:absolute;z-index:3;right:0;bottom:0;left:0;display:grid;grid-template-columns:48px minmax(0,1fr);align-items:center;min-height:48px;padding:5px 8px 5px 3px;border-top:2px solid #ffd75b;border-bottom:1px solid rgba(255,218,108,.8);background:linear-gradient(100deg,#a60720 0%,#ed1737 48%,#9d071d 100%);box-shadow:0 -4px 18px rgba(130,0,20,.25);color:#fff;text-align:left}
+.bf-gift-ribbon::after{content:"✦  ·  ✦";position:absolute;right:6px;bottom:3px;color:rgba(255,220,104,.62);font-size:7px;letter-spacing:5px}
+.bf-gift-bow{width:45px;height:35px;filter:drop-shadow(0 2px 2px rgba(0,0,0,.35))}
+.bf-gift-copy{display:grid;min-width:0;max-width:calc(100% - 76px);gap:1px;line-height:1.08;text-shadow:0 1px 3px rgba(0,0,0,.38)}
+.bf-gift-copy small{color:#ffe17a;font-size:6px;font-weight:900;letter-spacing:.11em}
+.bf-gift-copy strong{display:-webkit-box;overflow:hidden;color:#fff;font-size:10px;font-weight:900;line-height:1.15;text-transform:uppercase;-webkit-box-orient:vertical;-webkit-line-clamp:1}
+.bf-gift-copy em{overflow:hidden;color:#fff4c9;font-size:8px;font-style:normal;font-weight:800;letter-spacing:.04em;text-overflow:ellipsis;white-space:nowrap}
+.detail-art>.bf-gift-promo .bf-gift-photo{right:23px;bottom:52px;width:34%;max-width:154px;min-width:110px;height:54%;max-height:170px;min-height:130px}
+.detail-art>.bf-gift-promo .bf-gift-ribbon{grid-template-columns:66px minmax(0,1fr);min-height:67px;padding:7px 12px 7px 5px}
+.detail-art>.bf-gift-promo .bf-gift-bow{width:62px;height:49px}
+.detail-art>.bf-gift-promo .bf-gift-copy{max-width:calc(100% - 118px);gap:3px}
+.detail-art>.bf-gift-promo .bf-gift-copy small{font-size:9px}
+.detail-art>.bf-gift-promo .bf-gift-copy strong{font-size:15px}
+.detail-art>.bf-gift-promo .bf-gift-copy em{font-size:11px}
+@media(max-width:760px){.bf-gift-photo{right:8px;bottom:31px;width:34%;max-width:78px;min-width:53px;height:49%;max-height:77px;min-height:53px}.bf-gift-ribbon{grid-template-columns:37px minmax(0,1fr);min-height:41px;padding:4px 5px 4px 2px}.bf-gift-bow{width:35px;height:28px}.bf-gift-copy{max-width:calc(100% - 63px);gap:1px}.bf-gift-copy small{font-size:5px}.bf-gift-copy strong{font-size:8px}.bf-gift-copy em{font-size:6px}.bf-gift-ribbon::after{font-size:5px;letter-spacing:2px}.detail-art>.bf-gift-promo .bf-gift-photo{right:12px;bottom:39px;width:37%;max-width:100px;min-width:74px;height:47%;max-height:108px;min-height:80px}.detail-art>.bf-gift-promo .bf-gift-ribbon{grid-template-columns:43px minmax(0,1fr);min-height:47px;padding:5px 7px 5px 3px}.detail-art>.bf-gift-promo .bf-gift-bow{width:41px;height:34px}.detail-art>.bf-gift-promo .bf-gift-copy{max-width:calc(100% - 78px)}.detail-art>.bf-gift-promo .bf-gift-copy small{font-size:6px}.detail-art>.bf-gift-promo .bf-gift-copy strong{font-size:9px}.detail-art>.bf-gift-promo .bf-gift-copy em{font-size:7px}}
+@media(max-width:760px) { .black-friday-bar { gap:12px; font-size:8px; }.black-friday-bar strong{font-size:9px;}.hero{min-height:auto!important;}.hero::before{right:4vw;top:12%;font-size:70px;}.site-header nav{background:#101010!important;border-color:var(--bf-line)!important;} }
+
+/* Compact gift treatment: keep the main product visible and match the dark
+   Black Friday cards without letting the gift badge dominate the photo. */
+.bf-gift-promo{z-index:6}
+.bf-gift-photo{right:10px;bottom:43px;width:25%;min-width:44px;max-width:68px;height:auto;min-height:0;max-height:none;aspect-ratio:1;border:1px solid rgba(247,201,72,.9);background:#fff;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,.16)}
+.bf-gift-photo img{padding:4px}
+.bf-gift-photo [data-image-placeholder]{font-size:20px}
+.bf-gift-ribbon{right:6px;bottom:6px;left:6px;grid-template-columns:40px minmax(0,1fr);min-height:40px;padding:4px 8px 4px 2px;border:1px solid rgba(255,215,91,.68);border-radius:3px;background:linear-gradient(100deg,#8f122b 0%,#c91b39 52%,#751025 100%);box-shadow:0 3px 9px rgba(0,0,0,.2);}
+.bf-gift-ribbon::after{content:none}
+.bf-gift-bow{width:36px;height:28px;filter:drop-shadow(0 1px 1px rgba(0,0,0,.22))}
+.bf-gift-copy{max-width:none;gap:0;line-height:1.12;text-shadow:none;font-family:'Be Vietnam Pro',sans-serif}
+.bf-gift-copy small{color:#ffe39a;font-size:5.5px;font-weight:700;letter-spacing:.08em}
+.bf-gift-copy strong{color:#fff;font-size:8.5px;font-weight:700;line-height:1.2;text-transform:none;letter-spacing:0;-webkit-line-clamp:1}
+.bf-gift-copy em{color:#ffe39a;font-size:6.5px;font-weight:700;letter-spacing:.02em}
+.detail-art>.bf-gift-promo .bf-gift-photo{right:18px;bottom:59px;width:25%;min-width:72px;max-width:104px;height:auto;min-height:0;max-height:none}
+.detail-art>.bf-gift-promo .bf-gift-ribbon{right:12px;bottom:12px;left:12px;grid-template-columns:52px minmax(0,1fr);min-height:52px;padding:5px 10px 5px 3px}
+.detail-art>.bf-gift-promo .bf-gift-bow{width:47px;height:37px}
+.detail-art>.bf-gift-promo .bf-gift-copy small{font-size:7px}
+.detail-art>.bf-gift-promo .bf-gift-copy strong{font-size:12px}
+.detail-art>.bf-gift-promo .bf-gift-copy em{font-size:9px}
+@media(max-width:760px){
+  .bf-gift-photo{right:7px;bottom:34px;width:25%;min-width:42px;max-width:54px}
+  .bf-gift-ribbon{right:4px;bottom:4px;left:4px;grid-template-columns:32px minmax(0,1fr);min-height:32px;padding:3px 6px 3px 1px}
+  .bf-gift-bow{width:30px;height:23px}
+  .bf-gift-copy small{font-size:4.8px;letter-spacing:.05em}
+  .bf-gift-copy strong{font-size:7.4px}
+  .bf-gift-copy em{font-size:5.8px}
+  .detail-art>.bf-gift-promo .bf-gift-photo{right:11px;bottom:48px;width:24%;min-width:60px;max-width:74px}
+  .detail-art>.bf-gift-promo .bf-gift-ribbon{right:8px;bottom:8px;left:8px;grid-template-columns:39px minmax(0,1fr);min-height:40px;padding:4px 7px 4px 2px}
+  .detail-art>.bf-gift-promo .bf-gift-bow{width:36px;height:28px}
+  .detail-art>.bf-gift-promo .bf-gift-copy small{font-size:5.8px}
+  .detail-art>.bf-gift-promo .bf-gift-copy strong{font-size:9px}
+  .detail-art>.bf-gift-promo .bf-gift-copy em{font-size:7px}
+}
+
+/* Let a transparent gift cutout sit on top of the ribbon. */
+.bf-gift-photo{right:7px;bottom:6px;width:27%;min-width:42px;max-width:70px;height:45%;min-height:48px;max-height:86px;border:0;border-radius:0;background:transparent;box-shadow:none;overflow:visible;z-index:5}
+.bf-gift-photo img{width:100%;height:100%;padding:0;border-radius:0;object-fit:contain;object-position:center bottom;filter:drop-shadow(0 2px 3px rgba(0,0,0,.24));mix-blend-mode:normal}
+.bf-gift-photo [data-image-placeholder]{font-size:22px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.2))}
+.bf-gift-copy{padding-right:clamp(34px,22%,58px)}
+.detail-art>.bf-gift-promo .bf-gift-photo{right:16px;bottom:12px;width:27%;min-width:76px;max-width:112px;height:45%;min-height:80px;max-height:130px}
+.detail-art>.bf-gift-promo .bf-gift-copy{padding-right:clamp(52px,22%,78px)}
+@media(max-width:760px){
+  .bf-gift-photo{right:5px;bottom:4px;width:29%;min-width:38px;max-width:52px;height:43%;min-height:42px;max-height:64px}
+  .bf-gift-copy{padding-right:clamp(30px,23%,42px)}
+  .detail-art>.bf-gift-promo .bf-gift-photo{right:10px;bottom:8px;width:26%;min-width:60px;max-width:76px;height:42%;min-height:62px;max-height:80px}
+  .detail-art>.bf-gift-promo .bf-gift-copy{padding-right:clamp(46px,24%,70px)}
+}
+
+/* Satin-red gift ribbon with a restrained gold edge and inner highlight. */
+.bf-gift-ribbon{
+  overflow:visible;
+  border:1px solid rgba(255,218,126,.84);
+  border-radius:2px;
+  background:
+    radial-gradient(ellipse at 82% 0%,rgba(255,226,151,.22),transparent 40%),
+    repeating-linear-gradient(132deg,rgba(255,242,211,.055) 0 1px,transparent 1px 13px),
+    linear-gradient(180deg,rgba(255,255,255,.13),transparent 34%,rgba(50,0,10,.2) 100%),
+    linear-gradient(105deg,#7e0e25 0%,#b71533 24%,#dc1c3c 54%,#a40f2b 100%);
+  box-shadow:0 4px 11px rgba(0,0,0,.24),0 1px 0 rgba(255,236,185,.12) inset;
+}
+.bf-gift-ribbon::after{content:"";position:absolute;inset:2px;border:1px solid rgba(255,236,185,.23);border-radius:1px;pointer-events:none;z-index:0}
+.bf-gift-bow,.bf-gift-copy{position:relative;z-index:1}
+@media(max-width:760px){
+  .bf-gift-ribbon{box-shadow:0 3px 8px rgba(0,0,0,.22),0 1px 0 rgba(255,236,185,.12) inset}
+  .bf-gift-ribbon::after{inset:2px}
+}
+
+/* Give the two gift details a larger, better balanced reading area. */
+.bf-gift-ribbon{grid-template-columns:36px minmax(0,1fr);min-height:44px;padding:4px 7px 4px 2px}
+.bf-gift-copy{min-width:0;width:100%;box-sizing:border-box;align-content:center;gap:1px;padding-right:50px}
+.bf-gift-copy strong{font-size:10px;line-height:1.12;-webkit-line-clamp:2}
+.bf-gift-copy em{font-size:8px;line-height:1.15;white-space:nowrap}
+.detail-art>.bf-gift-promo .bf-gift-copy{padding-right:82px}
+.detail-art>.bf-gift-promo .bf-gift-copy strong{font-size:13px;-webkit-line-clamp:2}
+.detail-art>.bf-gift-promo .bf-gift-copy em{font-size:10px}
+@media(max-width:760px){
+  .bf-gift-ribbon{grid-template-columns:29px minmax(0,1fr);min-height:36px;padding:3px 5px 3px 1px}
+  .bf-gift-copy{padding-right:39px;gap:1px}
+  .bf-gift-copy strong{font-size:8.8px;line-height:1.1;-webkit-line-clamp:2}
+  .bf-gift-copy em{font-size:7px}
+  .detail-art>.bf-gift-promo .bf-gift-copy{padding-right:66px}
+  .detail-art>.bf-gift-promo .bf-gift-copy strong{font-size:9.5px}
+  .detail-art>.bf-gift-promo .bf-gift-copy em{font-size:7.5px}
+}
+
+/* Simple, high-contrast Black Friday ribbon palette. */
+.bf-gift-ribbon{
+  border:1px solid rgba(255,215,91,.82);
+  border-radius:3px;
+  background:linear-gradient(105deg,#9e102a 0%,#e21d3f 58%,#b70f2d 100%);
+  box-shadow:0 5px 13px rgba(226,29,63,.26),0 2px 5px rgba(0,0,0,.2);
+}
+.bf-gift-ribbon::after{content:none}
+.bf-gift-copy strong{color:#fff;text-shadow:0 1px 2px rgba(50,0,10,.3)}
+.bf-gift-copy em{color:#ffe27a;text-shadow:0 1px 2px rgba(50,0,10,.28)}
+
+.product-deal-quota{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;min-height:27px;margin-top:8px;padding:3px 10px;border:1px solid rgba(255,190,37,.92);border-radius:999px;background:linear-gradient(100deg,#fff3b6 0%,#ffe071 48%,#ffb51b 100%);color:#263141;font:600 11px/1.1 'Be Vietnam Pro',sans-serif;letter-spacing:.01em;white-space:nowrap;box-shadow:0 2px 7px rgba(255,181,27,.18)}
+.product-deal-quota svg{display:block;flex:0 0 20px;width:20px;height:20px;overflow:visible;filter:drop-shadow(0 1px 1px rgba(145,57,0,.2))}
+.product-deal-quota .deal-flame-outer{fill:#f47a12}
+.product-deal-quota .deal-flame-inner{fill:#ffcf35}
+.product-deal-quota{transition:background .2s ease,border-color .2s ease,color .2s ease,box-shadow .2s ease}
+.product-deal-quota[data-quota-level="medium"]{border-color:#ff9b24;background:linear-gradient(100deg,#ffe4a3 0%,#ffb13b 100%);color:#342515;box-shadow:0 2px 7px rgba(255,143,28,.2)}
+.product-deal-quota[data-quota-level="low"]{border-color:#e43c36;background:linear-gradient(100deg,#f46b46 0%,#d9303c 100%);color:#fff;box-shadow:0 2px 7px rgba(217,48,60,.22)}
+.product-deal-quota[data-quota-level="low"] .deal-flame-outer{fill:#fff0cb}
+.product-deal-quota[data-quota-level="low"] .deal-flame-inner{fill:#ffc14d}
+.product-deal-quota[data-quota-level="soldout"]{border-color:#777;background:linear-gradient(100deg,#a6a6a6 0%,#686868 100%);color:#fff;box-shadow:0 2px 6px rgba(0,0,0,.12)}
+.product-deal-quota[data-quota-level="soldout"] .deal-flame-outer{fill:#e7e7e7}
+.product-deal-quota[data-quota-level="soldout"] .deal-flame-inner{fill:#bdbdbd}
+@media(max-width:760px){.product-deal-quota{min-height:25px;margin-top:7px;padding:2px 7px;gap:5px;font-size:9.5px}.product-deal-quota svg{flex-basis:18px;width:18px;height:18px}}

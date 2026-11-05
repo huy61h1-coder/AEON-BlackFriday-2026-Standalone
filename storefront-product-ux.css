@@ -1,0 +1,308 @@
+/* Product-first storefront refinement: cards, cart and checkout summary. */
+.checkout[hidden] { display: none !important; }
+.hero-art .official-hero img { mix-blend-mode: normal; }
+.hero h1 { font-size: var(--admin-hero-title-size, 68px) !important; }
+.hero .intro { font-size: var(--admin-hero-intro-size, 15px) !important; }
+.hero-copy .hero-actions {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 10px;
+  width: min(470px, 48vw);
+  margin-top: 8px;
+}
+.hero-copy .hero-actions > .button,
+.hero-copy .hero-actions > .quote-download .button {
+  order: 2;
+  flex: 0 0 auto;
+  min-height: 34px;
+  gap: 10px;
+  padding: 8px 11px;
+  font-size: 10.5px;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+.hero-copy .hero-actions .hero-promotion {
+  order: 1;
+  flex: 0 0 auto;
+  width: 100%;
+  min-width: 0;
+  min-height: 110px;
+  max-width: none;
+  margin-top: 0;
+  padding: 10px 13px;
+}
+
+@media (min-width: 761px) {
+  .hero { padding-top: 14px; padding-bottom: 12px; }
+  .hero-art {
+    width: var(--admin-banner-width-desktop, 520px);
+    max-width: none;
+    height: 222.857px;
+    min-height: 222.857px;
+    max-height: 222.857px;
+    aspect-ratio: auto;
+    justify-self: center;
+  }
+}
+
+.products {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 20px;
+  align-items: stretch;
+}
+
+.products[data-product-count="1"] {
+  grid-template-columns: minmax(260px, 360px) !important;
+  justify-content: start;
+}
+
+.products[data-product-count="2"] {
+  grid-template-columns: repeat(2, minmax(260px, 360px)) !important;
+  justify-content: start;
+}
+
+.product {
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid rgba(222, 214, 201, .95);
+  background: #fffdf8;
+  box-shadow: 0 2px 0 rgba(51, 35, 31, .02);
+}
+
+.product:hover { box-shadow: 0 16px 30px rgba(65, 45, 35, .11); }
+
+.product-media {
+  height: auto;
+  min-height: 0;
+  aspect-ratio: 1.32 / 1;
+  padding: 0;
+  border: 0;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--product-bg) 70%, white), #f8f5ef);
+}
+
+.product-media::before { width: 52%; height: auto; aspect-ratio: 1; top: auto; }
+
+.product-official-image {
+  display: block;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain !important;
+  object-position: center;
+  padding: 0;
+  background: transparent;
+}
+
+.product-media .tag {
+  top: 12px;
+  left: 12px;
+  padding: 5px 8px;
+  font-size: 9px;
+}
+
+.product-info { padding: 16px; }
+
+.product-info h3 {
+  min-height: 44px;
+  margin: 0;
+  font-size: var(--admin-product-title-size, 17px) !important;
+  line-height: 1.27;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.product-meta {
+  min-height: 17px;
+  margin: 4px 0 0;
+  color: var(--red);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .25px;
+}
+
+.product-info > p:not(.product-meta) {
+  min-height: 39px;
+  margin: 7px 0 15px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.62;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.product-bottom {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  min-height: 47px;
+  gap: 10px;
+  border-top: 1px solid rgba(222, 214, 201, .76);
+  padding-top: 12px;
+  min-width: 0;
+}
+
+.product-bottom-actions { display: flex; flex: 0 0 auto; align-items: center; gap: 10px; margin-left: 0; min-width: 0; justify-self:end; }
+
+.product-price-stack { display:flex; width:100%; min-width:0; flex-direction:column; flex-wrap:nowrap; align-items:flex-start; justify-content:center; gap:2px; }
+/* The cart action has its own grid column.  Prices are reduced by app.js when
+   needed, so their final currency character is never painted underneath it. */
+.price { display: block; min-width: 0; max-width:100%; color: var(--red); font-size: 24px; line-height: 1.12; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.price.is-contact { color: var(--ink); font-size: 14px; }
+.regular-price { display:block; max-width:100%; color:var(--muted); font-size:12px; line-height:1.15; text-decoration:line-through; text-decoration-thickness:1px; white-space:nowrap; }
+.discount-percent { display:inline-flex; align-items:center; min-height:18px; padding:1px 5px; border-radius:2px; background:var(--red); color:#fff; font-size:9px; font-weight:800; line-height:1; white-space:nowrap; }
+.product-discount-badge { position:absolute; top:10px; right:10px; z-index:8; min-height:27px; padding:5px 8px; border-radius:0; box-shadow:0 4px 12px rgba(0,0,0,.18); font-size:11px; letter-spacing:.02em; }
+
+.product-add,
+.product-contact {
+  min-height: 42px;
+  border: 1px solid var(--red);
+  background: var(--red);
+  color: #fff;
+  text-decoration: none;
+  font: 700 11px 'Be Vietnam Pro';
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.product-add {
+  display: inline-grid;
+  width: 42px;
+  min-width: 42px;
+  padding: 0;
+  place-items: center;
+}
+
+.product-contact { padding: 0 12px; }
+.product-cart-icon { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.9; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; clip-path: inset(50%); }
+.product-add:hover,.product-contact:hover { background: var(--wine); border-color: var(--wine); }
+
+.view-link {
+  display: none;
+  margin-top: 0;
+  color: var(--ink);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+#cartItems { min-height: 0; overflow: auto; padding-right: 2px; }
+
+.cart-item {
+  grid-template-columns: 58px minmax(0, 1fr) auto;
+  gap: 12px;
+}
+
+.cart-thumb {
+  display: grid;
+  width: 58px;
+  height: 58px;
+  overflow: hidden;
+  place-items: center;
+  background: var(--swatch, #eee5d4);
+}
+
+.cart-thumb img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.cart-item h3 { font-size: 12px; }
+.cart-item p { margin: 2px 0 4px; }
+.cart-line-total { display: block; margin-top: 4px; color: var(--ink); font-size: 11px; font-weight: 700; }
+.cart-item .remove { align-self: start; padding: 2px 0; }
+
+.checkout-summary {
+  margin: 0 0 24px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  background: #fbf8f2;
+}
+
+.checkout-summary-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.checkout-summary-head h3 { margin: 0; font-size: 14px; }
+.checkout-summary-head button { border: 0; border-bottom: 1px solid var(--ink); padding: 0 0 2px; background: none; color: var(--ink); font: 700 11px 'Be Vietnam Pro'; cursor: pointer; }
+.checkout-summary-item { display: grid; grid-template-columns: 42px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 9px 0; border-top: 1px solid rgba(222, 214, 201, .75); }
+.checkout-summary-item img,.checkout-summary-thumb { width: 42px; height: 42px; object-fit: contain; background: var(--swatch, #eee5d4); }
+.checkout-summary-item b { display: block; overflow: hidden; font-size: 11px; line-height: 1.45; text-overflow: ellipsis; white-space: nowrap; }
+.checkout-summary-item span { display: block; margin-top: 1px; color: var(--muted); font-size: 10px; }
+.checkout-summary-item strong { font-size: 11px; white-space: nowrap; }
+.checkout-summary-total { display: grid; gap: 5px; margin-top: 10px; padding-top: 12px; border-top: 1px solid var(--line); }
+.checkout-summary-total > div { display: flex; justify-content: space-between; gap: 15px; color: var(--muted); font-size: 11px; }
+.checkout-summary-total > div:last-child { padding-top: 6px; color: var(--ink); font-size: 13px; font-weight: 800; }
+.checkout-summary-empty { margin: 0; color: var(--muted); font-size: 12px; }
+
+.detail-description { white-space: pre-line; }
+.detail-meta { margin: 10px 0 0; color: var(--muted); font-size: 11px; }
+.detail-actions .button { min-height: 42px; }
+
+@media (min-width: 1280px) {
+  .products:not([data-product-count="1"]):not([data-product-count="2"]) { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+}
+
+@media (min-width: 761px) and (max-width: 1024px) {
+  .products:not([data-product-count="1"]) { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+}
+
+@media (max-width: 760px) {
+  .hero { padding: 18px 6vw 10px; }
+  .hero h1 { font-size: var(--admin-mobile-hero-title-size, 54px) !important; }
+  .hero .intro { margin: 10px 0; font-size: var(--admin-hero-intro-size, 15px) !important; }
+  .hero-copy .hero-actions { align-items: flex-start; flex-direction: column; gap: 8px; width: 100%; margin-top: 12px; }
+  .hero-copy .hero-actions .button { width: max-content; min-height: 40px; }
+  .hero-copy .hero-actions .hero-promotion { flex-basis: auto; width: 100%; min-height: 120px; max-width: none; padding: 12px 14px; }
+  .hero-art {
+    left: auto;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    aspect-ratio: 21 / 9;
+    margin: 12px auto 0;
+    transform: none;
+  }
+
+  .products { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 12px; }
+  .products[data-product-count="1"] { grid-template-columns: minmax(0, 1fr) !important; }
+  .products[data-product-count="2"] { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  .product-media { aspect-ratio: 1.2 / 1; }
+  .product-official-image { padding: 0; }
+  .product-info { padding: 13px; }
+  .product-info h3 { min-height: 36px; font-size: var(--admin-mobile-product-title-size, 13.5px) !important; }
+  .product-meta { min-height: 15px; font-size: 9px; }
+  .product-info > p:not(.product-meta) { min-height: 34px; margin: 5px 0 11px; font-size: 11px; line-height: 1.5; }
+  .product-bottom { min-height: 45px; padding-top: 10px; }
+  .product-price-stack { gap:1px; }
+  .price { font-size: 19px; }
+  .regular-price { font-size:10px; }
+  .product-add,.product-contact { min-height: 42px; font-size: 10px; }
+  .product-add { width: 42px; min-width: 42px; }
+  .product-contact { padding: 0 10px; }
+  .product-bottom-actions { gap: 7px; }
+  .view-link { margin-top: 0; font-size: 10px; }
+
+  .checkout-summary { margin-bottom: 20px; padding: 14px; }
+  .checkout-summary-item { grid-template-columns: 38px minmax(0, 1fr) auto; }
+  .checkout-summary-item img,.checkout-summary-thumb { width: 38px; height: 38px; }
+  .cart-drawer #cartItems { padding-bottom: 8px; }
+}
+
+@media (max-width: 480px) {
+  .products,.products[data-product-count="2"] { grid-template-columns: minmax(0, 1fr) !important; }
+  .product-media { aspect-ratio: 1.5 / 1; }
+  .product-info { padding: 12px 13px 11px; }
+  .product-info h3 { min-height: auto; font-size: var(--admin-mobile-single-product-title-size, 14px) !important; }
+  .product-meta { min-height: auto; font-size: 10px; }
+  .product-info > p:not(.product-meta) { min-height: auto; font-size: 12px; }
+  .product-bottom { min-height: 42px; padding-top: 7px; }
+  .price { font-size: 22px; }
+  .product-add,.product-contact { min-height: 44px; font-size: 11px; }
+  .product-add { width: 44px; min-width: 44px; }
+  .product-contact { padding: 0 14px; }
+  .view-link { margin-top: 0; }
+}

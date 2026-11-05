@@ -1,0 +1,188 @@
+/*
+ * The modal shell contains #productDetailBody, which in turn contains the
+ * artwork and product copy. Put the grid on that body (rather than the shell)
+ * so the two visible blocks always occupy the intended columns.
+ */
+.product-modal-card {
+  width: min(1040px, calc(100vw - 32px));
+  max-width: none;
+  /* Keep the media frame useful, but do not reserve a large empty tail below
+     the cart action when the product has a long feature list. */
+  min-height: 360px;
+  max-height: 88dvh;
+  display: block !important;
+  overflow: auto;
+  position: relative;
+}
+
+#productDetailBody {
+  min-width: 0;
+  min-height: 360px;
+  display: grid;
+  /* Give the product artwork more room while preserving enough space for options. */
+  grid-template-columns: minmax(340px, 52%) minmax(0, 48%);
+  grid-template-rows: minmax(0, 1fr);
+  align-items: stretch;
+}
+
+.detail-art {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0 !important;
+  min-height: 360px;
+  height: 100%;
+  width: auto !important;
+}
+
+.detail-gallery {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  overflow: hidden;
+  touch-action: pan-y;
+}
+
+.detail-gallery .detail-official-image {
+  width: 100%;
+  height: 100%;
+}
+
+.detail-gallery-control {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  translate: 0 -50%;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(18, 18, 18, .72);
+  color: #fff;
+  font: 400 32px/1 Arial, sans-serif;
+  cursor: pointer;
+}
+
+.detail-gallery-control.is-prev { left: 14px; }
+.detail-gallery-control.is-next { right: 14px; }
+.detail-gallery-count {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  z-index: 2;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(18, 18, 18, .72);
+  color: #fff;
+  font: 700 10px 'Be Vietnam Pro', sans-serif;
+}
+
+.detail-copy {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0 !important;
+  width: auto !important;
+  padding: 20px 28px 10px;
+  overflow-wrap: anywhere;
+}
+
+.detail-official-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  object-fit: contain;
+  background: #f4eee4;
+}
+
+.detail-image-placeholder {
+  align-self: center;
+}
+
+.detail-copy h2 {
+  font-size: clamp(16px, 1.5vw, 23px);
+  word-break: break-word;
+  white-space: pre-line;
+}
+
+.detail-copy dl {
+  margin: 9px 0 10px;
+}
+
+.detail-copy > p:not(.eyebrow) { margin: 7px 0 !important; }
+.detail-copy dl div { padding: 5px 0; }
+.detail-copy dd { line-height: 1.45; white-space: pre-line; }
+
+.detail-actions {
+  padding: 0;
+  margin: 0;
+}
+
+@media (max-width: 760px) {
+  .product-modal {
+    padding: 10px;
+  }
+
+  .product-modal-card {
+    width: 100%;
+    min-height: 0;
+    height: auto;
+    max-height: 92dvh;
+  }
+
+  #productDetailBody {
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 190px auto;
+  }
+
+  .detail-art {
+    grid-column: 1;
+    grid-row: 1;
+    min-height: 190px;
+    height: 190px;
+    background: #fff !important;
+  }
+
+  /* Keep the unused space around a portrait/contained image white on mobile. */
+  .detail-gallery,
+  .detail-image-placeholder {
+    background: #fff !important;
+  }
+
+  .detail-gallery-control { width: 32px; height: 32px; font-size: 27px; }
+  .detail-gallery-control.is-prev { left: 9px; }
+  .detail-gallery-control.is-next { right: 9px; }
+  .detail-gallery-count { right: 9px; bottom: 9px; }
+
+  .detail-copy {
+    grid-column: 1;
+    grid-row: 2;
+    padding: 14px 16px 6px;
+  }
+
+  .detail-copy h2 {
+    font-size: 17px;
+    margin-bottom: 6px;
+  }
+
+  .detail-copy dl { margin: 7px 0 7px; }
+  .detail-copy dl div { padding: 4px 0; }
+  .detail-copy > p:not(.eyebrow) { margin: 4px 0 !important; }
+  .detail-actions { padding-top: 0; }
+
+  .modal-close {
+    z-index: 4;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .88);
+  }
+
+  .detail-official-image {
+    object-fit: contain;
+    background: #fff !important;
+  }
+}

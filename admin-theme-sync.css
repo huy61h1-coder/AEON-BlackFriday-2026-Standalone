@@ -1,0 +1,92 @@
+/* Color bridge: the admin uses the same saved layout palette as the storefront. */
+.admin-body{background:linear-gradient(135deg,var(--paper) 0%,var(--cream) 49%,var(--admin-page-tint,var(--paper)) 100%);color:var(--ink)}
+.admin-body:before{background:radial-gradient(circle,color-mix(in srgb,var(--red) 13%,transparent),transparent 68%)}
+.admin-sidebar{background:linear-gradient(155deg,var(--wine) 0%,var(--admin-sidebar-deep,var(--wine)) 100%)}
+.admin-sidebar .brand small{color:color-mix(in srgb,var(--cream) 84%,white)}
+.admin-sidebar nav button:before{background:color-mix(in srgb,var(--cream) 72%,var(--red))}.admin-sidebar nav button.active{background:var(--red)}
+.admin-sidebar nav button.active:before{background:var(--cream)}.admin-sidebar nav button:hover{border-color:color-mix(in srgb,var(--cream) 30%,transparent)}
+.admin-content>header{background:linear-gradient(to bottom,color-mix(in srgb,var(--cream) 97%,transparent) 72%,transparent)}
+.stats article,.admin-card{background:var(--admin-surface,#fff);border-color:var(--admin-line,#ded6c9)}.stats article:nth-child(2):before{background:var(--paper)}.stats article:nth-child(3):before{background:var(--wine)}.stats article:nth-child(4):before{background:color-mix(in srgb,var(--red) 55%,var(--paper))}
+.admin-toolbar,.quick-product-row,.import-candidate,.quote-file-card,.brand-settings-group,.account-permissions,.account-permission-option{background:var(--admin-surface-muted,#fbf8f1);border-color:var(--admin-line,#ded6c9)!important}
+.admin-login form,.admin-content input:not([type="file"]):not([type="color"]):not([type="range"]):not([type="checkbox"]),.admin-content textarea,.admin-content select{background:var(--admin-surface,#fff)!important;border-color:var(--admin-line,#ded6c9)!important;color:var(--ink)}
+.admin-content input[readonly]{background:var(--admin-surface-muted,#f2ede2)!important;color:color-mix(in srgb,var(--ink) 70%,var(--cream))}.admin-content input:focus,.admin-content textarea:focus,.admin-content select:focus{border-color:var(--red)!important;box-shadow:0 0 0 3px color-mix(in srgb,var(--red) 14%,transparent)}
+.secondary-button{border-color:var(--admin-accent-border,#d9c7bc);background:var(--admin-surface,#fff);color:var(--wine)}.secondary-button:hover{border-color:var(--red);background:var(--admin-accent-soft,#fff1f3);color:var(--red)}
+.danger{border-color:var(--admin-accent-border,#ead0d6);background:var(--admin-accent-soft,#fff8f8);color:var(--wine)}.danger:hover{border-color:var(--red);background:color-mix(in srgb,var(--red) 12%,var(--cream))}
+.quick-product-manager,.customer-data-card{border-top-color:var(--red)}.import-products,.account-editor{border-top-color:var(--wine)}.account-directory{border-top-color:var(--red)}.quick-product-status{background:var(--admin-surface-muted);border-left-color:var(--red)}
+.table-row:hover,.quick-product-row:hover{background:color-mix(in srgb,var(--admin-surface-muted) 76%,var(--red) 8%)}.edit-product{border-color:var(--admin-accent-border);background:var(--admin-accent-soft);color:var(--ink)}.edit-product:hover{border-color:var(--red);background:color-mix(in srgb,var(--red) 22%,var(--admin-surface))}
+.customer-order-card,.sheet-sync-stats span{border-color:var(--admin-line);background:var(--admin-surface-muted)}.order-pdf-button{background:var(--wine)}.order-pdf-button:hover{background:var(--red)}.dashboard-shortcut-list button{border-color:var(--admin-line);background:var(--admin-surface-muted)}.dashboard-shortcut-list button:hover{border-color:var(--red)}.dashboard-shortcut-list span{color:var(--red)}
+.admin-notice{background:color-mix(in srgb,#315832 18%,var(--admin-surface))!important;color:var(--ink)!important;border-left-color:#54a66b!important}
+
+/* Keep every admin control readable when the storefront palette is dark. */
+:root[data-admin-theme="dark"]{color-scheme:dark}
+.admin-content{color:var(--ink)}
+.admin-content .secondary-button,
+.admin-content .sheet-sync-card .secondary-button,
+.admin-content .quick-detail,
+.admin-content .quick-remove,
+.admin-content .edit-product,
+.admin-content .delete-product-setting,
+.admin-content .import-close,
+.admin-content .storefront-admin-upload button{border:1px solid var(--admin-accent-border)!important;background:var(--admin-surface-muted)!important;color:var(--ink)!important}
+.admin-content .secondary-button:hover,
+.admin-content .sheet-sync-card .secondary-button:hover,
+.admin-content .quick-detail:hover,
+.admin-content .quick-remove:hover,
+.admin-content .edit-product:hover,
+.admin-content .delete-product-setting:hover,
+.admin-content .import-close:hover,
+.admin-content .storefront-admin-upload button:hover{border-color:var(--red)!important;background:var(--admin-accent-soft)!important;color:var(--ink)!important}
+.admin-content .danger{border:1px solid var(--admin-accent-border)!important;background:var(--admin-accent-soft)!important;color:var(--red)!important}
+:root[data-admin-theme="dark"] .admin-content .danger{color:var(--ink)!important}
+.admin-content .danger:hover{border-color:var(--red)!important;background:color-mix(in srgb,var(--red) 28%,var(--admin-surface))!important;color:var(--ink)!important}
+.admin-content .button.primary{border-color:var(--red);background:var(--red);color:#fff}
+.admin-content :is(button,a,input,select,textarea,[tabindex]):focus-visible{outline:3px solid color-mix(in srgb,var(--red) 72%,white);outline-offset:2px}
+.admin-content input::placeholder,.admin-content textarea::placeholder{color:var(--muted);opacity:1}
+.admin-content input[type="file"]{color:var(--ink)}
+.admin-content .brand-settings-group,
+.admin-content .quote-file-card,
+.admin-content .import-candidate,
+.admin-content .account-permissions,
+.admin-content .account-permission-option,
+.admin-content .quick-product-row,
+.admin-content .sheet-sync-stats span,
+.admin-content .customer-order-card,
+.admin-content .customer-no-order{border-color:var(--admin-line)!important;background:var(--admin-surface-muted)!important;color:var(--ink)}
+.admin-content .brand-settings-group small,
+.admin-content .quote-file-status.is-empty,
+.admin-content .customer-record-header p,
+.admin-content .customer-record-total b,
+.admin-content .customer-record-total small{color:var(--muted)}
+.admin-content .asset-preview,
+.admin-content .storefront-admin-image-preview{border-color:var(--admin-line);background:var(--admin-surface-muted);color:var(--muted)}
+.admin-content .asset-preview img{background:var(--admin-surface)}
+.admin-content .import-dropzone{border-color:var(--admin-accent-border);background:var(--admin-surface-muted);color:var(--ink)}
+.admin-content .import-dropzone:hover,.admin-content .import-dropzone:focus-within{border-color:var(--red);background:var(--admin-accent-soft)}
+.admin-content .import-result-head,
+.admin-content .import-empty,
+.admin-content .import-error,
+.admin-content .import-source-text pre,
+.admin-content .import-empty pre{border-color:var(--admin-line);background:var(--admin-surface-muted);color:var(--ink)}
+.admin-content .import-badge{border:1px solid var(--admin-accent-border);background:var(--admin-accent-soft);color:var(--ink)}
+.admin-content .import-notices,.admin-content .import-row-warnings{border-left-color:#d69b49;background:color-mix(in srgb,#d69b49 16%,var(--admin-surface));color:var(--ink)}
+.admin-content .import-notices p,.admin-content .import-row-warnings p{color:var(--ink)}
+.admin-content .import-error{border-left-color:var(--red);color:var(--ink)}
+.admin-content .account-owner-badge,
+.admin-content .account-status,
+.admin-content .account-count{border:1px solid var(--admin-line);background:var(--admin-surface);color:var(--ink)}
+.admin-content .account-status.is-active{background:color-mix(in srgb,#4caa6b 20%,var(--admin-surface));color:var(--ink)}
+.admin-content .account-row.is-disabled{opacity:.82}
+.admin-content .account-permission-option:hover{border-color:var(--red)!important;background:var(--admin-accent-soft)!important}
+.admin-content .sheet-sync-stats .has-error b{color:var(--red)}
+.admin-content .customer-record-header blockquote{color:var(--muted)}
+.admin-content .layout-editor .layout-range{background:var(--admin-line)!important}
+.admin-content .layout-editor .layout-range::-webkit-slider-thumb{border-color:var(--admin-surface)}
+.admin-content .layout-editor .layout-range::-moz-range-thumb{border-color:var(--admin-surface)}
+.admin-content .product-variant-editor,.admin-content .product-variant-row,.admin-content .import-variant-editor .product-variant-row{border-color:var(--admin-line)!important;background:var(--admin-surface-muted)!important;color:var(--ink)}
+.admin-content .product-variant-editor legend,.admin-content .product-variant-editor p{color:var(--ink)}
+.admin-content .empty-admin,.admin-content .admin-card-description{color:var(--muted)}
+.admin-content .product-promotion-fields{grid-column:1/-1;border:1px solid var(--admin-line);background:var(--admin-surface-muted);padding:14px 16px;color:var(--ink)}
+.admin-content .product-promotion-fields legend{padding:0 7px;color:var(--red);font-weight:800}
+.admin-content .product-promotion-fields>p{margin:0 0 12px;color:var(--muted);font-size:11px}
+.admin-content .product-promotion-fields .admin-form-grid{padding:0}
+.admin-content .product-promotion-fields label{color:var(--ink)}
