@@ -39,6 +39,3 @@ output/
 outputs/
 tmp/
 *.inspect.ndjson
-
-# Product catalogue seed is supplied separately
-.aeon-store.seed.json

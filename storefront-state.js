@@ -13,13 +13,13 @@ const canonicalStorefrontState = {
     "collectionTitle": "Deal hot\nBlack Friday.",
     "collectionNote": "Sản phẩm minh họa có thể thay nhanh bằng file Excel trong trang quản trị.",
     "heroImage": "/assets/black-friday-hero.svg",
-    "heroPreviewVersion": "blackfriday-local-20261105",
+    "heroPreviewVersion": "blackfriday-20261103",
     "logoText": "AEON",
     "logoSubtitle": "",
     "logoImage": "",
     "logoMode": "text",
-    "campaignSchedule": "25/11 – 01/12/2026",
     "quoteExcelUrl": "",
+    "campaignSchedule": "25/11 – 01/12/2026",
     "quotePdfUrl": ""
   },
   "aeon-layout": {
@@ -40,7 +40,7 @@ const canonicalStorefrontState = {
     "heroHeight": 0,
     "sectionSpacing": 0,
     "productImageHeight": 0,
-    "productColumns": 5,
+    "productColumns": 4,
     "productColumnsMobile": 2,
     "fontFamily": "aeon-default",
     "logoSize": 18
