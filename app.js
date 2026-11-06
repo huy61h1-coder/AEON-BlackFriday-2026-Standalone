@@ -869,8 +869,16 @@ function applyGiftRibbonBackground(ui) {
     imageUrl = '';
   }
   const root = document.documentElement;
-  if (imageUrl) root.style.setProperty('--bf-gift-ribbon-image', `url("${imageUrl}")`);
+  if (imageUrl) root.style.setProperty('--bf-gift-ribbon-image', `url(${JSON.stringify(imageUrl)})`);
   else root.style.removeProperty('--bf-gift-ribbon-image');
+
+  // Apply the saved setting directly after markup is created. This keeps
+  // product cards and the detail view in sync even when a stylesheet or
+  // browser cache still holds the previous ribbon artwork.
+  document.querySelectorAll('.bf-gift-ribbon').forEach(ribbon => {
+    if (imageUrl) ribbon.style.setProperty('background-image', `url(${JSON.stringify(imageUrl)})`, 'important');
+    else ribbon.style.removeProperty('background-image');
+  });
 }
 
 function applyUi() {
@@ -1189,6 +1197,7 @@ function renderProducts() {
       ? `<div class="catalog-empty brand-empty"><span>✦</span><h3>Không tìm thấy sản phẩm phù hợp</h3><p>Hãy thử từ khóa khác, đổi nhãn hiệu hoặc xem toàn bộ danh mục.</p><button type="button" class="catalog-admin-add" data-clear-catalog-filters>Xóa bộ lọc</button></div>`
       : `<div class="catalog-empty"><span>✦</span><h3>Danh mục đang được cập nhật</h3><p>Hình ảnh, thông tin sản phẩm và giá bán sẽ được bổ sung ngay khi có công bố chính thức.</p>${isStorefrontAdmin() ? '<button type="button" class="catalog-admin-add" data-storefront-new>+ Tạo sản phẩm đầu tiên</button>' : ''}</div>`;
     grid.innerHTML = emptyContent;
+    applyGiftRibbonBackground(aeonStore.ui());
     renderCart();
     return;
   }
@@ -1218,6 +1227,7 @@ function renderProducts() {
       </div>
     </article>`;
   }).join('');
+  applyGiftRibbonBackground(aeonStore.ui());
   attachImageFallbacks(grid);
   scheduleProductPriceFit();
   renderCart();
@@ -1409,6 +1419,7 @@ function openProductDetail(id) {
   const featureText = String(product.ingredients || 'Thông tin đang cập nhật').replace(/\s*-\s*/g, '\n- ');
   $('#productDetailBody').innerHTML = `<div class="detail-art" style="--product-bg:${safeColor(product.bg)}">${productSaleOverlayMarkup(product)}${detailGalleryMarkup(product)}</div>
     <div class="detail-copy">${product.brand ? `<p class="detail-brand">${escapeHtml(product.brand)}</p>` : ''}${product.label ? `<p class="eyebrow">${escapeHtml(product.label)}</p>` : ''}<h2>${escapeHtml(String(product.name || ''))}</h2><p class="detail-price" id="detailPrice">${priceLabel(product)}</p>${variants ? `<section class="detail-variant-picker" aria-labelledby="detailVariantLabel"><div class="detail-variant-head"><span id="detailVariantLabel">${escapeHtml(variantPrompt)}</span><b id="detailVariantStatus">Vui lòng chọn một lựa chọn</b></div><div class="detail-variant-options" role="group" aria-label="${escapeHtml(variantLabel)}">${product.variants.map(variant => `<button type="button" data-detail-variant="${escapeHtml(variant.id)}" aria-pressed="false"><span>${escapeHtml(variant.name)}</span><strong>${variant.price > 0 ? fmt(variant.price) : 'Liên hệ'}</strong></button>`).join('')}</div></section>` : ''}<p class="detail-meta" id="detailSku"${product.sku ? '' : ' hidden'}>${product.sku ? `Mã sản phẩm: ${escapeHtml(product.sku)}` : ''}</p><dl><div><dt>Tính năng nổi bật</dt><dd>${escapeHtml(featureText)}</dd></div><div><dt>Kích thước</dt><dd>${escapeHtml(product.weight || 'Thông tin đang cập nhật')}</dd></div></dl><div class="detail-actions">${variants ? `<button class="button primary" data-detail-add="${escapeHtml(product.id)}" id="detailAdd" disabled>${escapeHtml(variantPrompt)}</button><button class="quantity-button" data-detail-qty="-1" aria-label="Giảm số lượng">−</button><b id="detailQty">1</b><button class="quantity-button" data-detail-qty="1" aria-label="Tăng số lượng">+</button>` : canOrder ? `<button class="button primary" data-detail-add="${escapeHtml(product.id)}" id="detailAdd">Thêm vào giỏ <span>→</span></button><button class="quantity-button" data-detail-qty="-1" aria-label="Giảm số lượng">−</button><b id="detailQty">1</b><button class="quantity-button" data-detail-qty="1" aria-label="Tăng số lượng">+</button>` : '<a class="button primary" href="tel:0327747337">Liên hệ tư vấn <span>→</span></a>'}</div></div>`;
+  applyGiftRibbonBackground(aeonStore.ui());
   modal.dataset.id = id;
   modal.dataset.qty = '1';
   modal.dataset.variantId = '';
