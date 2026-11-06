@@ -3,7 +3,7 @@
 // never replace the current product catalogue or product images.
 const canonicalStorefrontState = {
   "aeon-ui": {
-    "storefrontRevision": "blackfriday-20261104-v7",
+    "storefrontRevision": "blackfriday-20261106-v8",
     "eyebrow": "BLACK FRIDAY 2026",
     "title": "BlackFriday",
     "intro": "BlackFriday 2026, Top sản phẩm có giá ưu đãi đặc biệt.",
@@ -12,18 +12,18 @@ const canonicalStorefrontState = {
     "promotionText": "Ưu đãi Black Friday từ 25/11 đến 01/12/2026.<br>• Giá đặc biệt cho sản phẩm được chọn.<br>• Số lượng có hạn tại từng điểm bán.<br>• Không áp dụng đồng thời với các chương trình khác.",
     "collectionTitle": "Deal hot\nBlack Friday.",
     "collectionNote": "Sản phẩm minh họa có thể thay nhanh bằng file Excel trong trang quản trị.",
-    "heroImage": "/assets/black-friday-hero.svg",
-    "heroPreviewVersion": "blackfriday-20261103",
+    "heroImage": "https://res.cloudinary.com/rnrbw9za/image/upload/v1793679407/bf_yggx12.png",
+    "heroPreviewVersion": "blackfriday-20261106-brand-assets-v1",
     "logoText": "AEON",
     "logoSubtitle": "",
-    "logoImage": "",
-    "logoMode": "text",
+    "logoImage": "https://res.cloudinary.com/rnrbw9za/image/upload/v1793680754/logo_055_levnph.png",
+    "logoMode": "image",
     "quoteExcelUrl": "",
     "campaignSchedule": "25/11 – 01/12/2026",
     "quotePdfUrl": ""
   },
   "aeon-layout": {
-    "storefrontRevision": "blackfriday-20261104-v7",
+    "storefrontRevision": "blackfriday-20261106-v8",
     "heroTitleSize": 35,
     "heroIntroSize": 13,
     "bannerAspectRatio": 1.5,

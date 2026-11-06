@@ -1468,7 +1468,7 @@ const AEON_DEFAULT_PRODUCTS = [
 ];
 // Only storefront settings carrying this revision may replace the current
 // Black Friday shell. Product data remains independent and is never cleared.
-const AEON_STOREFRONT_REVISION = 'blackfriday-20261104-v7';
+const AEON_STOREFRONT_REVISION = 'blackfriday-20261106-v8';
 function cleanDealSlotCount(value, fallback = 0) {
   if (value == null || String(value).trim() === '') return fallback;
   const number = Number(value);
@@ -1590,12 +1590,12 @@ const AEON_DEFAULT_UI = {
   promotionText: 'Ngày 03/08 – 19/08:  từ 1 triệu trở lên: 8%<br>Ngày 20/08 – 25/09:<br>• Từ 3triệu – 10triệu: Chiết khấu 5%|• Trên 10triệu – 15triệu: Chiết khấu 10%<br>• Trên 15triệu – 30triệu: Chiết khấu 12%|• Trên 30triệu: Chiết khấu 15%<br>*Hình thức chiết khấu: Phiếu ưu đãi. Áp dụng cho hộp bánh không rượu.<br>*Không Áp dụng giảm giá ngày Member(5&amp;20).',
   collectionTitle: 'Deal hot\nBlack Friday.',
   collectionNote: 'Sản phẩm minh họa có thể thay nhanh bằng file Excel trong trang quản trị.',
-  heroImage: '/assets/black-friday-hero.svg',
-  heroPreviewVersion: '',
+  heroImage: 'https://res.cloudinary.com/rnrbw9za/image/upload/v1793679407/bf_yggx12.png',
+  heroPreviewVersion: 'blackfriday-20261106-brand-assets-v1',
   logoText: 'AEON',
   logoSubtitle: '',
-  logoImage: '',
-  logoMode: 'text',
+  logoImage: 'https://res.cloudinary.com/rnrbw9za/image/upload/v1793680754/logo_055_levnph.png',
+  logoMode: 'image',
   campaignSchedule: '25/11 – 01/12/2026',
   quoteExcelUrl: '',
   quotePdfUrl: ''
@@ -1692,7 +1692,7 @@ function renderAeonBrandLogos(ui = {}, root = document) {
 }
 
 const AEON_DEFAULT_LAYOUT = {
-  storefrontRevision: 'blackfriday-20261104-v7',
+  storefrontRevision: 'blackfriday-20261106-v8',
   heroTitleSize: 35,
   heroIntroSize: 13,
   bannerAspectRatio: 1.5,
