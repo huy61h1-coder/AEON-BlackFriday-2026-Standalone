@@ -383,3 +383,23 @@ footer { background:#050505!important; border-top:1px solid var(--bf-line); } fo
 }
 .bf-gift-ribbon::after{content:none!important;display:none!important}
 .bf-gift-bow{visibility:hidden!important}
+
+/* Keep gift details in a dedicated readable lane above the transparent artwork. */
+.bf-gift-copy{
+  position:absolute!important;left:30%!important;right:20%!important;top:65%!important;transform:translateY(-50%)!important;
+  display:flex!important;align-items:baseline!important;justify-content:flex-start!important;gap:10px!important;
+  width:auto!important;max-width:none!important;min-width:0!important;padding:0!important;margin:0!important;
+  overflow:hidden!important;white-space:nowrap!important;z-index:9!important;
+}
+.bf-gift-copy strong,.bf-gift-copy em{
+  display:block!important;position:static!important;flex:0 0 auto!important;min-width:max-content!important;
+  max-width:none!important;overflow:visible!important;text-overflow:clip!important;white-space:nowrap!important;
+  visibility:visible!important;opacity:1!important;line-height:1.1!important
+}
+.bf-gift-copy strong{color:#fff!important;-webkit-text-fill-color:#fff!important}
+.bf-gift-copy em{color:#ffe27a!important;-webkit-text-fill-color:#ffe27a!important}
+.detail-art>.bf-gift-promo .bf-gift-copy{left:30%!important;right:20%!important;top:65%!important;gap:14px!important;padding:0!important}
+@media(max-width:760px){
+  .bf-gift-copy{left:29%!important;right:19%!important;top:66%!important;gap:5px!important}
+  .detail-art>.bf-gift-promo .bf-gift-copy{left:29%!important;right:20%!important;top:66%!important;gap:8px!important}
+}

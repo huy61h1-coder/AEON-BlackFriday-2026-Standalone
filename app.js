@@ -163,6 +163,56 @@ function productSaleOverlayMarkup(product) {
   </svg>`;
   return `<span class="bf-gift-promo" role="img" aria-label="Tặng ${escapeHtml(name)}, trị giá ${escapeHtml(value)}"><span class="bf-gift-photo"><img src="${escapeHtml(image)}" alt="" data-image-fallback><span data-image-placeholder hidden>✦</span></span><span class="bf-gift-ribbon">${bow}<span class="bf-gift-copy"><strong>TẶNG ${escapeHtml(name)}</strong><em>TRỊ GIÁ ${escapeHtml(value)}</em></span></span></span>`;
 }
+const giftCopyCanvasContext = document.createElement('canvas').getContext('2d');
+const giftCopyObserved = new WeakSet();
+const giftCopyResizeObserver = typeof ResizeObserver === 'function'
+  ? new ResizeObserver(entries => entries.forEach(entry => fitGiftCopyText(entry.target)))
+  : null;
+
+function fitGiftCopyText(copy) {
+  const strong = copy?.querySelector('strong');
+  const value = copy?.querySelector('em');
+  if (!strong || !value || !giftCopyCanvasContext || !copy.isConnected) return;
+  const narrow = window.matchMedia('(max-width: 760px)').matches;
+  const detail = Boolean(copy.closest('.detail-art'));
+  const maxStrong = detail ? (narrow ? 14 : 18) : (narrow ? 11 : 16);
+  const maxValue = detail ? (narrow ? 12 : 15) : (narrow ? 10 : 13);
+  const widthAt = (element, size) => {
+    const style = getComputedStyle(element);
+    giftCopyCanvasContext.font = `${style.fontStyle} ${style.fontWeight} ${size}px ${style.fontFamily}`;
+    let text = element.textContent.trim();
+    if (style.textTransform === 'uppercase') text = text.toLocaleUpperCase('vi-VN');
+    const spacing = Number.parseFloat(style.letterSpacing) || 0;
+    return giftCopyCanvasContext.measureText(text).width + Math.max(0, text.length - 1) * spacing;
+  };
+  const available = Math.max(0, copy.clientWidth);
+  const gap = Number.parseFloat(getComputedStyle(copy).columnGap) || 0;
+  const naturalWidth = widthAt(strong, maxStrong) + widthAt(value, maxValue) + gap;
+  if (!available || !naturalWidth) return;
+  const scale = Math.max(0.25, Math.min(1, (available - 4) / naturalWidth));
+  strong.style.fontSize = `${Math.round(maxStrong * scale * 10) / 10}px`;
+  value.style.fontSize = `${Math.round(maxValue * scale * 10) / 10}px`;
+}
+
+function watchGiftCopySizing(root = document) {
+  const copies = [];
+  if (root.nodeType === 1 && root.matches('.bf-gift-copy')) copies.push(root);
+  if (root.querySelectorAll) copies.push(...root.querySelectorAll('.bf-gift-copy'));
+  copies.forEach(copy => {
+    fitGiftCopyText(copy);
+    if (giftCopyResizeObserver && !giftCopyObserved.has(copy)) {
+      giftCopyObserved.add(copy);
+      giftCopyResizeObserver.observe(copy);
+    }
+  });
+}
+
+watchGiftCopySizing();
+new MutationObserver(records => records.forEach(record => record.addedNodes.forEach(node => {
+  if (node.nodeType === 1) watchGiftCopySizing(node);
+}))).observe(document.body, {childList:true, subtree:true});
+window.addEventListener('resize', () => watchGiftCopySizing(), {passive:true});
+if (document.fonts?.ready) document.fonts.ready.then(() => watchGiftCopySizing()).catch(() => {});
 function hasVariants(product) {
   return Array.isArray(product.variants) && product.variants.length > 0;
 }
