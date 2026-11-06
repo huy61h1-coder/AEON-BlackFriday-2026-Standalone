@@ -409,6 +409,6 @@ footer { background:#050505!important; border-top:1px solid var(--bf-line); } fo
 
 /* Reduce only the product-card ribbon height by one third on small screens. */
 @media(max-width:760px){
-  .product-media .bf-gift-bow{height:40px!important}
-  .product-media .bf-gift-ribbon{min-height:40px}
+  .product-media .bf-gift-bow{height:27px!important}
+  .product-media .bf-gift-ribbon{min-height:27px}
 }
