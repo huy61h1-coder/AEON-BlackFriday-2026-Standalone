@@ -467,3 +467,19 @@ footer { background:#050505!important; border-top:1px solid var(--bf-line); } fo
     width:clamp(55px,20.5vw,65px)!important;height:clamp(58px,21.5vw,68px)!important
   }
 }
+
+/* Anchor the gift cutout to the ribbon's bottom-right corner and reserve its lane. */
+.product-media .bf-gift-ribbon{right:0!important;bottom:6px!important;left:0!important}
+.product-media .bf-gift-photo{right:0!important;bottom:6px!important}
+.detail-art>.bf-gift-promo .bf-gift-ribbon{right:12px!important;bottom:12px!important;left:12px!important}
+.detail-art>.bf-gift-promo .bf-gift-photo{right:12px!important;bottom:12px!important}
+.product-media .bf-gift-ribbon .bf-gift-copy{right:clamp(48px,22%,64px)!important}
+.detail-art>.bf-gift-promo .bf-gift-ribbon .bf-gift-copy{right:clamp(74px,12%,108px)!important}
+@media(max-width:760px){
+  .product-media .bf-gift-ribbon{bottom:4px!important}
+  .product-media .bf-gift-photo{bottom:4px!important}
+  .detail-art>.bf-gift-promo .bf-gift-ribbon{right:8px!important;bottom:8px!important;left:8px!important}
+  .detail-art>.bf-gift-promo .bf-gift-photo{right:8px!important;bottom:8px!important}
+  .product-media .bf-gift-ribbon .bf-gift-copy{right:48px!important}
+  .detail-art>.bf-gift-promo .bf-gift-ribbon .bf-gift-copy{right:74px!important}
+}
