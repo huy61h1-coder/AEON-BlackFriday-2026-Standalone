@@ -426,7 +426,7 @@ footer { background:#050505!important; border-top:1px solid var(--bf-line); } fo
 /* Keep the ribbon to one third of the former artwork-led height. */
 .bf-gift-bow{display:none!important}
 .bf-gift-ribbon{height:29px!important;min-height:29px!important;max-height:29px!important;padding:0!important}
-.detail-art>.bf-gift-promo .bf-gift-ribbon{height:34px!important;min-height:34px!important;max-height:34px!important}
+.detail-art>.bf-gift-promo .bf-gift-ribbon{height:50px!important;min-height:50px!important;max-height:50px!important}
 .bf-gift-copy{
   top:50%!important;transform:translateY(-50%)!important;align-items:center!important;gap:5px!important;
   font-family:'Be Vietnam Pro',Arial,sans-serif!important;font-weight:700!important;
@@ -436,6 +436,6 @@ footer { background:#050505!important; border-top:1px solid var(--bf-line); } fo
 @media(max-width:760px){
   .product-media .bf-gift-ribbon{height:9px!important;min-height:9px!important;max-height:9px!important}
   .bf-gift-copy{gap:2px!important}
-  .detail-art>.bf-gift-promo .bf-gift-ribbon{height:24px!important;min-height:24px!important;max-height:24px!important}
+  .detail-art>.bf-gift-promo .bf-gift-ribbon{height:36px!important;min-height:36px!important;max-height:36px!important}
   .detail-art>.bf-gift-promo .bf-gift-copy{gap:5px!important}
 }
