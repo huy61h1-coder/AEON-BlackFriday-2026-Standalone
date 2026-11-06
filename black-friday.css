@@ -483,3 +483,15 @@ footer { background:#050505!important; border-top:1px solid var(--bf-line); } fo
   .product-media .bf-gift-ribbon .bf-gift-copy{right:48px!important}
   .detail-art>.bf-gift-promo .bf-gift-ribbon .bf-gift-copy{right:74px!important}
 }
+
+/* Enlarge only the gift product cutout on the main product cards by 30%. */
+.product-media .bf-gift-photo{
+  width:clamp(57px,5.85vw,78px)!important;height:clamp(70px,7.15vw,95px)!important
+}
+.product-media .bf-gift-ribbon .bf-gift-copy{right:clamp(62px,28.6%,83px)!important}
+@media(max-width:760px){
+  .product-media .bf-gift-photo{
+    width:clamp(49px,18.2vw,57px)!important;height:clamp(60px,22.4vw,70px)!important
+  }
+  .product-media .bf-gift-ribbon .bf-gift-copy{right:62px!important}
+}
