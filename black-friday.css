@@ -445,3 +445,25 @@ footer { background:#050505!important; border-top:1px solid var(--bf-line); } fo
 .detail-art>.bf-gift-promo .bf-gift-ribbon .bf-gift-copy{
   left:0!important;right:0!important;justify-content:center!important;text-align:center!important
 }
+
+/* Half-size gift artwork on cards, with a larger responsive size in details. */
+.bf-gift-photo{
+  right:10px!important;bottom:6px!important;
+  width:clamp(44px,4.5vw,60px)!important;height:clamp(54px,5.5vw,73px)!important;
+  min-width:0!important;min-height:0!important;max-width:none!important;max-height:none!important
+}
+.detail-art>.bf-gift-promo .bf-gift-photo{
+  right:20px!important;bottom:12px!important;
+  width:clamp(65px,7.2vw,95px)!important;height:clamp(68px,8.1vw,110px)!important;
+  min-width:0!important;min-height:0!important;max-width:none!important;max-height:none!important
+}
+@media(max-width:760px){
+  .bf-gift-photo{
+    right:6px!important;bottom:5px!important;
+    width:clamp(38px,14vw,44px)!important;height:clamp(46px,17.2vw,54px)!important
+  }
+  .detail-art>.bf-gift-promo .bf-gift-photo{
+    right:12px!important;bottom:9px!important;
+    width:clamp(55px,20.5vw,65px)!important;height:clamp(58px,21.5vw,68px)!important
+  }
+}
