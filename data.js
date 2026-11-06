@@ -1592,7 +1592,7 @@ const AEON_DEFAULT_UI = {
   collectionNote: 'Sản phẩm minh họa có thể thay nhanh bằng file Excel trong trang quản trị.',
   heroImage: 'https://res.cloudinary.com/rnrbw9za/image/upload/v1793679407/bf_yggx12.png',
   heroPreviewVersion: 'blackfriday-20261106-brand-assets-v1',
-  giftRibbonBackgroundImage: 'https://res.cloudinary.com/rnrbw9za/image/upload/v1793955548/fd50b78a-9e52-4115-9c37-eed7ca4a2c23.png',
+  giftRibbonBackgroundImage: '',
   logoText: 'AEON',
   logoSubtitle: '',
   logoImage: 'https://res.cloudinary.com/rnrbw9za/image/upload/v1793680754/logo_055_levnph.png',
@@ -1601,6 +1601,10 @@ const AEON_DEFAULT_UI = {
   quoteExcelUrl: '',
   quotePdfUrl: ''
 };
+
+// This was the former bundled image. Ignore it when an older saved state is
+// loaded so the ribbon remains empty until an administrator chooses artwork.
+const AEON_RETIRED_GIFT_RIBBON_BACKGROUND = 'https://res.cloudinary.com/rnrbw9za/image/upload/v1793955548/fd50b78a-9e52-4115-9c37-eed7ca4a2c23.png';
 
 function normaliseAeonLogoImage(value) {
   const url = String(value ?? '').trim();

@@ -453,8 +453,9 @@ async function saveHeroImage(value) {
 }
 
 async function saveGiftRibbonBackground(value) {
-  const image = normaliseImageUrl(value);
-  if (!image) throw new Error('Hãy nhập đường dẫn ảnh hợp lệ hoặc tải ảnh lên.');
+  const rawImage = String(value ?? '').trim();
+  const image = normaliseImageUrl(rawImage);
+  if (rawImage && !image) throw new Error('Hãy nhập đường dẫn ảnh HTTP/HTTPS hợp lệ hoặc tải ảnh lên.');
   let latestUi = {};
   try {
     latestUi = (await remoteState())['aeon-ui'] || {};
@@ -1385,16 +1386,18 @@ function openProductEditor(id, options = {}) {
 
 function giftRibbonBackgroundPanel(panel) {
   const ui = aeonStore.ui();
+  const storedImage = normaliseImageUrl(ui.giftRibbonBackgroundImage);
+  const configuredImage = storedImage === AEON_RETIRED_GIFT_RIBBON_BACKGROUND ? '' : storedImage;
   panel.insertAdjacentHTML('beforeend', `
     <section class="admin-card editor asset-editor">
       <p class="eyebrow">HÌNH ẢNH ƯU ĐÃI</p>
       <h2>Nền dải hàng tặng</h2>
       <p>Thay ảnh nền riêng của dải hàng tặng. Nơ, nội dung và ảnh quà trên từng sản phẩm vẫn giữ nguyên.</p>
       <form id="giftRibbonBackgroundForm">
-        <label>Đường dẫn ảnh nền<input name="giftRibbonBackgroundImage" value="${escapeHtml(ui.giftRibbonBackgroundImage || AEON_DEFAULT_UI.giftRibbonBackgroundImage)}" placeholder="https://... hoặc /assets/uploads/ten-anh.png"></label>
+        <label>Đường dẫn ảnh nền<input name="giftRibbonBackgroundImage" value="${escapeHtml(configuredImage)}" placeholder="https://... hoặc /assets/uploads/ten-anh.png"></label>
         <div class="upload-field"><label for="giftRibbonBackgroundFile">Tải ảnh nền từ máy (PNG, JPG, WEBP, GIF hoặc SVG)</label><input id="giftRibbonBackgroundFile" type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml,.svg"><button class="secondary-button" id="uploadGiftRibbonBackground" type="button">Tải và lưu ảnh nền</button></div>
         <div class="asset-preview" id="giftRibbonBackgroundPreview" aria-live="polite"></div>
-        <div class="editor-actions"><button class="button primary" type="submit">Lưu ảnh nền dải</button><button class="secondary-button" type="button" id="resetGiftRibbonBackground">Khôi phục ảnh mặc định</button></div>
+        <div class="editor-actions"><button class="button primary" type="submit">Lưu ảnh nền dải</button><button class="secondary-button" type="button" id="resetGiftRibbonBackground">Xóa ảnh nền</button></div>
       </form>
     </section>`);
   const form = $('#giftRibbonBackgroundForm');
@@ -1425,17 +1428,17 @@ function giftRibbonBackgroundPanel(panel) {
       const saved = await saveGiftRibbonBackground(imageInput.value);
       imageInput.value = saved;
       updatePreview();
-      toastAdmin('Đã lưu ảnh nền dải hàng tặng và đồng bộ website.');
+      toastAdmin(saved ? 'Đã lưu ảnh nền dải hàng tặng và đồng bộ website.' : 'Đã xóa ảnh nền. Dải hàng tặng dùng nền đỏ đơn giản.');
     } catch (error) {
       toastAdmin(error.message);
     }
   };
   $('#resetGiftRibbonBackground').onclick = async () => {
     try {
-      const saved = await saveGiftRibbonBackground(AEON_DEFAULT_UI.giftRibbonBackgroundImage);
+      const saved = await saveGiftRibbonBackground('');
       imageInput.value = saved;
       updatePreview();
-      toastAdmin('Đã khôi phục ảnh nền dải hàng tặng mặc định.');
+      toastAdmin('Đã xóa ảnh nền cũ. Dải hàng tặng dùng nền đỏ đơn giản.');
     } catch (error) {
       toastAdmin(error.message);
     }

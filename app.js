@@ -860,23 +860,23 @@ async function deleteStorefrontProduct(id) {
 }
 
 function applyGiftRibbonBackground(ui) {
-  const configured = normaliseImageUrl(ui.giftRibbonBackgroundImage || AEON_DEFAULT_UI.giftRibbonBackgroundImage);
+  const configured = normaliseImageUrl(ui.giftRibbonBackgroundImage);
   let imageUrl = '';
-  try {
-    const parsed = new URL(configured, window.location.origin);
-    if (parsed.protocol === 'https:' || parsed.protocol === 'http:') imageUrl = parsed.href;
-  } catch {
-    imageUrl = '';
+  if (configured) {
+    try {
+      const parsed = new URL(configured, window.location.origin);
+      if ((parsed.protocol === 'https:' || parsed.protocol === 'http:')
+        && parsed.href !== AEON_RETIRED_GIFT_RIBBON_BACKGROUND) imageUrl = parsed.href;
+    } catch {
+      imageUrl = '';
+    }
   }
-  const root = document.documentElement;
-  if (imageUrl) root.style.setProperty('--bf-gift-ribbon-image', `url(${JSON.stringify(imageUrl)})`);
-  else root.style.removeProperty('--bf-gift-ribbon-image');
-
   // Apply the saved setting directly after markup is created. This keeps
   // product cards and the detail view in sync without relying on CSS variable
   // resolution for the selected artwork.
   document.querySelectorAll('.bf-gift-ribbon').forEach(ribbon => {
     ribbon.style.setProperty('background-image', 'none', 'important');
+    ribbon.style.setProperty('background-color', imageUrl ? 'transparent' : '#bd1222', 'important');
     let artwork = ribbon.querySelector(':scope > .bf-gift-ribbon-background');
     if (!imageUrl) {
       artwork?.remove();
