@@ -168,7 +168,7 @@ function productSaleOverlayMarkup(product) {
       <path d="m90 37 2 4 4 1-4 2-2 4-2-4-4-2 4-1Z" fill="#fff2ba" stroke="none"/>
     </g>
   </svg>`;
-  const giftImagesMarkup = images.map(image => `<span class="bf-gift-photo-item"><img src="${escapeHtml(image)}" alt="" data-image-fallback><span data-image-placeholder hidden>✦</span></span>`).join('');
+  const giftImagesMarkup = images.map(image => `<span class="bf-gift-photo-item"><img src="${escapeHtml(image)}" alt="" data-image-fallback><span data-image-placeholder hidden></span></span>`).join('');
   return `<span class="bf-gift-promo" role="img" aria-label="${escapeHtml(accessibleLabel)}"><span class="bf-gift-photo${images.length > 1 ? ' is-multi' : ''}" aria-hidden="true">${giftImagesMarkup}</span><span class="bf-gift-ribbon">${bow}<span class="bf-gift-copy"><strong>TẶNG ${escapeHtml(name)}</strong>${valueMarkup}</span></span></span>`;
 }
 const giftCopyCanvasContext = document.createElement('canvas').getContext('2d');

@@ -20,7 +20,7 @@
     CDN-Cache-Control = "no-store"
     Netlify-CDN-Cache-Control = "no-store"
     Pragma = "no-cache"
-    X-AEON-Build = "20261106-gift-multi-image-stack-v32"
+    X-AEON-Build = "20261106-gift-no-red-star-fallback-v33"
 
 [[headers]]
   for = "/index.html"
@@ -29,4 +29,4 @@
     CDN-Cache-Control = "no-store"
     Netlify-CDN-Cache-Control = "no-store"
     Pragma = "no-cache"
-    X-AEON-Build = "20261106-gift-multi-image-stack-v32"
+    X-AEON-Build = "20261106-gift-no-red-star-fallback-v33"
