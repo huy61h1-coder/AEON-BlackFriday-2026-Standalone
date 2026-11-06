@@ -147,6 +147,11 @@ function normaliseProductImages(value, primaryImage = '') {
   return [...new Set(images)].slice(0, 12);
 }
 
+function normaliseGiftImageList(value) {
+  const rawImages = (Array.isArray(value) ? value : [value]).flatMap(item => String(item ?? '').split(/[\r\n,]+/));
+  return [...new Set(rawImages.map(normaliseImageUrl).filter(Boolean))].slice(0, 2);
+}
+
 function newProductVariantId() {
   return `variant-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -891,7 +896,7 @@ async function saveImportedProducts(drafts) {
       label: cleanTextImport(draft.label, 100),
       promotionProductName: cleanTextImport(draft.promotionProductName ?? existing?.promotionProductName, 160),
       promotionProductValue: cleanTextImport(draft.promotionProductValue ?? existing?.promotionProductValue, 120),
-      promotionProductImage: normaliseImageUrl(draft.promotionProductImage ?? existing?.promotionProductImage ?? ''),
+      promotionProductImage: normaliseGiftImageList(draft.promotionProductImage ?? existing?.promotionProductImage ?? '').join(', '),
       dealSlotsTotal: Math.max(1, cleanDealSlotCount(draft.dealSlotsTotal ?? existing?.dealSlotsTotal, 20)),
       dealSlotsRemaining: Math.min(Math.max(1, cleanDealSlotCount(draft.dealSlotsTotal ?? existing?.dealSlotsTotal, 20)), cleanDealSlotCount(draft.dealSlotsRemaining ?? existing?.dealSlotsRemaining, 0)),
       weight: cleanMultilineImport(draft.weight, 100),
@@ -1009,7 +1014,7 @@ function renderImportPreview(target, analysis, products) {
           <label>Giá trị sản phẩm khuyến mãi<input data-import-promotion-value value="${escapeHtml(candidate.promotionProductValue || existing?.promotionProductValue || '')}" placeholder="Ví dụ: 990.000 ₫"></label>
           <label>Suất còn lại<input data-import-deal-slots-remaining type="number" min="0" max="9999" step="1" value="${cleanDealSlotCount(candidate.dealSlotsRemaining ?? existing?.dealSlotsRemaining, 0)}"></label>
           <label>Tổng số suất<input data-import-deal-slots-total type="number" min="1" max="9999" step="1" value="${Math.max(1, cleanDealSlotCount(candidate.dealSlotsTotal ?? existing?.dealSlotsTotal, 20))}"></label>
-          <label class="wide">Link ảnh sản phẩm khuyến mãi<input data-import-promotion-image value="${escapeHtml(candidate.promotionProductImage || existing?.promotionProductImage || '')}" placeholder="https://... hoặc /assets/uploads/..."></label>
+          <label class="wide">Link ảnh sản phẩm khuyến mãi<input data-import-promotion-image value="${escapeHtml(candidate.promotionProductImage || existing?.promotionProductImage || '')}" placeholder="Link ảnh 1, link ảnh 2"><small>Có thể nhập tối đa 2 link ảnh, phân cách bằng dấu phẩy.</small></label>
           <label>Mã sản phẩm<input data-import-sku value="${escapeHtml(candidate.sku || '')}"></label>
           <label class="wide">Mô tả ngắn<textarea data-import-description rows="2">${escapeHtml(candidate.description || '')}</textarea></label>
           <label>Tính năng nổi bật<textarea data-import-ingredients rows="3" placeholder="Mỗi dòng một tính năng">${escapeHtml(candidate.ingredients || '')}</textarea></label>
@@ -1249,7 +1254,7 @@ function openProductEditor(id, options = {}) {
     data.dealSlotsRemaining = Math.min(data.dealSlotsTotal, cleanDealSlotCount(data.dealSlotsRemaining, cleanDealSlotCount(existing.dealSlotsRemaining, 0)));
     data.promotionProductName = cleanTextImport(data.promotionProductName, 160);
     data.promotionProductValue = cleanTextImport(data.promotionProductValue, 120);
-    data.promotionProductImage = normaliseImageUrl(data.promotionProductImage || '');
+    data.promotionProductImage = normaliseGiftImageList(data.promotionProductImage || '').join(', ');
     if (!Number.isFinite(data.price) || data.price < 0) throw new Error('Giá bán không hợp lệ.');
     data.images = normaliseProductImages([data.image, data.image2, data.image3, data.image4, data.image5, data.images]);
     delete data.image2; delete data.image3; delete data.image4; delete data.image5;
@@ -1292,7 +1297,7 @@ function openProductEditor(id, options = {}) {
           <label>Giá khuyến mãi (VNĐ)<small data-variant-price-hint></small><input name="price" type="number" min="0" inputmode="numeric" required value="${existing.price ?? ''}" placeholder="Ví dụ: 750000"${editorVariants.length ? ' readonly' : ''}></label>
           <label>Giá thường (VNĐ)<input name="originalPrice" type="number" min="0" inputmode="numeric" value="${existing.originalPrice ?? ''}" placeholder="Ví dụ: 900000"><small>Để trống nếu không giảm giá.</small></label>
           <fieldset class="product-promotion-fields image-path wide"><legend>Số suất ưu đãi</legend><p>Màu dải tự chuyển từ vàng sang cam, đỏ theo tỷ lệ suất còn lại.</p><div class="admin-form-grid"><label>Suất còn lại<input name="dealSlotsRemaining" type="number" min="0" max="9999" step="1" value="${cleanDealSlotCount(existing.dealSlotsRemaining, 0)}"></label><label>Tổng số suất<input name="dealSlotsTotal" type="number" min="1" max="9999" step="1" value="${Math.max(1, cleanDealSlotCount(existing.dealSlotsTotal, 20))}"></label></div></fieldset>
-          <fieldset class="product-promotion-fields image-path wide"><legend>Hàng tặng kèm Black Friday</legend><p>Chỉ cần tên và ảnh để hiển thị quà tặng; giá trị quà là tùy chọn.</p><div class="admin-form-grid"><label>Tên sản phẩm khuyến mãi<input name="promotionProductName" maxlength="160" value="${escapeHtml(existing.promotionProductName || '')}" placeholder="Ví dụ: Nồi lẩu điện"></label><label>Giá trị sản phẩm khuyến mãi<input name="promotionProductValue" maxlength="120" value="${escapeHtml(existing.promotionProductValue || '')}" placeholder="Ví dụ: 990.000 ₫"></label><label class="wide">Link ảnh sản phẩm khuyến mãi<input name="promotionProductImage" value="${escapeHtml(existing.promotionProductImage || '')}" placeholder="https://... hoặc /assets/uploads/..."></label></div></fieldset>
+          <fieldset class="product-promotion-fields image-path wide"><legend>Hàng tặng kèm Black Friday</legend><p>Chỉ cần tên và ảnh để hiển thị quà tặng; giá trị quà là tùy chọn. Có thể nhập tối đa 2 link ảnh, phân cách bằng dấu phẩy.</p><div class="admin-form-grid"><label>Tên sản phẩm khuyến mãi<input name="promotionProductName" maxlength="160" value="${escapeHtml(existing.promotionProductName || '')}" placeholder="Ví dụ: Nồi lẩu điện"></label><label>Giá trị sản phẩm khuyến mãi<input name="promotionProductValue" maxlength="120" value="${escapeHtml(existing.promotionProductValue || '')}" placeholder="Ví dụ: 990.000 ₫"></label><label class="wide">Link ảnh sản phẩm khuyến mãi<input name="promotionProductImage" value="${escapeHtml(existing.promotionProductImage || '')}" placeholder="Link ảnh 1, link ảnh 2"></label></div></fieldset>
           <label>Mô tả ngắn<textarea name="description" required rows="2" placeholder="Tóm tắt hiển thị trên thẻ sản phẩm">${escapeHtml(existing.description)}</textarea></label>
           <label>Nhãn hiển thị<input name="label" value="${escapeHtml(existing.label)}"></label>
           <label>Kích thước<textarea name="weight" rows="2" placeholder="Ví dụ: 4 bánh · 720g">${escapeHtml(existing.weight || '')}</textarea></label>

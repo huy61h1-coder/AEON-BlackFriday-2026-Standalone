@@ -30,6 +30,11 @@ function normaliseProductImages(value, primaryImage = '') {
   return [...new Set(images)].slice(0, 12);
 }
 
+function normaliseGiftImageList(value) {
+  const rawImages = (Array.isArray(value) ? value : [value]).flatMap(item => String(item ?? '').split(/[\r\n,]+/));
+  return [...new Set(rawImages.map(normaliseImageUrl).filter(Boolean))].slice(0, 2);
+}
+
 function normaliseHeroDisplayMode(value) {
   return String(value || '').trim() === 'image-only' ? 'image-only' : 'content-image';
 }
@@ -80,7 +85,7 @@ function normaliseProduct(product) {
     brand: normaliseAeonBrand(product.brand) || inferAeonBrandFromProductName(product.name),
     promotionProductName: String(product.promotionProductName || product.promoName || '').trim().slice(0, 160),
     promotionProductValue: String(product.promotionProductValue || product.promoValue || '').trim().slice(0, 120),
-    promotionProductImage: normaliseImageUrl(product.promotionProductImage || product.promoImage || ''),
+    promotionProductImage: normaliseGiftImageList(product.promotionProductImage || product.promoImage || '').join(', '),
     image: images[0] || '',
     images,
     bg: safeColor(product.bg),
@@ -141,8 +146,8 @@ function productDealQuotaMarkup(product) {
 function productSaleOverlayMarkup(product) {
   const name = String(product.promotionProductName || '').trim();
   const value = String(product.promotionProductValue || '').trim();
-  const image = normaliseImageUrl(product.promotionProductImage || '');
-  if (!name || !image) return '';
+  const images = normaliseGiftImageList(product.promotionProductImage || '');
+  if (!name || !images.length) return '';
   const accessibleLabel = value ? `Tặng ${name}, trị giá ${value}` : `Tặng ${name}`;
   const valueMarkup = value ? `<em>TRỊ GIÁ ${escapeHtml(value)}</em>` : '';
   const bow = `<svg class="bf-gift-bow" viewBox="0 0 180 112" aria-hidden="true" focusable="false">
@@ -163,7 +168,8 @@ function productSaleOverlayMarkup(product) {
       <path d="m90 37 2 4 4 1-4 2-2 4-2-4-4-2 4-1Z" fill="#fff2ba" stroke="none"/>
     </g>
   </svg>`;
-  return `<span class="bf-gift-promo" role="img" aria-label="${escapeHtml(accessibleLabel)}"><span class="bf-gift-photo"><img src="${escapeHtml(image)}" alt="" data-image-fallback><span data-image-placeholder hidden>✦</span></span><span class="bf-gift-ribbon">${bow}<span class="bf-gift-copy"><strong>TẶNG ${escapeHtml(name)}</strong>${valueMarkup}</span></span></span>`;
+  const giftImagesMarkup = images.map(image => `<span class="bf-gift-photo-item"><img src="${escapeHtml(image)}" alt="" data-image-fallback><span data-image-placeholder hidden>✦</span></span>`).join('');
+  return `<span class="bf-gift-promo" role="img" aria-label="${escapeHtml(accessibleLabel)}"><span class="bf-gift-photo${images.length > 1 ? ' is-multi' : ''}" aria-hidden="true">${giftImagesMarkup}</span><span class="bf-gift-ribbon">${bow}<span class="bf-gift-copy"><strong>TẶNG ${escapeHtml(name)}</strong>${valueMarkup}</span></span></span>`;
 }
 const giftCopyCanvasContext = document.createElement('canvas').getContext('2d');
 const giftCopyObserved = new WeakSet();
@@ -688,7 +694,7 @@ function productFromStorefrontForm(form, existing = {}, variants = []) {
     sku: cleanStorefrontProductText(data.sku, 100),
     promotionProductName: cleanStorefrontProductText(data.promotionProductName, 160),
     promotionProductValue: cleanStorefrontProductText(data.promotionProductValue, 120),
-    promotionProductImage: normaliseImageUrl(data.promotionProductImage || ''),
+    promotionProductImage: normaliseGiftImageList(data.promotionProductImage || '').join(', '),
     variants,
     image: images[0] || '',
     images,
@@ -765,7 +771,7 @@ function openStorefrontProductEditor(id) {
         <label>Giá khuyến mãi (VNĐ)<small data-variant-price-hint></small><input name="price" type="number" min="0" inputmode="numeric" required value="${existing.price ?? ''}" placeholder="Ví dụ: 750000"${existing.variants?.length ? ' readonly' : ''}></label>
         <label>Giá thường (VNĐ)<input name="originalPrice" type="number" min="0" inputmode="numeric" value="${existing.originalPrice ?? ''}" placeholder="Ví dụ: 900000"><small>Để trống nếu không giảm giá.</small></label>
         <fieldset class="storefront-promotion-fields wide"><legend>Số suất ưu đãi</legend><p>Màu dải suất tự chuyển từ vàng sang cam, đỏ khi số suất còn lại giảm.</p><div class="storefront-admin-form-grid"><label>Suất còn lại<input name="dealSlotsRemaining" type="number" min="0" max="9999" step="1" value="${cleanDealSlotCount(existing.dealSlotsRemaining, 0)}"></label><label>Tổng số suất<input name="dealSlotsTotal" type="number" min="1" max="9999" step="1" value="${Math.max(1, cleanDealSlotCount(existing.dealSlotsTotal, 20))}"></label></div></fieldset>
-        <fieldset class="storefront-promotion-fields wide"><legend>Hàng tặng kèm Black Friday</legend><p>Chỉ cần nhập tên và ảnh quà để hiển thị; giá trị quà là tùy chọn.</p><label>Tên sản phẩm khuyến mãi<input name="promotionProductName" maxlength="160" value="${escapeHtml(existing.promotionProductName || '')}" placeholder="Ví dụ: Nồi lẩu điện"></label><label>Giá trị sản phẩm khuyến mãi<input name="promotionProductValue" maxlength="120" value="${escapeHtml(existing.promotionProductValue || '')}" placeholder="Ví dụ: 990.000 ₫"></label><label class="wide">Link ảnh sản phẩm khuyến mãi<input name="promotionProductImage" value="${escapeHtml(existing.promotionProductImage || '')}" placeholder="https://... hoặc /assets/uploads/..."></label></fieldset>
+        <fieldset class="storefront-promotion-fields wide"><legend>Hàng tặng kèm Black Friday</legend><p>Chỉ cần nhập tên và ảnh quà để hiển thị; giá trị quà là tùy chọn. Có thể nhập tối đa 2 link ảnh, phân cách bằng dấu phẩy.</p><label>Tên sản phẩm khuyến mãi<input name="promotionProductName" maxlength="160" value="${escapeHtml(existing.promotionProductName || '')}" placeholder="Ví dụ: Nồi lẩu điện"></label><label>Giá trị sản phẩm khuyến mãi<input name="promotionProductValue" maxlength="120" value="${escapeHtml(existing.promotionProductValue || '')}" placeholder="Ví dụ: 990.000 ₫"></label><label class="wide">Link ảnh sản phẩm khuyến mãi<input name="promotionProductImage" value="${escapeHtml(existing.promotionProductImage || '')}" placeholder="Link ảnh 1, link ảnh 2"></label></fieldset>
         <label>Nhãn hiển thị<input name="label" value="${escapeHtml(existing.label || '')}" placeholder="Ví dụ: Bán chạy"></label>
         <label>Kích thước<textarea name="weight" rows="2" placeholder="Ví dụ: 4 bánh · 720g">${escapeHtml(existing.weight || '')}</textarea></label>
         <label class="wide">Mô tả ngắn<textarea name="description" required rows="2">${escapeHtml(existing.description || '')}</textarea></label>
