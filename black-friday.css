@@ -250,3 +250,7 @@ footer { background:#050505!important; border-top:1px solid var(--bf-line); } fo
 .product-deal-quota[data-quota-level="soldout"] .deal-flame-outer{fill:#e7e7e7}
 .product-deal-quota[data-quota-level="soldout"] .deal-flame-inner{fill:#bdbdbd}
 @media(max-width:760px){.product-deal-quota{min-height:25px;margin-top:7px;padding:2px 7px;gap:5px;font-size:9.5px}.product-deal-quota svg{flex-basis:18px;width:18px;height:18px}}
+/* Keep both campaign bars visible while the customer scrolls the catalogue. */
+.site-header{position:sticky!important;top:0;z-index:61!important}
+.black-friday-bar{position:sticky;top:var(--admin-header-height,82px);z-index:60;box-shadow:0 5px 16px rgba(0,0,0,.24)}
+@media(max-width:760px){.black-friday-bar{top:clamp(10px,calc(var(--admin-header-height,82px)*.75),84px)}}

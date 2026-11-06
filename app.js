@@ -214,7 +214,7 @@ $('footer p').textContent = '© 2026 AEON Black Friday.';
 
 document.body.insertAdjacentHTML('beforeend', '<button class="mobile-cart-cta" id="mobileCart" aria-label="Mở giỏ hàng"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.2 10.2a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 1.9-1.5L20 8H7.1"></path><circle cx="10" cy="20" r="1"></circle><circle cx="17" cy="20" r="1"></circle></svg><span>Giỏ hàng</span><b id="mobileCartCount">0</b><i>Xem giỏ →</i></button>');
 
-['product-detail.css', 'hotline.css?v=20260804-contact', 'promotion.css', 'hero-promotion.css', 'catalog-focus.css', 'hero-compact.css', 'admin-layout.css', 'storefront-refine.css', 'mobile-storefront.css', 'official-assets.css', 'product-modal-fix.css', 'product-variants.css', 'storefront-product-ux.css', 'brand-directory.css', 'storefront-admin.css?v=20261106-promo-fields', 'theme-customization.css?v=20261105-contrast', 'quote-download.css', 'catalog-search-sort.css?v=20260804-search-sort', 'toast-contrast.css?v=20261105'].forEach(href => {
+['product-detail.css', 'hotline.css?v=20260804-contact', 'promotion.css', 'hero-promotion.css', 'catalog-focus.css', 'hero-compact.css', 'admin-layout.css', 'storefront-refine.css', 'mobile-storefront.css', 'official-assets.css', 'product-modal-fix.css', 'product-variants.css', 'storefront-product-ux.css', 'brand-directory.css', 'storefront-admin.css?v=20261106-promo-fields', 'theme-customization.css?v=20261105-contrast', 'quote-download.css', 'catalog-search-sort.css?v=20260804-search-sort', 'toast-contrast.css?v=20261106-cart-notification'].forEach(href => {
   const alreadyLoaded = [...document.head.querySelectorAll('link[rel="stylesheet"]')]
     .some(link => link.getAttribute('href') === href);
   if (!alreadyLoaded) document.head.append(Object.assign(document.createElement('link'), {rel: 'stylesheet', href}));
@@ -1260,7 +1260,7 @@ function add(id, quantity = 1, variantId = '') {
   else cart.push({...cartItem, qty: quantity});
   renderCart();
   const name = cartLabel(cartItem);
-  toast(quantity > 1 ? `Đã thêm ${quantity} hộp ${name} vào giỏ hàng` : `Đã thêm ${name} vào giỏ hàng`);
+  toast(quantity > 1 ? `Đã thêm ${quantity} sản phẩm ${name} vào giỏ hàng.` : `Đã thêm ${name} vào giỏ hàng.`, {success:true, viewCart:true});
 }
 
 function closeProductDetail() {
@@ -1337,12 +1337,36 @@ function openProductDetail(id) {
   modal.querySelector('.modal-close').focus();
 }
 
-function toast(message) {
+function toast(message, options = {}) {
   const element = $('#toast');
-  element.textContent = message;
+  element.replaceChildren();
+  element.classList.toggle('toast-success', Boolean(options.success));
+  if (options.success) {
+    const icon = document.createElement('span');
+    icon.className = 'toast-icon';
+    icon.setAttribute('aria-hidden', 'true');
+    icon.textContent = '✓';
+    element.append(icon);
+  }
+  const text = document.createElement('span');
+  text.className = 'toast-message';
+  text.textContent = message;
+  element.append(text);
+  if (options.viewCart) {
+    const action = document.createElement('button');
+    action.type = 'button';
+    action.className = 'toast-action';
+    action.textContent = 'Xem giỏ';
+    action.addEventListener('click', () => {
+      clearTimeout(window.toastTimer);
+      element.classList.remove('show');
+      toggleCart(true);
+    });
+    element.append(action);
+  }
   element.classList.add('show');
   clearTimeout(window.toastTimer);
-  window.toastTimer = setTimeout(() => element.classList.remove('show'), 2600);
+  window.toastTimer = setTimeout(() => element.classList.remove('show'), 3600);
 }
 
 function toggleCart(force) {

@@ -1,9 +1,66 @@
 /* Keep transient storefront messages readable when the theme uses light text. */
 .toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: max-content;
+  max-width: calc(100vw - 28px);
   background: #171111 !important;
   color: #fffaf4 !important;
   border: 1px solid color-mix(in srgb, var(--red, #e21d3f) 70%, #171111);
   box-shadow: 0 10px 30px rgba(0, 0, 0, .38);
+  border-radius: 999px;
+  padding: 10px 13px;
+  pointer-events: auto;
+}
+
+.toast-message {
+  min-width: 0;
+  line-height: 1.45;
+}
+
+.toast-icon {
+  display: inline-grid;
+  flex: 0 0 27px;
+  width: 27px;
+  height: 27px;
+  place-items: center;
+  border-radius: 50%;
+  background: #e21d3f;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.toast-action {
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 999px;
+  padding: 8px 12px;
+  background: #fffaf4;
+  color: #8f1028;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.toast-action:hover {
+  background: #f7c948;
+}
+
+@media (max-width: 520px) {
+  .toast {
+    width: calc(100vw - 28px);
+    justify-content: space-between;
+    gap: 9px;
+    border-radius: 14px;
+  }
+
+  .toast-message {
+    flex: 1;
+  }
 }
 
 .success-modal > div {

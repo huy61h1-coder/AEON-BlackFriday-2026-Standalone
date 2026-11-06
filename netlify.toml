@@ -20,7 +20,7 @@
     CDN-Cache-Control = "no-store"
     Netlify-CDN-Cache-Control = "no-store"
     Pragma = "no-cache"
-    X-AEON-Build = "20261106-editable-storefront-lock-v2"
+    X-AEON-Build = "20261106-sticky-cart-toast-v1"
 
 [[headers]]
   for = "/index.html"
@@ -29,4 +29,4 @@
     CDN-Cache-Control = "no-store"
     Netlify-CDN-Cache-Control = "no-store"
     Pragma = "no-cache"
-    X-AEON-Build = "20261106-editable-storefront-lock-v2"
+    X-AEON-Build = "20261106-sticky-cart-toast-v1"
