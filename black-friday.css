@@ -429,9 +429,10 @@ footer { background:#050505!important; border-top:1px solid var(--bf-line); } fo
 .detail-art>.bf-gift-promo .bf-gift-ribbon{height:50px!important;min-height:50px!important;max-height:50px!important}
 .bf-gift-copy{
   top:50%!important;transform:translateY(-50%)!important;align-items:center!important;gap:5px!important;
+  justify-content:center!important;text-align:center!important;overflow:visible!important;
   font-family:'Be Vietnam Pro',Arial,sans-serif!important;font-weight:700!important;
 }
-.bf-gift-copy strong,.bf-gift-copy em{line-height:1!important;font-family:inherit!important}
+.bf-gift-copy strong,.bf-gift-copy em{overflow:visible!important;line-height:1.25!important;font-family:inherit!important}
 .bf-gift-ribbon:not(.has-configured-background) .bf-gift-copy{left:4%!important;right:19%!important}
 @media(max-width:760px){
   .product-media .bf-gift-ribbon{height:9px!important;min-height:9px!important;max-height:9px!important}
