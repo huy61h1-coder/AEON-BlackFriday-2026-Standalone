@@ -329,3 +329,27 @@ footer { background:#050505!important; border-top:1px solid var(--bf-line); } fo
   .detail-art>.bf-gift-promo .bf-gift-copy strong{font-size:12px}
   .detail-art>.bf-gift-promo .bf-gift-copy em{font-size:10px}
 }
+
+/* Slightly shorter ribbon and smaller gift while fitting the single-line copy to its available width. */
+.bf-gift-photo{width:120px;height:146px;min-width:120px;min-height:146px;max-width:120px;max-height:146px;bottom:7px}
+.bf-gift-ribbon{min-height:34px}
+.bf-gift-copy{padding-right:128px}
+.bf-gift-copy strong{font-size:16px}
+.bf-gift-copy em{font-size:13px}
+.detail-art>.bf-gift-promo .bf-gift-photo{width:190px;height:220px;min-width:190px;min-height:220px;max-width:190px;max-height:220px;bottom:12px}
+.detail-art>.bf-gift-promo .bf-gift-ribbon{min-height:42px}
+.detail-art>.bf-gift-promo .bf-gift-copy{padding-right:200px}
+.detail-art>.bf-gift-promo .bf-gift-copy strong{font-size:18px}
+.detail-art>.bf-gift-promo .bf-gift-copy em{font-size:15px}
+@media(max-width:760px){
+  .bf-gift-photo{width:88px;height:108px;min-width:88px;min-height:108px;max-width:88px;max-height:108px;bottom:5px}
+  .bf-gift-ribbon{min-height:28px}
+  .bf-gift-copy{padding-right:96px}
+  .bf-gift-copy strong{font-size:11px}
+  .bf-gift-copy em{font-size:10px}
+  .detail-art>.bf-gift-promo .bf-gift-photo{width:130px;height:136px;min-width:130px;min-height:136px;max-width:130px;max-height:136px;bottom:9px}
+  .detail-art>.bf-gift-promo .bf-gift-ribbon{min-height:32px}
+  .detail-art>.bf-gift-promo .bf-gift-copy{padding-right:140px}
+  .detail-art>.bf-gift-promo .bf-gift-copy strong{font-size:14px}
+  .detail-art>.bf-gift-promo .bf-gift-copy em{font-size:12px}
+}
