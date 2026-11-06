@@ -21,9 +21,9 @@ const AEON_DEFAULT_PRODUCTS = [
     "variants": [],
     "bg": "#e9c38b",
     "box": "#8f1834",
-    "promotionProductName": "nồi cơm mini",
-    "promotionProductValue": "699.000đ",
-    "promotionProductImage": "https://product.hstatic.net/200000274675/product/dfb-c16k1_ab7703a6eeb644249f75dd1b5170414a_1024x1024.png"
+    "promotionProductName": "",
+    "promotionProductValue": "",
+    "promotionProductImage": ""
   },
   {
     "id": "11120520",

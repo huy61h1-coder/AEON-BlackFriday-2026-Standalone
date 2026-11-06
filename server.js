@@ -60,7 +60,7 @@ const types = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charse
 // Bump this whenever the storefront shell changes. It fingerprints every
 // local CSS/JS URL emitted by the Node deployment, so a CDN cannot revive an
 // obsolete interface after a new release.
-const storefrontBuild = '20261106-mobile-gift-cutout-bottom-v26';
+const storefrontBuild = '20261106-gift-info-default-empty-v27';
 const productImageFitCss = '\n/* Server-enforced product commerce lock. */\n.product-media{position:relative!important;overflow:hidden!important;background:#fff!important}.product-media:has(.product-image-placeholder:not([hidden])),.product-media:has(.product-image-placeholder:not([hidden])):before,.product-media .product-image-placeholder:not([hidden]){background:#fff!important}.product-media img.product-official-image{display:block!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;margin:0!important;padding:0!important;object-fit:contain!important;object-position:center center!important}.product-price-stack .price,.product-price-stack .regular-price,.product-discount-badge{visibility:visible!important;opacity:1!important}\n';
 const noCacheHeaders = {
   'Cache-Control':'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0',
@@ -305,13 +305,46 @@ async function writeCloudState(state, changedKeys = cloudStateKeys) {
   if (!response.ok) throw new Error(`Không thể lưu dữ liệu cloud (HTTP ${response.status}).`);
 }
 
+const bundledGiftDefaults = {
+  name: 'nồi cơm mini',
+  value: '699.000đ',
+  image: 'https://product.hstatic.net/200000274675/product/dfb-c16k1_ab7703a6eeb644249f75dd1b5170414a_1024x1024.png'
+};
+function clearBundledGiftDefaults(state) {
+  const products = Array.isArray(state?.['aeon-products']) ? state['aeon-products'] : [];
+  let changed = false;
+  const nextProducts = products.map(product => {
+    const isBundledExample = String(product?.id || '') === '09680425'
+      && String(product?.name || '') === 'NỒI LẨU NƯỚNG ĐA NĂNG BEAR 4L DHG-C40W2'
+      && String(product?.promotionProductName || '').trim().toLocaleLowerCase('vi-VN') === bundledGiftDefaults.name
+      && String(product?.promotionProductValue || '').trim().toLocaleLowerCase('vi-VN') === bundledGiftDefaults.value
+      && String(product?.promotionProductImage || '').trim() === bundledGiftDefaults.image
+      && (!product?.promoName || String(product.promoName).trim().toLocaleLowerCase('vi-VN') === bundledGiftDefaults.name)
+      && (!product?.promoValue || String(product.promoValue).trim().toLocaleLowerCase('vi-VN') === bundledGiftDefaults.value)
+      && (!product?.promoImage || String(product.promoImage).trim() === bundledGiftDefaults.image);
+    if (!isBundledExample) return product;
+    changed = true;
+    return {...product, promotionProductName:'', promotionProductValue:'', promotionProductImage:'', promoName:'', promoValue:'', promoImage:''};
+  });
+  if (changed) state['aeon-products'] = nextProducts;
+  return changed;
+}
+
 // The local file is only a working copy. Cloud state is authoritative so a
 // container restart or a deploy cannot restore an obsolete storefront layout.
+// Also remove only the exact gift values from the original bundled demo item.
 const stateReady = readCloudState()
-  .then(cloudState => {
-    if (cloudState) writeLocalState({...readState(), ...cloudState});
+  .catch(error => {
+    console.warn(`AEON cloud state unavailable: ${error.message}`);
+    return null;
   })
-  .catch(error => console.warn(`AEON cloud state unavailable: ${error.message}`));
+  .then(async cloudState => {
+    const state = {...readState(), ...(cloudState || {})};
+    const giftDefaultsCleared = clearBundledGiftDefaults(state);
+    if (cloudState || giftDefaultsCleared) writeLocalState(state);
+    if (giftDefaultsCleared) await writeCloudState(state, ['aeon-products']);
+  })
+  .catch(error => console.warn(`AEON state initialization failed: ${error.message}`));
 
 async function writeState(state, changedKeys = []) {
   writeLocalState(state);
