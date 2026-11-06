@@ -514,3 +514,9 @@ footer { background:#050505!important; border-top:1px solid var(--bf-line); } fo
   }
   .detail-art>.bf-gift-promo .bf-gift-ribbon .bf-gift-copy{right:96px!important}
 }
+
+/* Compensate the transparent lower margin inside gift cutout files on mobile. */
+@media(max-width:760px){
+  .product-media .bf-gift-photo img,
+  .detail-art>.bf-gift-promo .bf-gift-photo img{transform:translateY(10%)!important}
+}
