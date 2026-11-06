@@ -553,6 +553,10 @@ footer { background:#050505!important; border-top:1px solid var(--bf-line); } fo
   object-fit:contain!important;object-position:center bottom!important
 }
 .bf-gift-photo.is-multi .bf-gift-photo-item [data-image-placeholder]{position:absolute;inset:0;display:grid;place-items:center;font-size:14px}
+.bf-gift-promo:has(.bf-gift-photo.is-multi) .bf-gift-copy{
+  flex-direction:column!important;align-items:center!important;justify-content:center!important;
+  column-gap:0!important;row-gap:1px!important;text-align:center!important
+}
 
 /* Widen the two-image holder so each gift remains legible, with the bottoms aligned. */
 .product-media .bf-gift-photo.is-multi{

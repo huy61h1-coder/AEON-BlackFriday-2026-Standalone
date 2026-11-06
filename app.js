@@ -194,8 +194,12 @@ function fitGiftCopyText(copy) {
     return giftCopyCanvasContext.measureText(text).width + Math.max(0, text.length - 1) * spacing;
   };
   const available = Math.max(0, copy.clientWidth);
-  const gap = Number.parseFloat(getComputedStyle(copy).columnGap) || 0;
-  const naturalWidth = widthAt(strong, maxStrong) + (value ? widthAt(value, maxValue) + gap : 0);
+  const stackedGiftCopy = Boolean(copy.closest('.bf-gift-promo')?.querySelector('.bf-gift-photo.is-multi'));
+  const copyStyle = getComputedStyle(copy);
+  const gap = Number.parseFloat(stackedGiftCopy ? copyStyle.rowGap : copyStyle.columnGap) || 0;
+  const strongWidth = widthAt(strong, maxStrong);
+  const valueWidth = value ? widthAt(value, maxValue) : 0;
+  const naturalWidth = stackedGiftCopy ? Math.max(strongWidth, valueWidth) : strongWidth + (value ? valueWidth + gap : 0);
   if (!available || !naturalWidth) return;
   const scale = Math.max(0.25, Math.min(1, (available - 4) / naturalWidth));
   strong.style.fontSize = `${Math.round(maxStrong * scale * 10) / 10}px`;
