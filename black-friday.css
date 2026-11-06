@@ -254,3 +254,36 @@ footer { background:#050505!important; border-top:1px solid var(--bf-line); } fo
 .site-header{position:sticky!important;top:0;z-index:61!important}
 .black-friday-bar{position:sticky;top:var(--admin-header-height,82px);z-index:60;box-shadow:0 5px 16px rgba(0,0,0,.24)}
 @media(max-width:760px){.black-friday-bar{top:clamp(10px,calc(var(--admin-header-height,82px)*.75),84px)}}
+
+/* Double the gift cutout at fixed CSS dimensions so source resolution never changes its rendered size. */
+.bf-gift-photo{
+  right:10px;bottom:45px;width:140px;height:172px;min-width:140px;min-height:172px;max-width:none;max-height:none;aspect-ratio:auto;
+  display:grid;place-items:end center;overflow:visible;border:0;border-radius:0;background:transparent;box-shadow:none;z-index:5
+}
+.bf-gift-photo img{display:block;width:100%;height:100%;padding:0;border:0;border-radius:0;object-fit:contain;object-position:center bottom;filter:drop-shadow(0 2px 3px rgba(0,0,0,.24));mix-blend-mode:normal}
+.bf-gift-ribbon{grid-template-columns:36px minmax(0,1fr);min-height:40px;padding:2px 8px 2px 2px}
+.bf-gift-bow{width:34px;height:26px}
+.bf-gift-copy{display:flex;min-width:0;width:100%;max-width:none;align-items:baseline;gap:10px;padding-right:0;overflow:hidden;white-space:nowrap}
+.bf-gift-copy strong,.bf-gift-copy em{display:block;flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.1}
+.bf-gift-copy strong{font-size:13px;font-weight:800}
+.bf-gift-copy em{font-size:11px;font-weight:800}
+.detail-art>.bf-gift-promo .bf-gift-photo{right:20px;bottom:60px;width:224px;height:260px;min-width:224px;min-height:260px;max-width:none;max-height:none}
+.detail-art>.bf-gift-promo .bf-gift-ribbon{grid-template-columns:52px minmax(0,1fr);min-height:48px;padding:2px 10px 2px 3px}
+.detail-art>.bf-gift-promo .bf-gift-bow{width:44px;height:34px}
+.detail-art>.bf-gift-promo .bf-gift-copy{gap:12px;padding-right:0}
+.detail-art>.bf-gift-promo .bf-gift-copy strong{font-size:16px}
+.detail-art>.bf-gift-promo .bf-gift-copy em{font-size:13px}
+@media(max-width:760px){
+  .bf-gift-photo{right:6px;bottom:36px;width:104px;height:128px;min-width:104px;min-height:128px}
+  .bf-gift-ribbon{right:4px;bottom:4px;left:4px;grid-template-columns:29px minmax(0,1fr);min-height:32px;padding:1px 5px 1px 1px}
+  .bf-gift-bow{width:27px;height:21px}
+  .bf-gift-copy{gap:5px}
+  .bf-gift-copy strong{font-size:10.5px}
+  .bf-gift-copy em{font-size:9px}
+  .detail-art>.bf-gift-promo .bf-gift-photo{right:12px;bottom:44px;width:152px;height:160px;min-width:152px;min-height:160px}
+  .detail-art>.bf-gift-promo .bf-gift-ribbon{right:8px;bottom:8px;left:8px;grid-template-columns:39px minmax(0,1fr);min-height:36px;padding:1px 7px 1px 2px}
+  .detail-art>.bf-gift-promo .bf-gift-bow{width:34px;height:26px}
+  .detail-art>.bf-gift-promo .bf-gift-copy{gap:7px}
+  .detail-art>.bf-gift-promo .bf-gift-copy strong{font-size:12px}
+  .detail-art>.bf-gift-promo .bf-gift-copy em{font-size:10px}
+}
