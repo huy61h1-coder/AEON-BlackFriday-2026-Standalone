@@ -527,3 +527,15 @@ footer { background:#050505!important; border-top:1px solid var(--bf-line); } fo
   justify-content:center!important;text-align:center!important
 }
 .detail-art>.bf-gift-promo .bf-gift-photo img{transform:translateY(5%)!important}
+
+/* Keep the detail-view gift cutout clear of both gift lines and their value. */
+.detail-art>.bf-gift-promo .bf-gift-ribbon:not(.has-configured-background) .bf-gift-copy,
+.detail-art>.bf-gift-promo .bf-gift-ribbon.has-configured-background .bf-gift-copy{
+  right:clamp(148px,28%,180px)!important
+}
+@media(max-width:760px){
+  .detail-art>.bf-gift-promo .bf-gift-ribbon:not(.has-configured-background) .bf-gift-copy,
+  .detail-art>.bf-gift-promo .bf-gift-ribbon.has-configured-background .bf-gift-copy{
+    right:clamp(98px,34%,120px)!important
+  }
+}
