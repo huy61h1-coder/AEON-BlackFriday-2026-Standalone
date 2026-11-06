@@ -20,7 +20,7 @@
     CDN-Cache-Control = "no-store"
     Netlify-CDN-Cache-Control = "no-store"
     Pragma = "no-cache"
-    X-AEON-Build = "20261106-gift-ribbon-config-empty-v16"
+    X-AEON-Build = "20261106-gift-ribbon-one-third-height-v17"
 
 [[headers]]
   for = "/index.html"
@@ -29,4 +29,4 @@
     CDN-Cache-Control = "no-store"
     Netlify-CDN-Cache-Control = "no-store"
     Pragma = "no-cache"
-    X-AEON-Build = "20261106-gift-ribbon-config-empty-v16"
+    X-AEON-Build = "20261106-gift-ribbon-one-third-height-v17"
