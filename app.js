@@ -175,8 +175,8 @@ function fitGiftCopyText(copy) {
   if (!strong || !value || !giftCopyCanvasContext || !copy.isConnected) return;
   const narrow = window.matchMedia('(max-width: 760px)').matches;
   const detail = Boolean(copy.closest('.detail-art'));
-  const maxStrong = detail ? (narrow ? 14 : 18) : (narrow ? 11 : 16);
-  const maxValue = detail ? (narrow ? 12 : 15) : (narrow ? 10 : 13);
+  const maxStrong = detail ? (narrow ? 14 : 18) : (narrow ? 8 : 16);
+  const maxValue = detail ? (narrow ? 12 : 15) : (narrow ? 7 : 13);
   const widthAt = (element, size) => {
     const style = getComputedStyle(element);
     giftCopyCanvasContext.font = `${style.fontStyle} ${style.fontWeight} ${size}px ${style.fontFamily}`;
@@ -875,6 +875,7 @@ function applyGiftRibbonBackground(ui) {
   // product cards and the detail view in sync without relying on CSS variable
   // resolution for the selected artwork.
   document.querySelectorAll('.bf-gift-ribbon').forEach(ribbon => {
+    ribbon.classList.toggle('has-configured-background', Boolean(imageUrl));
     ribbon.style.setProperty('background-image', 'none', 'important');
     ribbon.style.setProperty('background-color', imageUrl ? 'transparent' : '#bd1222', 'important');
     let artwork = ribbon.querySelector(':scope > .bf-gift-ribbon-background');
