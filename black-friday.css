@@ -495,3 +495,22 @@ footer { background:#050505!important; border-top:1px solid var(--bf-line); } fo
   }
   .product-media .bf-gift-ribbon .bf-gift-copy{right:62px!important}
 }
+
+/* Give the detail-view gift cutout another 30% and keep its label clear. */
+.detail-art>.bf-gift-promo .bf-gift-photo{
+  width:clamp(85px,9.36vw,124px)!important;height:clamp(88px,10.53vw,143px)!important
+}
+.detail-art>.bf-gift-promo .bf-gift-ribbon:not(.has-configured-background) .bf-gift-copy{
+  left:5%!important;right:clamp(96px,14%,140px)!important;
+  justify-content:flex-start!important;text-align:left!important
+}
+.detail-art>.bf-gift-promo .bf-gift-ribbon.has-configured-background .bf-gift-copy{
+  left:30%!important;right:clamp(96px,14%,140px)!important;
+  justify-content:flex-start!important;text-align:left!important
+}
+@media(max-width:760px){
+  .detail-art>.bf-gift-promo .bf-gift-photo{
+    width:clamp(72px,26.65vw,85px)!important;height:clamp(75px,27.95vw,89px)!important
+  }
+  .detail-art>.bf-gift-promo .bf-gift-ribbon .bf-gift-copy{right:96px!important}
+}
