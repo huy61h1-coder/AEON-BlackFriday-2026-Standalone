@@ -143,62 +143,26 @@ function productSaleOverlayMarkup(product) {
   const value = String(product.promotionProductValue || '').trim();
   const image = normaliseImageUrl(product.promotionProductImage || '');
   if (!name || !value || !image) return '';
-  return `<span class="bf-gift-promo" role="img" aria-label="Tặng ${escapeHtml(name)}, trị giá ${escapeHtml(value)}"><span class="bf-gift-photo"><img src="${escapeHtml(image)}" alt="" data-image-fallback><span data-image-placeholder hidden>✦</span></span><span class="bf-gift-ribbon"><svg class="bf-gift-bow" viewBox="0 0 90 64" aria-hidden="true"><path d="M44 32C30 6 3 5 7 22c3 12 20 15 37 14M46 32C60 6 87 5 83 22c-3 12-20 15-37 14M42 37 20 59l-3-21m31-1 22 22 3-21" fill="#e21d3f" stroke="#ffd45f" stroke-width="3" stroke-linejoin="round"/><path d="M37 30h16v15H37z" fill="#ffd45f" stroke="#fff2bd" stroke-width="2"/></svg><span class="bf-gift-copy"><strong>TẶNG ${escapeHtml(name)}</strong><em>TRỊ GIÁ ${escapeHtml(value)}</em></span></span></span>`;
+  const bow = `<svg class="bf-gift-bow" viewBox="0 0 180 112" aria-hidden="true" focusable="false">
+    <g stroke-linejoin="round" stroke-linecap="round">
+      <path d="M83 50C59 29 32 12 17 17 1 24 21 48 79 58 52 61 30 69 27 81 24 95 54 90 88 58Z" fill="#bd0a1b" stroke="#a96721" stroke-width="5"/>
+      <path d="M83 50C59 29 32 12 17 17 1 24 21 48 79 58 52 61 30 69 27 81 24 95 54 90 88 58Z" fill="#e52025" stroke="#ffe28a" stroke-width="2.2"/>
+      <path d="M76 48C53 28 33 18 22 21 16 27 36 43 70 53M32 76C47 67 62 63 78 61" fill="none" stroke="#ff9b79" stroke-opacity=".76" stroke-width="2.4"/>
+      <path d="M97 50c24-21 51-38 66-33 16 7-4 31-62 41 27 3 49 11 52 23 3 14-27 9-61-23Z" fill="#bd0a1b" stroke="#a96721" stroke-width="5"/>
+      <path d="M97 50c24-21 51-38 66-33 16 7-4 31-62 41 27 3 49 11 52 23 3 14-27 9-61-23Z" fill="#e52025" stroke="#ffe28a" stroke-width="2.2"/>
+      <path d="M104 48c23-20 43-30 54-27 6 6-14 22-48 32m36 23c-15-9-30-13-46-15" fill="none" stroke="#ff9b79" stroke-opacity=".76" stroke-width="2.4"/>
+      <path d="M82 55C59 62 24 62 12 76l10 29c21-15 42-34 67-43Z" fill="#bd0a1b" stroke="#a96721" stroke-width="5"/>
+      <path d="M82 55C59 62 24 62 12 76l10 29c21-15 42-34 67-43Z" fill="#e52025" stroke="#ffe28a" stroke-width="2.2"/>
+      <path d="M98 55c23 7 58 7 70 21l-10 29c-21-15-42-34-67-43Z" fill="#bd0a1b" stroke="#a96721" stroke-width="5"/>
+      <path d="M98 55c23 7 58 7 70 21l-10 29c-21-15-42-34-67-43Z" fill="#e52025" stroke="#ffe28a" stroke-width="2.2"/>
+      <path d="M28 83c17-11 34-19 51-25m47 25c-17-11-34-19-51-25" fill="none" stroke="#ff9b79" stroke-opacity=".72" stroke-width="2.4"/>
+      <path d="M78 43q12-8 24 0l2 17q-14 11-28 0Z" fill="#f3b33a" stroke="#fff0a8" stroke-width="2.5"/>
+      <path d="M84 46q6-4 12 0v13q-6 4-12 0Z" fill="#e71e25" stroke="#a96721" stroke-width="1.5"/>
+      <path d="m90 37 2 4 4 1-4 2-2 4-2-4-4-2 4-1Z" fill="#fff2ba" stroke="none"/>
+    </g>
+  </svg>`;
+  return `<span class="bf-gift-promo" role="img" aria-label="Tặng ${escapeHtml(name)}, trị giá ${escapeHtml(value)}"><span class="bf-gift-photo"><img src="${escapeHtml(image)}" alt="" data-image-fallback><span data-image-placeholder hidden>✦</span></span><span class="bf-gift-ribbon">${bow}<span class="bf-gift-copy"><strong>TẶNG ${escapeHtml(name)}</strong><em>TRỊ GIÁ ${escapeHtml(value)}</em></span></span></span>`;
 }
-
-const giftCopyCanvasContext = document.createElement('canvas').getContext('2d');
-const giftCopyObserved = new WeakSet();
-const giftCopyResizeObserver = typeof ResizeObserver === 'function'
-  ? new ResizeObserver(entries => entries.forEach(entry => fitGiftCopyText(entry.target)))
-  : null;
-
-function fitGiftCopyText(copy) {
-  const strong = copy?.querySelector('strong');
-  const value = copy?.querySelector('em');
-  if (!strong || !value || !giftCopyCanvasContext || !copy.isConnected) return;
-  const narrow = window.matchMedia('(max-width: 760px)').matches;
-  const detail = Boolean(copy.closest('.detail-art'));
-  const maxStrong = detail ? (narrow ? 14 : 18) : (narrow ? 11 : 16);
-  const maxValue = detail ? (narrow ? 12 : 15) : (narrow ? 10 : 13);
-  const widthAt = (element, size) => {
-    const style = getComputedStyle(element);
-    giftCopyCanvasContext.font = `${style.fontStyle} ${style.fontWeight} ${size}px ${style.fontFamily}`;
-    let text = element.textContent.trim();
-    if (style.textTransform === 'uppercase') text = text.toLocaleUpperCase('vi-VN');
-    const spacing = Number.parseFloat(style.letterSpacing) || 0;
-    return giftCopyCanvasContext.measureText(text).width + Math.max(0, text.length - 1) * spacing;
-  };
-  const copyStyle = getComputedStyle(copy);
-  const horizontalPadding = (Number.parseFloat(copyStyle.paddingLeft) || 0) + (Number.parseFloat(copyStyle.paddingRight) || 0);
-  const gap = Number.parseFloat(copyStyle.columnGap || copyStyle.gap) || 0;
-  const available = Math.max(0, copy.clientWidth - horizontalPadding);
-  const naturalWidth = widthAt(strong, maxStrong) + widthAt(value, maxValue) + gap;
-  if (!available || !naturalWidth) return;
-  const scale = Math.max(0.55, Math.min(1, (available - 2) / naturalWidth));
-  strong.style.fontSize = `${Math.round(maxStrong * scale * 10) / 10}px`;
-  value.style.fontSize = `${Math.round(maxValue * scale * 10) / 10}px`;
-}
-
-function watchGiftCopySizing(root = document) {
-  const copies = [];
-  if (root.nodeType === 1 && root.matches('.bf-gift-copy')) copies.push(root);
-  if (root.querySelectorAll) copies.push(...root.querySelectorAll('.bf-gift-copy'));
-  copies.forEach(copy => {
-    fitGiftCopyText(copy);
-    if (giftCopyResizeObserver && !giftCopyObserved.has(copy)) {
-      giftCopyObserved.add(copy);
-      giftCopyResizeObserver.observe(copy);
-    }
-  });
-}
-
-watchGiftCopySizing();
-new MutationObserver(records => records.forEach(record => record.addedNodes.forEach(node => {
-  if (node.nodeType === 1) watchGiftCopySizing(node);
-}))).observe(document.body, {childList:true, subtree:true});
-window.addEventListener('resize', () => watchGiftCopySizing(), {passive:true});
-if (document.fonts?.ready) document.fonts.ready.then(() => watchGiftCopySizing()).catch(() => {});
-
 function hasVariants(product) {
   return Array.isArray(product.variants) && product.variants.length > 0;
 }

@@ -291,7 +291,7 @@ footer { background:#050505!important; border-top:1px solid var(--bf-line); } fo
 /* Luxe red-and-gold Black Friday gift ribbon inspired by the supplied reference. */
 .bf-gift-photo{right:10px;bottom:8px}
 .bf-gift-ribbon{
-  left:10px;right:4px;overflow:visible;grid-template-columns:58px minmax(0,1fr);min-height:40px;padding:2px 10px 2px 1px;
+  left:10px;right:4px;overflow:visible;grid-template-columns:140px minmax(0,1fr);min-height:40px;padding:2px 10px 2px 1px;
   border:2px solid #ffd45f;border-radius:3px;
   background:
     radial-gradient(circle at 7% 23%,rgba(255,237,157,.95) 0 1px,transparent 1.8px),
@@ -300,31 +300,31 @@ footer { background:#050505!important; border-top:1px solid var(--bf-line); } fo
     radial-gradient(circle at 78% 79%,rgba(255,219,113,.9) 0 1px,transparent 1.8px),
     radial-gradient(circle at 94% 28%,rgba(255,236,163,.8) 0 1px,transparent 1.8px),
     repeating-linear-gradient(125deg,rgba(255,236,175,.07) 0 1px,transparent 1px 8px),
-    linear-gradient(180deg,#f0472c 0%,#d31623 48%,#93091c 100%);
+    linear-gradient(180deg,#fa4930 0%,#e31b25 48%,#a90d23 100%);
   box-shadow:0 5px 14px rgba(91,0,13,.34),0 1px 0 rgba(255,249,216,.36) inset
 }
 .bf-gift-ribbon::after{content:"";position:absolute;inset:3px;border:1px solid rgba(255,232,150,.38);border-radius:1px;pointer-events:none;z-index:0}
-.bf-gift-bow{position:relative;z-index:7;width:58px;height:43px;transform:translateX(-8px);filter:drop-shadow(0 2px 2px rgba(54,0,0,.48))}
+.bf-gift-bow{position:relative;z-index:8;width:140px;height:88px;transform:translateX(-8px);filter:drop-shadow(0 2px 2px rgba(54,0,0,.48))}
 .bf-gift-copy{position:relative;z-index:7;gap:9px;padding-right:148px;text-shadow:0 1px 2px rgba(58,0,0,.62)}
 .bf-gift-copy strong{font-size:13.5px;font-weight:900;letter-spacing:.01em;text-transform:uppercase}
 .bf-gift-copy em{font-size:11.5px;font-weight:900;letter-spacing:.015em;text-transform:uppercase}
 .detail-art>.bf-gift-promo .bf-gift-photo{right:20px;bottom:13px}
-.detail-art>.bf-gift-promo .bf-gift-ribbon{grid-template-columns:64px minmax(0,1fr);min-height:48px;padding:2px 12px 2px 1px}
-.detail-art>.bf-gift-promo .bf-gift-bow{width:64px;height:48px;transform:translateX(-9px)}
+.detail-art>.bf-gift-promo .bf-gift-ribbon{grid-template-columns:160px minmax(0,1fr);min-height:48px;padding:2px 12px 2px 1px}
+.detail-art>.bf-gift-promo .bf-gift-bow{width:160px;height:102px;transform:translateX(-10px)}
 .detail-art>.bf-gift-promo .bf-gift-copy{gap:12px;padding-right:230px}
 .detail-art>.bf-gift-promo .bf-gift-copy strong{font-size:16px}
 .detail-art>.bf-gift-promo .bf-gift-copy em{font-size:13px}
 @media(max-width:760px){
   .bf-gift-photo{right:6px;bottom:5px}
-  .bf-gift-ribbon{right:4px;bottom:4px;left:8px;grid-template-columns:46px minmax(0,1fr);min-height:32px;padding:1px 5px 1px 1px}
+  .bf-gift-ribbon{right:4px;bottom:4px;left:8px;grid-template-columns:92px minmax(0,1fr);min-height:28px;padding:1px 5px 1px 1px}
   .bf-gift-ribbon::after{inset:2px}
-  .bf-gift-bow{width:46px;height:34px;transform:translateX(-7px)}
+  .bf-gift-bow{width:92px;height:60px;transform:translateX(-6px)}
   .bf-gift-copy{gap:5px;padding-right:108px}
   .bf-gift-copy strong{font-size:10px}
   .bf-gift-copy em{font-size:9px}
   .detail-art>.bf-gift-promo .bf-gift-photo{right:12px;bottom:9px}
-  .detail-art>.bf-gift-promo .bf-gift-ribbon{right:8px;bottom:8px;left:8px;grid-template-columns:48px minmax(0,1fr);min-height:36px;padding:1px 7px 1px 2px}
-  .detail-art>.bf-gift-promo .bf-gift-bow{width:48px;height:36px;transform:translateX(-7px)}
+  .detail-art>.bf-gift-promo .bf-gift-ribbon{right:8px;bottom:8px;left:8px;grid-template-columns:112px minmax(0,1fr);min-height:36px;padding:1px 7px 1px 2px}
+  .detail-art>.bf-gift-promo .bf-gift-bow{width:112px;height:72px;transform:translateX(-6px)}
   .detail-art>.bf-gift-promo .bf-gift-copy{gap:7px;padding-right:160px}
   .detail-art>.bf-gift-promo .bf-gift-copy strong{font-size:12px}
   .detail-art>.bf-gift-promo .bf-gift-copy em{font-size:10px}
@@ -352,4 +352,16 @@ footer { background:#050505!important; border-top:1px solid var(--bf-line); } fo
   .detail-art>.bf-gift-promo .bf-gift-copy{padding-right:140px}
   .detail-art>.bf-gift-promo .bf-gift-copy strong{font-size:14px}
   .detail-art>.bf-gift-promo .bf-gift-copy em{font-size:12px}
+}
+
+/* Match the supplied satin bow reference and lift the red slightly brighter. */
+.bf-gift-ribbon{grid-template-columns:140px minmax(0,1fr)}
+.bf-gift-bow{width:140px;height:88px}
+.detail-art>.bf-gift-promo .bf-gift-ribbon{grid-template-columns:160px minmax(0,1fr)}
+.detail-art>.bf-gift-promo .bf-gift-bow{width:160px;height:102px}
+@media(max-width:760px){
+  .bf-gift-ribbon{grid-template-columns:92px minmax(0,1fr)}
+  .bf-gift-bow{width:92px;height:60px}
+  .detail-art>.bf-gift-promo .bf-gift-ribbon{grid-template-columns:112px minmax(0,1fr)}
+  .detail-art>.bf-gift-promo .bf-gift-bow{width:112px;height:72px}
 }
