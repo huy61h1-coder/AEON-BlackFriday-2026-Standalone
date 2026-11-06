@@ -165,6 +165,53 @@ function productSaleOverlayMarkup(product) {
 }
 const giftCopyCanvasContext = document.createElement('canvas').getContext('2d');
 const giftCopyObserved = new WeakSet();
+const giftRibbonWidthObserved = new WeakSet();
+const giftRibbonWidthResizeObserver = typeof ResizeObserver === 'function'
+  ? new ResizeObserver(entries => entries.forEach(entry => fitProductGiftRibbonWidth(entry.target)))
+  : null;
+
+function fitProductGiftRibbonWidth(media) {
+  const ribbon = media?.querySelector('.bf-gift-ribbon');
+  const image = media?.querySelector('img.product-official-image:not([hidden])');
+  if (!ribbon) return;
+  if (!image?.naturalWidth || !image?.naturalHeight) {
+    ribbon.style.removeProperty('left');
+    ribbon.style.removeProperty('right');
+    return;
+  }
+  const boxWidth = media.clientWidth;
+  const boxHeight = media.clientHeight;
+  if (!boxWidth || !boxHeight) return;
+  const ratio = image.naturalWidth / image.naturalHeight;
+  const objectFit = getComputedStyle(image).objectFit;
+  const renderedWidth = objectFit === 'cover'
+    ? Math.max(boxWidth, boxHeight * ratio)
+    : Math.min(boxWidth, boxHeight * ratio);
+  const inset = Math.max(0, (boxWidth - renderedWidth) / 2);
+  ribbon.style.left = `${inset}px`;
+  ribbon.style.right = `${inset}px`;
+}
+
+function watchProductGiftRibbonWidths(root = document) {
+  const mediaItems = [];
+  if (root.nodeType === 1 && root.matches('.product-media')) mediaItems.push(root);
+  if (root.querySelectorAll) mediaItems.push(...root.querySelectorAll('.product-media'));
+  mediaItems.forEach(media => {
+    const ribbon = media.querySelector('.bf-gift-ribbon');
+    if (!ribbon) return;
+    if (giftRibbonWidthResizeObserver && !giftRibbonWidthObserved.has(media)) {
+      giftRibbonWidthObserved.add(media);
+      giftRibbonWidthResizeObserver.observe(media);
+    }
+    const image = media.querySelector('img.product-official-image:not([hidden])');
+    if (image && !image.dataset.giftRibbonWidthBound) {
+      image.dataset.giftRibbonWidthBound = 'true';
+      image.addEventListener('load', () => fitProductGiftRibbonWidth(media));
+      image.addEventListener('error', () => fitProductGiftRibbonWidth(media), {once:true});
+    }
+    fitProductGiftRibbonWidth(media);
+  });
+}
 const giftCopyResizeObserver = typeof ResizeObserver === 'function'
   ? new ResizeObserver(entries => entries.forEach(entry => fitGiftCopyText(entry.target)))
   : null;
@@ -1219,6 +1266,7 @@ function renderProducts() {
     </article>`;
   }).join('');
   attachImageFallbacks(grid);
+  watchProductGiftRibbonWidths(grid);
   scheduleProductPriceFit();
   renderCart();
 }

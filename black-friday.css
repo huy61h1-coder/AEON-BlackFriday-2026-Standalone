@@ -403,3 +403,6 @@ footer { background:#050505!important; border-top:1px solid var(--bf-line); } fo
   .bf-gift-copy{left:29%!important;right:19%!important;top:66%!important;gap:5px!important}
   .detail-art>.bf-gift-promo .bf-gift-copy{left:29%!important;right:20%!important;top:66%!important;gap:8px!important}
 }
+
+/* On catalogue cards, align the ribbon with the contained product image width. */
+.product-media .bf-gift-ribbon{left:0;right:0}
