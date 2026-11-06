@@ -365,3 +365,12 @@ footer { background:#050505!important; border-top:1px solid var(--bf-line); } fo
   .detail-art>.bf-gift-promo .bf-gift-ribbon{grid-template-columns:112px minmax(0,1fr)}
   .detail-art>.bf-gift-promo .bf-gift-bow{width:112px;height:72px}
 }
+
+/* Use the supplied Cloudinary artwork as the gift-ribbon background. */
+.bf-gift-ribbon{
+  background-color:#bd1222;
+  background-image:url("https://res.cloudinary.com/rnrbw9za/image/upload/v1793955548/fd50b78a-9e52-4115-9c37-eed7ca4a2c23.png");
+  background-position:center;
+  background-size:100% 100%;
+  background-repeat:no-repeat;
+}
