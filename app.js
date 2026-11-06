@@ -142,7 +142,9 @@ function productSaleOverlayMarkup(product) {
   const name = String(product.promotionProductName || '').trim();
   const value = String(product.promotionProductValue || '').trim();
   const image = normaliseImageUrl(product.promotionProductImage || '');
-  if (!name || !value || !image) return '';
+  if (!name || !image) return '';
+  const accessibleLabel = value ? `Tặng ${name}, trị giá ${value}` : `Tặng ${name}`;
+  const valueMarkup = value ? `<em>TRỊ GIÁ ${escapeHtml(value)}</em>` : '';
   const bow = `<svg class="bf-gift-bow" viewBox="0 0 180 112" aria-hidden="true" focusable="false">
     <g stroke-linejoin="round" stroke-linecap="round">
       <path d="M83 50C59 29 32 12 17 17 1 24 21 48 79 58 52 61 30 69 27 81 24 95 54 90 88 58Z" fill="#bd0a1b" stroke="#a96721" stroke-width="5"/>
@@ -161,7 +163,7 @@ function productSaleOverlayMarkup(product) {
       <path d="m90 37 2 4 4 1-4 2-2 4-2-4-4-2 4-1Z" fill="#fff2ba" stroke="none"/>
     </g>
   </svg>`;
-  return `<span class="bf-gift-promo" role="img" aria-label="Tặng ${escapeHtml(name)}, trị giá ${escapeHtml(value)}"><span class="bf-gift-photo"><img src="${escapeHtml(image)}" alt="" data-image-fallback><span data-image-placeholder hidden>✦</span></span><span class="bf-gift-ribbon">${bow}<span class="bf-gift-copy"><strong>TẶNG ${escapeHtml(name)}</strong><em>TRỊ GIÁ ${escapeHtml(value)}</em></span></span></span>`;
+  return `<span class="bf-gift-promo" role="img" aria-label="${escapeHtml(accessibleLabel)}"><span class="bf-gift-photo"><img src="${escapeHtml(image)}" alt="" data-image-fallback><span data-image-placeholder hidden>✦</span></span><span class="bf-gift-ribbon">${bow}<span class="bf-gift-copy"><strong>TẶNG ${escapeHtml(name)}</strong>${valueMarkup}</span></span></span>`;
 }
 const giftCopyCanvasContext = document.createElement('canvas').getContext('2d');
 const giftCopyObserved = new WeakSet();
@@ -172,7 +174,7 @@ const giftCopyResizeObserver = typeof ResizeObserver === 'function'
 function fitGiftCopyText(copy) {
   const strong = copy?.querySelector('strong');
   const value = copy?.querySelector('em');
-  if (!strong || !value || !giftCopyCanvasContext || !copy.isConnected) return;
+  if (!strong || !giftCopyCanvasContext || !copy.isConnected) return;
   const narrow = window.matchMedia('(max-width: 760px)').matches;
   const detail = Boolean(copy.closest('.detail-art'));
   const maxStrong = detail ? (narrow ? 14 : 18) : (narrow ? 8 : 16);
@@ -187,11 +189,11 @@ function fitGiftCopyText(copy) {
   };
   const available = Math.max(0, copy.clientWidth);
   const gap = Number.parseFloat(getComputedStyle(copy).columnGap) || 0;
-  const naturalWidth = widthAt(strong, maxStrong) + widthAt(value, maxValue) + gap;
+  const naturalWidth = widthAt(strong, maxStrong) + (value ? widthAt(value, maxValue) + gap : 0);
   if (!available || !naturalWidth) return;
   const scale = Math.max(0.25, Math.min(1, (available - 4) / naturalWidth));
   strong.style.fontSize = `${Math.round(maxStrong * scale * 10) / 10}px`;
-  value.style.fontSize = `${Math.round(maxValue * scale * 10) / 10}px`;
+  if (value) value.style.fontSize = `${Math.round(maxValue * scale * 10) / 10}px`;
 }
 
 function watchGiftCopySizing(root = document) {
@@ -763,7 +765,7 @@ function openStorefrontProductEditor(id) {
         <label>Giá khuyến mãi (VNĐ)<small data-variant-price-hint></small><input name="price" type="number" min="0" inputmode="numeric" required value="${existing.price ?? ''}" placeholder="Ví dụ: 750000"${existing.variants?.length ? ' readonly' : ''}></label>
         <label>Giá thường (VNĐ)<input name="originalPrice" type="number" min="0" inputmode="numeric" value="${existing.originalPrice ?? ''}" placeholder="Ví dụ: 900000"><small>Để trống nếu không giảm giá.</small></label>
         <fieldset class="storefront-promotion-fields wide"><legend>Số suất ưu đãi</legend><p>Màu dải suất tự chuyển từ vàng sang cam, đỏ khi số suất còn lại giảm.</p><div class="storefront-admin-form-grid"><label>Suất còn lại<input name="dealSlotsRemaining" type="number" min="0" max="9999" step="1" value="${cleanDealSlotCount(existing.dealSlotsRemaining, 0)}"></label><label>Tổng số suất<input name="dealSlotsTotal" type="number" min="1" max="9999" step="1" value="${Math.max(1, cleanDealSlotCount(existing.dealSlotsTotal, 20))}"></label></div></fieldset>
-        <fieldset class="storefront-promotion-fields wide"><legend>Hàng tặng kèm Black Friday</legend><p>Hiển thị ảnh quà tặng và dải “TẶNG … · TRỊ GIÁ …” khi điền đủ cả ba thông tin.</p><label>Tên sản phẩm khuyến mãi<input name="promotionProductName" maxlength="160" value="${escapeHtml(existing.promotionProductName || '')}" placeholder="Ví dụ: Nồi lẩu điện"></label><label>Giá trị sản phẩm khuyến mãi<input name="promotionProductValue" maxlength="120" value="${escapeHtml(existing.promotionProductValue || '')}" placeholder="Ví dụ: 990.000 ₫"></label><label class="wide">Link ảnh sản phẩm khuyến mãi<input name="promotionProductImage" value="${escapeHtml(existing.promotionProductImage || '')}" placeholder="https://... hoặc /assets/uploads/..."></label></fieldset>
+        <fieldset class="storefront-promotion-fields wide"><legend>Hàng tặng kèm Black Friday</legend><p>Chỉ cần nhập tên và ảnh quà để hiển thị; giá trị quà là tùy chọn.</p><label>Tên sản phẩm khuyến mãi<input name="promotionProductName" maxlength="160" value="${escapeHtml(existing.promotionProductName || '')}" placeholder="Ví dụ: Nồi lẩu điện"></label><label>Giá trị sản phẩm khuyến mãi<input name="promotionProductValue" maxlength="120" value="${escapeHtml(existing.promotionProductValue || '')}" placeholder="Ví dụ: 990.000 ₫"></label><label class="wide">Link ảnh sản phẩm khuyến mãi<input name="promotionProductImage" value="${escapeHtml(existing.promotionProductImage || '')}" placeholder="https://... hoặc /assets/uploads/..."></label></fieldset>
         <label>Nhãn hiển thị<input name="label" value="${escapeHtml(existing.label || '')}" placeholder="Ví dụ: Bán chạy"></label>
         <label>Kích thước<textarea name="weight" rows="2" placeholder="Ví dụ: 4 bánh · 720g">${escapeHtml(existing.weight || '')}</textarea></label>
         <label class="wide">Mô tả ngắn<textarea name="description" required rows="2">${escapeHtml(existing.description || '')}</textarea></label>
