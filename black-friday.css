@@ -412,3 +412,13 @@ footer { background:#050505!important; border-top:1px solid var(--bf-line); } fo
   .product-media .bf-gift-bow{height:27px!important}
   .product-media .bf-gift-ribbon{min-height:27px}
 }
+
+/* Render the configured art as an actual image so setting changes load
+   directly and the transparent side margins do not shorten the red band. */
+.bf-gift-ribbon{isolation:isolate}
+.bf-gift-ribbon-background{
+  position:absolute!important;top:0!important;left:-5.5%!important;display:block!important;
+  width:111%!important;height:100%!important;max-width:none!important;max-height:none!important;
+  margin:0!important;padding:0!important;border:0!important;border-radius:0!important;
+  object-fit:fill!important;object-position:center!important;z-index:0!important;pointer-events:none!important
+}

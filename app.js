@@ -873,11 +873,24 @@ function applyGiftRibbonBackground(ui) {
   else root.style.removeProperty('--bf-gift-ribbon-image');
 
   // Apply the saved setting directly after markup is created. This keeps
-  // product cards and the detail view in sync even when a stylesheet or
-  // browser cache still holds the previous ribbon artwork.
+  // product cards and the detail view in sync without relying on CSS variable
+  // resolution for the selected artwork.
   document.querySelectorAll('.bf-gift-ribbon').forEach(ribbon => {
-    if (imageUrl) ribbon.style.setProperty('background-image', `url(${JSON.stringify(imageUrl)})`, 'important');
-    else ribbon.style.removeProperty('background-image');
+    ribbon.style.setProperty('background-image', 'none', 'important');
+    let artwork = ribbon.querySelector(':scope > .bf-gift-ribbon-background');
+    if (!imageUrl) {
+      artwork?.remove();
+      return;
+    }
+    if (!artwork) {
+      artwork = document.createElement('img');
+      artwork.className = 'bf-gift-ribbon-background';
+      artwork.alt = '';
+      artwork.setAttribute('aria-hidden', 'true');
+      artwork.decoding = 'async';
+      ribbon.prepend(artwork);
+    }
+    if (artwork.getAttribute('src') !== imageUrl) artwork.setAttribute('src', imageUrl);
   });
 }
 
