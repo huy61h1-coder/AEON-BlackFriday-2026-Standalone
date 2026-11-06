@@ -406,3 +406,9 @@ footer { background:#050505!important; border-top:1px solid var(--bf-line); } fo
 
 /* On catalogue cards, align the ribbon with the contained product image width. */
 .product-media .bf-gift-ribbon{left:0;right:0}
+
+/* Reduce only the product-card ribbon height by one third on small screens. */
+@media(max-width:760px){
+  .product-media .bf-gift-bow{height:40px!important}
+  .product-media .bf-gift-ribbon{min-height:40px}
+}
