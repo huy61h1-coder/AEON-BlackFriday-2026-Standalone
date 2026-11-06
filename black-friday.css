@@ -440,3 +440,8 @@ footer { background:#050505!important; border-top:1px solid var(--bf-line); } fo
   .detail-art>.bf-gift-promo .bf-gift-ribbon{height:36px!important;min-height:36px!important;max-height:36px!important}
   .detail-art>.bf-gift-promo .bf-gift-copy{gap:5px!important}
 }
+
+/* In the product detail view, center the full gift label on the red ribbon. */
+.detail-art>.bf-gift-promo .bf-gift-ribbon .bf-gift-copy{
+  left:0!important;right:0!important;justify-content:center!important;text-align:center!important
+}
