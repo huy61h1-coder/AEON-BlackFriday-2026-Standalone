@@ -809,8 +809,23 @@ async function deleteStorefrontProduct(id) {
   }
 }
 
+function applyGiftRibbonBackground(ui) {
+  const configured = normaliseImageUrl(ui.giftRibbonBackgroundImage || AEON_DEFAULT_UI.giftRibbonBackgroundImage);
+  let imageUrl = '';
+  try {
+    const parsed = new URL(configured, window.location.origin);
+    if (parsed.protocol === 'https:' || parsed.protocol === 'http:') imageUrl = parsed.href;
+  } catch {
+    imageUrl = '';
+  }
+  const root = document.documentElement;
+  if (imageUrl) root.style.setProperty('--bf-gift-ribbon-image', `url("${imageUrl}")`);
+  else root.style.removeProperty('--bf-gift-ribbon-image');
+}
+
 function applyUi() {
   const ui = aeonStore.ui();
+  applyGiftRibbonBackground(ui);
   const pageTitle = String(ui.title || '').replace(/\s+/g, ' ').trim();
   document.title = pageTitle || 'BlackFriday';
   renderAeonBrandLogos(ui);

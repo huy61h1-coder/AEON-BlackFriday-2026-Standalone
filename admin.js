@@ -452,6 +452,22 @@ async function saveHeroImage(value) {
   return heroImage;
 }
 
+async function saveGiftRibbonBackground(value) {
+  const image = normaliseImageUrl(value);
+  if (!image) throw new Error('Hãy nhập đường dẫn ảnh hợp lệ hoặc tải ảnh lên.');
+  let latestUi = {};
+  try {
+    latestUi = (await remoteState())['aeon-ui'] || {};
+  } catch {
+    latestUi = aeonStore.ui();
+  }
+  await saveShared('aeon-ui', {...aeonStore.ui(), ...latestUi, giftRibbonBackgroundImage:image});
+  const confirmedUi = (await remoteState())['aeon-ui'] || {};
+  if (!sameImage(confirmedUi.giftRibbonBackgroundImage, image)) {
+    throw new Error('Ảnh nền dải hàng tặng chưa được lưu trên máy chủ. Vui lòng thử lại.');
+  }
+  return image;
+}
 function cleanLogoText(value, fallback = '', limit = 40, preserveLines = false) {
   const source = String(value ?? '').replace(/\r\n?/g, '\n');
   const cleaned = preserveLines
@@ -1367,6 +1383,64 @@ function openProductEditor(id, options = {}) {
   }
 }
 
+function giftRibbonBackgroundPanel(panel) {
+  const ui = aeonStore.ui();
+  panel.insertAdjacentHTML('beforeend', `
+    <section class="admin-card editor asset-editor">
+      <p class="eyebrow">HÌNH ẢNH ƯU ĐÃI</p>
+      <h2>Nền dải hàng tặng</h2>
+      <p>Thay ảnh nền riêng của dải hàng tặng. Nơ, nội dung và ảnh quà trên từng sản phẩm vẫn giữ nguyên.</p>
+      <form id="giftRibbonBackgroundForm">
+        <label>Đường dẫn ảnh nền<input name="giftRibbonBackgroundImage" value="${escapeHtml(ui.giftRibbonBackgroundImage || AEON_DEFAULT_UI.giftRibbonBackgroundImage)}" placeholder="https://... hoặc /assets/uploads/ten-anh.png"></label>
+        <div class="upload-field"><label for="giftRibbonBackgroundFile">Tải ảnh nền từ máy (PNG, JPG, WEBP, GIF hoặc SVG)</label><input id="giftRibbonBackgroundFile" type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml,.svg"><button class="secondary-button" id="uploadGiftRibbonBackground" type="button">Tải và lưu ảnh nền</button></div>
+        <div class="asset-preview" id="giftRibbonBackgroundPreview" aria-live="polite"></div>
+        <div class="editor-actions"><button class="button primary" type="submit">Lưu ảnh nền dải</button><button class="secondary-button" type="button" id="resetGiftRibbonBackground">Khôi phục ảnh mặc định</button></div>
+      </form>
+    </section>`);
+  const form = $('#giftRibbonBackgroundForm');
+  const imageInput = form.elements.giftRibbonBackgroundImage;
+  const preview = $('#giftRibbonBackgroundPreview');
+  const updatePreview = () => setPreview(preview, imageInput.value, 'Chưa chọn ảnh nền dải hàng tặng');
+  updatePreview();
+  imageInput.addEventListener('input', updatePreview);
+  $('#uploadGiftRibbonBackground').onclick = async () => {
+    const button = $('#uploadGiftRibbonBackground');
+    try {
+      setBusy(button, true, 'Đang tải và lưu...', 'Tải và lưu ảnh nền');
+      const url = await uploadOfficialImage($('#giftRibbonBackgroundFile').files[0]);
+      if (!url) throw new Error('Hãy chọn ảnh nền trước khi tải lên.');
+      const saved = await saveGiftRibbonBackground(url);
+      imageInput.value = saved;
+      updatePreview();
+      toastAdmin('Đã lưu ảnh nền dải hàng tặng và đồng bộ website.');
+    } catch (error) {
+      toastAdmin(error.message);
+    } finally {
+      setBusy(button, false, 'Đang tải và lưu...', 'Tải và lưu ảnh nền');
+    }
+  };
+  form.onsubmit = async event => {
+    event.preventDefault();
+    try {
+      const saved = await saveGiftRibbonBackground(imageInput.value);
+      imageInput.value = saved;
+      updatePreview();
+      toastAdmin('Đã lưu ảnh nền dải hàng tặng và đồng bộ website.');
+    } catch (error) {
+      toastAdmin(error.message);
+    }
+  };
+  $('#resetGiftRibbonBackground').onclick = async () => {
+    try {
+      const saved = await saveGiftRibbonBackground(AEON_DEFAULT_UI.giftRibbonBackgroundImage);
+      imageInput.value = saved;
+      updatePreview();
+      toastAdmin('Đã khôi phục ảnh nền dải hàng tặng mặc định.');
+    } catch (error) {
+      toastAdmin(error.message);
+    }
+  };
+}
 function interfacePanel(panel) {
   const ui = aeonStore.ui();
   panel.innerHTML = `
@@ -1413,6 +1487,7 @@ function interfacePanel(panel) {
       toastAdmin(error.message);
     }
   };
+  giftRibbonBackgroundPanel(panel);
 }
 
 function brandGroupEditorMarkup(group = {}) {
