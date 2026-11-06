@@ -374,3 +374,12 @@ footer { background:#050505!important; border-top:1px solid var(--bf-line); } fo
   background-size:100% 100%;
   background-repeat:no-repeat;
 }
+
+/* The selected artwork already contains its red band, gold trim, and bow. */
+.bf-gift-ribbon{
+  background-color:transparent!important;
+  border:0!important;
+  box-shadow:none!important;
+}
+.bf-gift-ribbon::after{content:none!important;display:none!important}
+.bf-gift-bow{visibility:hidden!important}
