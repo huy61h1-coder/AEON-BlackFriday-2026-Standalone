@@ -541,7 +541,7 @@ footer { background:#050505!important; border-top:1px solid var(--bf-line); } fo
 
 /* Stack the two optional gift cutouts vertically in their reserved photo area. */
 .bf-gift-photo.is-multi{
-  display:flex!important;flex-direction:column!important;align-items:stretch!important;justify-content:flex-end!important;
+  display:flex!important;flex-direction:column-reverse!important;align-items:stretch!important;justify-content:flex-end!important;
   gap:0!important;overflow:visible!important;background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important
 }
 .bf-gift-photo.is-multi .bf-gift-photo-item{
@@ -549,6 +549,6 @@ footer { background:#050505!important; border-top:1px solid var(--bf-line); } fo
 }
 .bf-gift-photo.is-multi .bf-gift-photo-item img{
   display:block;width:100%!important;height:100%!important;max-width:100%;max-height:100%;padding:0!important;
-  object-fit:contain!important;object-position:center center!important;transform:none!important
+  object-fit:contain!important;object-position:center bottom!important
 }
 .bf-gift-photo.is-multi .bf-gift-photo-item [data-image-placeholder]{position:absolute;inset:0;display:grid;place-items:center;font-size:14px}
