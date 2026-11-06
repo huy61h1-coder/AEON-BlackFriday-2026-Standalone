@@ -1,6 +1,6 @@
 # AEON Black Friday 2026
 
-Ứng dụng danh mục, báo giá và đặt hàng dành cho AEON Black Friday 2026. Bản bàn giao đã làm sạch dữ liệu thử nghiệm và có 6 sản phẩm minh họa để kiểm tra ngay giao diện.
+Ứng dụng danh mục, báo giá và đặt hàng dành cho AEON Black Friday 2026. Bản bàn giao có danh mục hiện tại gồm 73 sản phẩm để giao diện local và bản deploy bắt đầu từ cùng dữ liệu.
 
 ## Chức năng
 
@@ -38,6 +38,7 @@ Máy chủ hỗ trợ các biến môi trường:
 - `PORT`: cổng chạy ứng dụng, mặc định `8080`.
 - `ADMIN_USERNAME`: tài khoản đăng nhập trang quản trị, bắt buộc.
 - `ADMIN_PASSWORD`: mật khẩu quản trị, bắt buộc.
+- `AEON_LOCK_STOREFRONT`: đặt `true` trên máy chủ production để giao diện public luôn dùng theme/bố cục trong `storefront-state.js`, kể cả khi dữ liệu lưu/cloud còn giá trị cũ. Sản phẩm vẫn lấy từ danh mục hiện tại; quản trị viên vẫn đọc và sửa được cấu hình đã lưu.
 - `GOOGLE_SHEET_WEB_APP_URL`: URL Web App của Google Apps Script, bắt buộc
   nếu dùng chức năng đồng bộ đơn hàng.
 
@@ -46,6 +47,7 @@ Ví dụ trên PowerShell:
 ```powershell
 $env:ADMIN_USERNAME='ten-quan-tri'
 $env:ADMIN_PASSWORD='mat-khau-manh'
+$env:AEON_LOCK_STOREFRONT='true'
 $env:GOOGLE_SHEET_WEB_APP_URL='https://script.google.com/macros/s/DEPLOYMENT_ID/exec'
 npm start
 ```

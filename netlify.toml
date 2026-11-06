@@ -20,7 +20,7 @@
     CDN-Cache-Control = "no-store"
     Netlify-CDN-Cache-Control = "no-store"
     Pragma = "no-cache"
-    X-AEON-Build = "20261104-public-lock-v7"
+    X-AEON-Build = "20261106-canonical-shell-lock-v1"
 
 [[headers]]
   for = "/index.html"
@@ -29,4 +29,4 @@
     CDN-Cache-Control = "no-store"
     Netlify-CDN-Cache-Control = "no-store"
     Pragma = "no-cache"
-    X-AEON-Build = "20261104-public-lock-v7"
+    X-AEON-Build = "20261106-canonical-shell-lock-v1"
