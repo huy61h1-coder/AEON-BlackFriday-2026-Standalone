@@ -21,6 +21,8 @@ const maxImportBytes = 15 * 1024 * 1024;
 const maxQuoteUploadBytes = 20 * 1024 * 1024;
 const adminUsername = String(process.env.ADMIN_USERNAME || '').trim();
 const adminPassword = String(process.env.ADMIN_PASSWORD || '');
+// When enabled, stale UI/layout state falls back to the committed shell. Saves
+// from this release carry the current revision and remain editable/public.
 const lockPublicStorefront = /^(?:1|true|yes|on)$/i.test(String(process.env.AEON_LOCK_STOREFRONT || '').trim());
 const googleSheetWebAppUrl = String(process.env.GOOGLE_SHEET_WEB_APP_URL || '').trim();
 function publicSupabaseConfig() {
@@ -58,7 +60,7 @@ const types = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charse
 // Bump this whenever the storefront shell changes. It fingerprints every
 // local CSS/JS URL emitted by the Node deployment, so a CDN cannot revive an
 // obsolete interface after a new release.
-const storefrontBuild = '20261106-canonical-shell-lock-v1';
+const storefrontBuild = '20261106-editable-storefront-lock-v2';
 const productImageFitCss = '\n/* Server-enforced product commerce lock. */\n.product-media{position:relative!important;overflow:hidden!important;background:#fff!important}.product-media:has(.product-image-placeholder:not([hidden])),.product-media:has(.product-image-placeholder:not([hidden])):before,.product-media .product-image-placeholder:not([hidden]){background:#fff!important}.product-media img.product-official-image{display:block!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;margin:0!important;padding:0!important;object-fit:contain!important;object-position:center center!important}.product-price-stack .price,.product-price-stack .regular-price,.product-discount-badge{visibility:visible!important;opacity:1!important}\n';
 const noCacheHeaders = {
   'Cache-Control':'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0',
@@ -322,8 +324,15 @@ function publicStorefrontState(state, useCanonicalShell = lockPublicStorefront) 
     if (Object.hasOwn(state || {}, key)) visible[key] = state[key];
   });
   if (useCanonicalShell) {
-    visible['aeon-ui'] = canonicalStorefrontState['aeon-ui'];
-    visible['aeon-layout'] = canonicalLayout;
+    const storedUi = state?.['aeon-ui'];
+    const storedLayout = state?.['aeon-layout'];
+    const currentRevision = canonicalStorefrontState['aeon-ui']?.storefrontRevision;
+    visible['aeon-ui'] = storedUi?.storefrontRevision === currentRevision
+      ? storedUi
+      : canonicalStorefrontState['aeon-ui'];
+    visible['aeon-layout'] = storedLayout?.storefrontRevision === canonicalLayout.storefrontRevision
+      ? publicLayoutForState(state)
+      : canonicalLayout;
   } else {
     if (Object.hasOwn(state || {}, 'aeon-ui')) visible['aeon-ui'] = state['aeon-ui'];
     visible['aeon-layout'] = publicLayoutForState(state);
@@ -1678,6 +1687,9 @@ http.createServer(async (request, response) => {
         const tombstones = productTombstones(state);
         state[productTombstoneStateKey] = [...tombstones].filter(id => !restoredIds.has(id));
         state[key] = products;
+      } else if (key === 'aeon-ui') {
+        const requested = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+        state[key] = {...requested, storefrontRevision:canonicalStorefrontState['aeon-ui'].storefrontRevision};
       } else if (key !== 'aeon-layout') {
         state[key] = value;
       }

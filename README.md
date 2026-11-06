@@ -30,6 +30,9 @@ Mở website tại `http://127.0.0.1:8080/` và trang quản trị tại
 Để truy cập từ thiết bị khác cùng mạng, dùng địa chỉ IP LAN của máy chạy ứng
 dụng, ví dụ `http://192.168.1.64:8080/`.
 
+## Triển khai có quản trị
+
+Để tiếp tục sửa sản phẩm, ảnh banner và logo sau khi deploy, hãy chạy ứng dụng bằng Node.js (`npm install`, sau đó `npm start`) thay vì chỉ phát hành thư mục tĩnh. Máy chủ cần lưu bền vững `.aeon-store.json` và `assets/uploads/`; đặt `ADMIN_USERNAME`, `ADMIN_PASSWORD` và `AEON_LOCK_STOREFRONT=true` trong biến môi trường của máy chủ. `netlify.toml` hiện chỉ phát hành file tĩnh và hàm nhập Excel, nên không cung cấp đầy đủ API lưu sản phẩm, giao diện và ảnh.
 ## Cấu hình
 
 Máy chủ hỗ trợ các biến môi trường:
@@ -38,7 +41,7 @@ Máy chủ hỗ trợ các biến môi trường:
 - `PORT`: cổng chạy ứng dụng, mặc định `8080`.
 - `ADMIN_USERNAME`: tài khoản đăng nhập trang quản trị, bắt buộc.
 - `ADMIN_PASSWORD`: mật khẩu quản trị, bắt buộc.
-- `AEON_LOCK_STOREFRONT`: đặt `true` trên máy chủ production để giao diện public luôn dùng theme/bố cục trong `storefront-state.js`, kể cả khi dữ liệu lưu/cloud còn giá trị cũ. Sản phẩm vẫn lấy từ danh mục hiện tại; quản trị viên vẫn đọc và sửa được cấu hình đã lưu.
+- `AEON_LOCK_STOREFRONT`: đặt `true` trên máy chủ production để giao diện public dùng `storefront-state.js` khi cấu hình lưu/cloud mang phiên bản cũ. Banner, logo, nội dung và bố cục được quản trị viên lưu bằng bản mới sẽ tiếp tục hiển thị; danh sách sản phẩm không bị khóa.
 - `GOOGLE_SHEET_WEB_APP_URL`: URL Web App của Google Apps Script, bắt buộc
   nếu dùng chức năng đồng bộ đơn hàng.
 
