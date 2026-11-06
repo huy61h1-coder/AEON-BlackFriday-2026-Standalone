@@ -520,3 +520,10 @@ footer { background:#050505!important; border-top:1px solid var(--bf-line); } fo
   .product-media .bf-gift-photo img,
   .detail-art>.bf-gift-promo .bf-gift-photo img{transform:translateY(10%)!important}
 }
+
+/* Vertically center detail-view copy in the ribbon and trim the cutout's lower gap. */
+.detail-art>.bf-gift-promo .bf-gift-ribbon .bf-gift-copy{
+  top:0!important;bottom:0!important;transform:none!important;align-items:center!important;
+  justify-content:center!important;text-align:center!important
+}
+.detail-art>.bf-gift-promo .bf-gift-photo img{transform:translateY(15%)!important}
