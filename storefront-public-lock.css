@@ -15,13 +15,6 @@ body .storefront-admin-grid .product {
   box-shadow: 0 14px 30px rgba(0, 0, 0, 0.22) !important;
 }
 
-/* The public Black Friday catalogue uses the top search.  Legacy in-catalogue
-   sorting and the management brand panel are not part of this locked view. */
-#collection > .catalog-controls,
-#collection > .brand-directory {
-  display: none !important;
-}
-
 #collection > .products {
   margin-top: 0 !important;
 }
