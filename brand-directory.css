@@ -1,5 +1,7 @@
 /* Brand collection and product brand labels. */
 .brand-directory{margin:0 0 26px;padding:17px 18px 18px;border:1px solid rgba(222,214,201,.9);background:rgba(255,253,248,.72)}
+.product-group-directory{margin-top:-14px}
+.product-group-empty{margin:0;color:var(--muted);font-size:11px}
 .brand-directory-head{display:flex;align-items:center;justify-content:space-between;gap:16px}
 .brand-directory-head>div{display:flex;align-items:baseline;gap:11px;min-width:0}
 .brand-directory h3,.brand-directory h4{margin:0;color:var(--ink)}

@@ -273,6 +273,7 @@ function promotionFor(subtotal, date = new Date()) {
 const grid = $('#productGrid');
 const cartItems = $('#cartItems');
 const brandDirectory = $('#brandDirectory');
+const productGroupDirectory = $('#productGroupDirectory');
 const productSearchForm = $('#topProductSearch');
 const productSearchInput = $('#productSearchInput');
 const clearProductSearch = $('#clearProductSearch');
@@ -280,7 +281,9 @@ const productPriceFilter = $('#productPriceFilter');
 const productSort = $('#productSort');
 const catalogResult = $('#catalogResult');
 let activeBrand = '';
+let activeProductGroup = '';
 let brandDirectoryExpanded = false;
+let productGroupDirectoryExpanded = false;
 let productSearchQuery = '';
 let productPriceFilterValue = 'all';
 let productSortValue = 'featured';
@@ -294,7 +297,7 @@ $('footer p').textContent = '© 2026 AEON Black Friday.';
 
 document.body.insertAdjacentHTML('beforeend', '<button class="mobile-cart-cta" id="mobileCart" aria-label="Mở giỏ hàng"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.2 10.2a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 1.9-1.5L20 8H7.1"></path><circle cx="10" cy="20" r="1"></circle><circle cx="17" cy="20" r="1"></circle></svg><span>Giỏ hàng</span><b id="mobileCartCount">0</b><i>Xem giỏ →</i></button>');
 
-['product-detail.css', 'hotline.css?v=20260804-contact', 'promotion.css', 'hero-promotion.css', 'catalog-focus.css', 'hero-compact.css', 'admin-layout.css', 'storefront-refine.css', 'mobile-storefront.css', 'official-assets.css', 'product-modal-fix.css', 'product-variants.css', 'storefront-product-ux.css', 'brand-directory.css', 'storefront-admin.css?v=20261106-promo-fields', 'theme-customization.css?v=20261105-contrast', 'quote-download.css', 'catalog-search-sort.css?v=20260804-search-sort', 'toast-contrast.css?v=20261106-cart-notification'].forEach(href => {
+['product-detail.css', 'hotline.css?v=20260804-contact', 'promotion.css', 'hero-promotion.css', 'catalog-focus.css', 'hero-compact.css', 'admin-layout.css', 'storefront-refine.css', 'mobile-storefront.css', 'official-assets.css', 'product-modal-fix.css', 'product-variants.css', 'storefront-product-ux.css', 'brand-directory.css?v=20261107-catalog-group-sort-v40', 'storefront-admin.css?v=20261106-promo-fields', 'theme-customization.css?v=20261105-contrast', 'quote-download.css', 'catalog-search-sort.css?v=20260804-search-sort', 'toast-contrast.css?v=20261106-cart-notification'].forEach(href => {
   const alreadyLoaded = [...document.head.querySelectorAll('link[rel="stylesheet"]')]
     .some(link => link.getAttribute('href') === href);
   if (!alreadyLoaded) document.head.append(Object.assign(document.createElement('link'), {rel: 'stylesheet', href}));
@@ -1098,6 +1101,7 @@ function normaliseCatalogText(value) {
 function catalogProductText(product) {
   return normaliseCatalogText([
     product.name,
+    product.productGroup,
     product.brand,
     product.label,
     product.sku,
@@ -1139,7 +1143,9 @@ function sortCatalogProducts(items) {
   const [field, direction = 'asc'] = productSortValue.split('-');
   const order = direction === 'desc' ? -1 : 1;
 
-  if (field === 'name') {
+  if (field === 'featured') {
+    sorted.sort((first, second) => discountPercent(second) - discountPercent(first) || collator.compare(first.name, second.name));
+  } else if (field === 'name') {
     sorted.sort((first, second) => order * collator.compare(first.name, second.name));
   } else if (field === 'brand') {
     sorted.sort((first, second) => {
@@ -1164,6 +1170,7 @@ function sortCatalogProducts(items) {
 function updateCatalogResult(visibleCount, totalCount) {
   if (!catalogResult) return;
   const context = [];
+  if (activeProductGroup) context.push(`nhóm hàng ${activeProductGroup}`);
   if (activeBrand) context.push(`nhãn hiệu ${activeBrand}`);
   if (productSearchQuery) context.push(`từ khóa “${productSearchQuery}”`);
   if (PRICE_FILTER_LABELS[productPriceFilterValue]) context.push(`giá ${PRICE_FILTER_LABELS[productPriceFilterValue]}`);
@@ -1183,6 +1190,27 @@ function renderBrandDirectory() {
   <div class="brand-directory-content" id="brandDirectoryContent"${brandDirectoryExpanded ? '' : ' hidden'}>
     <div class="brand-directory-actions"><button type="button" class="brand-filter-reset${activeBrand ? '' : ' is-active'}" data-brand-filter="" aria-pressed="${activeBrand ? 'false' : 'true'}">Tất cả</button></div>
     <div class="brand-groups">${aeonBrandGroups().filter(group => group.brands.length).map(group => `<section class="brand-group"><h4>${escapeHtml(group.name)}</h4><div class="brand-group-list">${group.brands.map(brand => `<button type="button" class="brand-chip${activeBrand === brand.name ? ' is-active' : ''}" data-brand-filter="${escapeHtml(brand.name)}" aria-pressed="${activeBrand === brand.name ? 'true' : 'false'}">${escapeHtml(brand.name)}</button>`).join('')}</div></section>`).join('')}</div>
+  </div>`;
+}
+
+function renderProductGroupDirectory() {
+  if (!productGroupDirectory) return;
+  const collator = new Intl.Collator('vi', {sensitivity:'base', numeric:true});
+  const groupsByKey = new Map();
+  products.forEach(product => {
+    const name = String(product.productGroup || '').trim();
+    const key = normaliseCatalogText(name);
+    if (key && !groupsByKey.has(key)) groupsByKey.set(key, name);
+  });
+  const groups = [...groupsByKey.values()].sort((first, second) => collator.compare(first, second));
+  const selectedLabel = activeProductGroup ? `Đang lọc: ${escapeHtml(activeProductGroup)}` : 'Chọn nhóm hàng để lọc sản phẩm';
+  const toggleLabel = productGroupDirectoryExpanded ? 'Thu gọn danh sách nhóm hàng' : 'Xem nhóm hàng để lọc sản phẩm';
+  productGroupDirectory.innerHTML = `<div class="brand-directory-head">
+    <div><h3><button type="button" class="brand-directory-toggle" data-product-group-toggle aria-label="${toggleLabel}" aria-expanded="${productGroupDirectoryExpanded}" aria-controls="productGroupDirectoryContent">Nhóm hàng <span class="brand-directory-toggle-state">${productGroupDirectoryExpanded ? 'Thu gọn' : 'Chọn nhóm'} <b aria-hidden="true">${productGroupDirectoryExpanded ? '↑' : '↓'}</b></span></button></h3><p>${selectedLabel}</p></div>
+  </div>
+  <div class="brand-directory-content" id="productGroupDirectoryContent"${productGroupDirectoryExpanded ? '' : ' hidden'}>
+    <div class="brand-directory-actions"><button type="button" class="brand-filter-reset${activeProductGroup ? '' : ' is-active'}" data-product-group-filter="" aria-pressed="${activeProductGroup ? 'false' : 'true'}">Tất cả</button></div>
+    ${groups.length ? `<div class="brand-group-list">${groups.map(group => { const selected = normaliseCatalogText(activeProductGroup) === normaliseCatalogText(group); return `<button type="button" class="brand-chip${selected ? ' is-active' : ''}" data-product-group-filter="${escapeHtml(group)}" aria-pressed="${selected ? 'true' : 'false'}">${escapeHtml(group)}</button>`; }).join('')}</div>` : '<p class="product-group-empty">Chưa có nhóm hàng. Hãy thêm nhóm hàng trong sản phẩm hoặc cột Nhóm hàng của file Excel.</p>'}
   </div>`;
 }
 
@@ -1209,12 +1237,15 @@ function renderProducts() {
   products = aeonStore.products().map(normaliseProduct).filter(product => product.id);
   reconcileCart();
   renderBrandDirectory();
+  renderProductGroupDirectory();
   const searchTerm = normaliseCatalogText(productSearchQuery);
+  const activeGroupKey = normaliseCatalogText(activeProductGroup);
   const filteredProducts = products.filter(product => {
+    const matchesProductGroup = !activeGroupKey || normaliseCatalogText(product.productGroup) === activeGroupKey;
     const matchesBrand = !activeBrand || product.brand === activeBrand;
     const matchesSearch = !searchTerm || catalogProductText(product).includes(searchTerm);
     const matchesPrice = matchesProductPriceFilter(product);
-    return matchesBrand && matchesSearch && matchesPrice;
+    return matchesProductGroup && matchesBrand && matchesSearch && matchesPrice;
   });
   const visibleProducts = sortCatalogProducts(filteredProducts);
   updateCatalogResult(visibleProducts.length, products.length);
@@ -1223,7 +1254,7 @@ function renderProducts() {
 
   if (!visibleProducts.length) {
     const emptyContent = products.length
-      ? `<div class="catalog-empty brand-empty"><span>✦</span><h3>Không tìm thấy sản phẩm phù hợp</h3><p>Hãy thử từ khóa khác, đổi nhãn hiệu hoặc xem toàn bộ danh mục.</p><button type="button" class="catalog-admin-add" data-clear-catalog-filters>Xóa bộ lọc</button></div>`
+      ? `<div class="catalog-empty brand-empty"><span>✦</span><h3>Không tìm thấy sản phẩm phù hợp</h3><p>Hãy thử từ khóa khác, đổi nhóm hàng hoặc nhãn hiệu, hay xem toàn bộ danh mục.</p><button type="button" class="catalog-admin-add" data-clear-catalog-filters>Xóa bộ lọc</button></div>`
       : `<div class="catalog-empty"><span>✦</span><h3>Danh mục đang được cập nhật</h3><p>Hình ảnh, thông tin sản phẩm và giá bán sẽ được bổ sung ngay khi có công bố chính thức.</p>${isStorefrontAdmin() ? '<button type="button" class="catalog-admin-add" data-storefront-new>+ Tạo sản phẩm đầu tiên</button>' : ''}</div>`;
     grid.innerHTML = emptyContent;
     applyGiftRibbonBackground(aeonStore.ui());
@@ -1541,14 +1572,29 @@ document.addEventListener('click', event => {
     return;
   }
 
+  const productGroupToggle = event.target.closest('[data-product-group-toggle]');
+  if (productGroupToggle) {
+    productGroupDirectoryExpanded = !productGroupDirectoryExpanded;
+    renderProductGroupDirectory();
+    return;
+  }
+
   const clearCatalogFilters = event.target.closest('[data-clear-catalog-filters]');
   if (clearCatalogFilters) {
     activeBrand = '';
+    activeProductGroup = '';
     productSearchQuery = '';
     productPriceFilterValue = 'all';
     productSearchInput.value = '';
     productPriceFilter.value = 'all';
     clearProductSearch.hidden = true;
+    renderProducts();
+    return;
+  }
+
+  const productGroupFilter = event.target.closest('[data-product-group-filter]');
+  if (productGroupFilter) {
+    activeProductGroup = productGroupFilter.dataset.productGroupFilter;
     renderProducts();
     return;
   }
