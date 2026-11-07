@@ -20,7 +20,7 @@
     CDN-Cache-Control = "no-store"
     Netlify-CDN-Cache-Control = "no-store"
     Pragma = "no-cache"
-    X-AEON-Build = "20261107-brand-filters-full-width-v42"
+    X-AEON-Build = "20261107-catalog-order-upload-group-v43"
 
 [[headers]]
   for = "/index.html"
@@ -29,4 +29,4 @@
     CDN-Cache-Control = "no-store"
     Netlify-CDN-Cache-Control = "no-store"
     Pragma = "no-cache"
-    X-AEON-Build = "20261107-brand-filters-full-width-v42"
+    X-AEON-Build = "20261107-catalog-order-upload-group-v43"

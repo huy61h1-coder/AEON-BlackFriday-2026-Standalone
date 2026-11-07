@@ -921,7 +921,13 @@ async function saveImportedProducts(drafts) {
     savedIds.push(product.id);
   });
 
-  await saveShared('aeon-products', products);
+  const uniqueSavedIds = [...new Set(savedIds)];
+  const savedIdSet = new Set(uniqueSavedIds);
+  const orderedImportedProducts = uniqueSavedIds
+    .map(id => products.find(product => product.id === id))
+    .filter(Boolean);
+  const remainingProducts = products.filter(product => !savedIdSet.has(product.id));
+  await saveShared('aeon-products', [...orderedImportedProducts, ...remainingProducts]);
   const confirmed = await remoteState();
   const persisted = Array.isArray(confirmed['aeon-products']) ? confirmed['aeon-products'] : [];
   if (!savedIds.every(id => persisted.some(product => product.id === id))) {
