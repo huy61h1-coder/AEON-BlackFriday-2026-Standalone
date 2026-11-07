@@ -60,7 +60,7 @@ const types = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charse
 // Bump this whenever the storefront shell changes. It fingerprints every
 // local CSS/JS URL emitted by the Node deployment, so a CDN cannot revive an
 // obsolete interface after a new release.
-const storefrontBuild = '20261107-gift-copy-clear-v44';
+const storefrontBuild = '20261107-booked-slots-v45';
 const productImageFitCss = '\n/* Server-enforced product commerce lock. */\n.product-media{position:relative!important;overflow:hidden!important;background:#fff!important}.product-media:has(.product-image-placeholder:not([hidden])),.product-media:has(.product-image-placeholder:not([hidden])):before,.product-media .product-image-placeholder:not([hidden]){background:#fff!important}.product-media img.product-official-image{display:block!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;margin:0!important;padding:0!important;object-fit:contain!important;object-position:center center!important}.product-price-stack .price,.product-price-stack .regular-price,.product-discount-badge{visibility:visible!important;opacity:1!important}\n';
 const noCacheHeaders = {
   'Cache-Control':'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0',
@@ -935,11 +935,11 @@ const productWorkbookHeaders = [
   'Mã phân loại',
   'Giá phân loại',
   'Ảnh phân loại (URL)',
-  'Suất còn lại',
+  'Số suất đã đặt trước',
   'Tổng số suất'
 ];
 
-const productWorkbookWidths = [20, 38, 24, 16, 16, 34, 30, 46, 26, 20, 18, 24, 38, 46, 46, 46, 46, 46, 46, 20, 24, 20, 18, 46, 16, 16];
+const productWorkbookWidths = [20, 38, 24, 16, 16, 34, 30, 46, 26, 20, 18, 24, 38, 46, 46, 46, 46, 46, 46, 20, 24, 20, 18, 46, 23, 16];
 
 function productWorkbookRow(product, variant = null) {
   return {
@@ -967,7 +967,7 @@ function productWorkbookRow(product, variant = null) {
     'Mã phân loại': spreadsheetText(variant?.sku),
     'Giá phân loại': variant ? spreadsheetNumber(variant.price) : '',
     'Ảnh phân loại (URL)': spreadsheetText(variant?.image),
-    'Suất còn lại': Number.isFinite(Number(product?.dealSlotsRemaining)) ? Math.max(0, Math.min(9999, Math.floor(Number(product.dealSlotsRemaining)))) : 0,
+    'Số suất đã đặt trước': Number.isFinite(Number(product?.dealSlotsRemaining)) ? Math.max(0, Math.min(9999, Math.floor(Number(product.dealSlotsRemaining)))) : 0,
     'Tổng số suất': Number.isFinite(Number(product?.dealSlotsTotal)) ? Math.max(1, Math.min(9999, Math.floor(Number(product.dealSlotsTotal)))) : 20
   };
 }
@@ -994,7 +994,7 @@ function productWorkbookGuide() {
     {'Cột': 'Tên sản phẩm khuyến mãi', 'Yêu cầu': 'Không bắt buộc; tên hàng tặng kèm trên dải khuyến mãi Black Friday', 'Ví dụ': 'Nồi lẩu điện'},
     {'Cột': 'Giá trị sản phẩm khuyến mãi', 'Yêu cầu': 'Không bắt buộc; giá trị quà tặng hiển thị sau chữ TRỊ GIÁ', 'Ví dụ': '990.000 ₫'},
     {'Cột': 'Ảnh sản phẩm khuyến mãi (URL)', 'Yêu cầu': 'Không bắt buộc; lớp phủ hiện khi có tên quà và link ảnh; giá trị quà không bắt buộc', 'Ví dụ': 'https://example.com/noi-lau.jpg'},
-    {'Cột': 'Suất còn lại', 'Yêu cầu': 'Số suất đang còn; dải đổi màu theo tỷ lệ so với Tổng số suất', 'Ví dụ': '20'},
+    {'Cột': 'Số suất đã đặt trước', 'Yêu cầu': 'Số suất đã có người đặt trước; 0 nghĩa là chưa có người đặt, màu dải thay đổi khi số lượt đặt tăng', 'Ví dụ': '0'},
     {'Cột': 'Tổng số suất', 'Yêu cầu': 'Tổng số suất ưu đãi của sản phẩm', 'Ví dụ': '20'},
     {'Cột': 'Thương hiệu', 'Yêu cầu': 'Nhập tên thương hiệu; bộ lọc sẽ tự động được tạo', 'Ví dụ': 'Kinh Đô'},
     {'Cột': 'Mã sản phẩm', 'Yêu cầu': 'Nên có và phải giống nhau trên các dòng phân loại của cùng sản phẩm', 'Ví dụ': 'AM-2026-01'},
@@ -1176,7 +1176,7 @@ async function productCatalogWorkbook(state) {
     {key:'brand', width:24},
     {key:'sku', width:22},
     {key:'variants', width:36},
-    {key:'dealSlotsRemaining', width:16},
+    {key:'dealSlotsRemaining', width:23},
     {key:'dealSlotsTotal', width:16}
   ];
   catalogue.mergeCells('A1:I1');
@@ -1192,7 +1192,7 @@ async function productCatalogWorkbook(state) {
   catalogue.getRow(2).height = 22;
   catalogue.getRow(3).height = 8;
 
-  const headerRow = catalogue.addRow(['Hình ảnh', 'Tên sản phẩm', 'Nhóm hàng', 'Giá bán', 'Thương hiệu', 'Mã sản phẩm', 'Phân loại', 'Suất còn lại', 'Tổng số suất']);
+  const headerRow = catalogue.addRow(['Hình ảnh', 'Tên sản phẩm', 'Nhóm hàng', 'Giá bán', 'Thương hiệu', 'Mã sản phẩm', 'Phân loại', 'Số suất đã đặt trước', 'Tổng số suất']);
   headerRow.height = 26;
   headerRow.eachCell(cell => {
     cell.font = {name:'Be Vietnam Pro', size:10, bold:true, color:{argb:'FFFFFFFF'}};

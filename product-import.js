@@ -339,7 +339,7 @@ function headerField(value) {
   if (/(ten (?:(?:san pham|sp) )?khuyen mai|promo(?:tion)? product name|promotion name)/.test(key)) return 'promotionProductName';
   if (/(gia tri (?:(?:san pham|sp) )?khuyen mai|gia tri uu dai|promo(?:tion)? value)/.test(key)) return 'promotionProductValue';
   if (/(anh (?:(?:san pham|sp) )?khuyen mai|hinh anh (?:(?:san pham|sp) )?khuyen mai|promo(?:tion)? image)/.test(key)) return 'promotionProductImage';
-  if (/(suat con lai|so suat con lai|remaining (?:deal )?slots|slots remaining|quota remaining)/.test(key)) return 'dealSlotsRemaining';
+  if (/(suat da dat truoc|so suat da dat truoc|so nguoi dat truoc|so nguoi da dat|suat con lai|so suat con lai|remaining (?:deal )?slots|slots remaining|quota remaining)/.test(key)) return 'dealSlotsRemaining';
   if (/(tong so suat|tong suat|so suat uu dai|total (?:deal )?slots|deal slots total|quota total)/.test(key)) return 'dealSlotsTotal';
   if (/(^| )(id he thong|id san pham|product id|system id)( |$)/.test(key)) return 'id';
   if (/(ten phan loai|nhom phan loai|variant label|variant group|option name)/.test(key)) return 'variantLabel';
