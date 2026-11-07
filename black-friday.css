@@ -583,3 +583,26 @@ footer { background:#050505!important; border-top:1px solid var(--bf-line); } fo
   .product-media:has(.bf-gift-photo.is-multi) .bf-gift-ribbon .bf-gift-copy{right:clamp(112px,42%,140px)!important}
   .detail-art>.bf-gift-promo:has(.bf-gift-photo.is-multi) .bf-gift-ribbon .bf-gift-copy{right:clamp(140px,38vw,160px)!important}
 }
+
+/* Center both gift text lines and leave a clear lane for two gift images. */
+.bf-gift-promo:has(.bf-gift-photo.is-multi) .bf-gift-ribbon .bf-gift-copy{
+  top:0!important;right:calc(clamp(108px,11vw,148px) + 18px)!important;bottom:0!important;
+  display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;
+  gap:2px!important;transform:none!important;text-align:center!important;white-space:normal!important
+}
+.bf-gift-promo:has(.bf-gift-photo.is-multi) .bf-gift-ribbon .bf-gift-copy strong,
+.bf-gift-promo:has(.bf-gift-photo.is-multi) .bf-gift-ribbon .bf-gift-copy em{
+  flex:0 1 auto!important;width:100%!important;min-width:0!important;max-width:100%!important;
+  overflow:visible!important;text-align:center!important;white-space:normal!important;overflow-wrap:anywhere!important
+}
+.detail-art>.bf-gift-promo:has(.bf-gift-photo.is-multi) .bf-gift-ribbon .bf-gift-copy{
+  right:calc(clamp(170px,16vw,210px) + 32px)!important
+}
+@media(max-width:760px){
+  .product-media:has(.bf-gift-photo.is-multi) .bf-gift-ribbon .bf-gift-copy{
+    right:calc(clamp(98px,30vw,120px) + 14px)!important
+  }
+  .detail-art>.bf-gift-promo:has(.bf-gift-photo.is-multi) .bf-gift-ribbon .bf-gift-copy{
+    right:calc(clamp(120px,38vw,160px) + 24px)!important
+  }
+}
