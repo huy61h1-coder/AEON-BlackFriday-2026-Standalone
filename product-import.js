@@ -351,6 +351,7 @@ function headerField(value) {
   if (/(gia tri phan loai|phan loai|bien the|lua chon|variant value|option value)/.test(key)) return 'variantName';
   if (/(chi tiet san pham|noi dung chi tiet|full details)/.test(key)) return 'details';
   if (/(ma san pham|ma sp|sku|product code|code)/.test(key)) return 'sku';
+  if (/(nhom hang|nhom san pham|loai hang|danh muc|product group|product category|category)/.test(key)) return 'productGroup';
   if (/(^| )(ten san pham|san pham|ten hang hoa|ten hang|hang hoa|mat hang|product name|product|item name|item|ten)( |$)/.test(key)) return 'name';
   if (/(^| )(gia ban|don gia|don gia ban|gia|price|unit price|selling price|vnd|vnđ)( |$)/.test(key)) return 'price';
   if (/(mo ta|description|details|noi dung|thong tin)/.test(key)) return 'description';
@@ -443,6 +444,7 @@ function candidatesFromSpreadsheet(buffer, filename = '') {
           description: cleanText(record.description || '', 500),
           sku,
           brand,
+          productGroup: cleanText(record.productGroup || '', 100),
           label: cleanText(record.label || '', 100),
           promotionProductName: cleanText(record.promotionProductName || '', 160),
           promotionProductValue: cleanText(record.promotionProductValue || '', 120),
@@ -465,8 +467,8 @@ function candidatesFromSpreadsheet(buffer, filename = '') {
         candidates.push(candidate);
       } else {
         if (!candidate.sku && sku) candidate.sku = sku;
-        ['description', 'sku', 'brand', 'label', 'promotionProductName', 'promotionProductValue', 'promotionProductImage', 'weight', 'ingredients', 'details', 'image', 'variantLabel'].forEach(field => {
-          if (!candidate[field] && record[field]) candidate[field] = cleanText(record[field], field === 'image' || field === 'promotionProductImage' ? 600 : field === 'details' ? 1200 : field === 'promotionProductName' ? 160 : field === 'promotionProductValue' ? 120 : 500);
+        ['description', 'sku', 'brand', 'productGroup', 'label', 'promotionProductName', 'promotionProductValue', 'promotionProductImage', 'weight', 'ingredients', 'details', 'image', 'variantLabel'].forEach(field => {
+          if (!candidate[field] && record[field]) candidate[field] = cleanText(record[field], field === 'image' || field === 'promotionProductImage' ? 600 : field === 'details' ? 1200 : field === 'promotionProductName' ? 160 : field === 'promotionProductValue' ? 120 : field === 'productGroup' ? 100 : 500);
         });
         if (candidate.dealSlotsRemaining == null && record.dealSlotsRemaining) candidate.dealSlotsRemaining = parseSlotCount(record.dealSlotsRemaining);
         if (candidate.dealSlotsTotal == null && record.dealSlotsTotal) candidate.dealSlotsTotal = parseSlotCount(record.dealSlotsTotal);

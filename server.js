@@ -60,7 +60,7 @@ const types = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charse
 // Bump this whenever the storefront shell changes. It fingerprints every
 // local CSS/JS URL emitted by the Node deployment, so a CDN cannot revive an
 // obsolete interface after a new release.
-const storefrontBuild = '20261106-gift-copy-two-lines-v38';
+const storefrontBuild = '20261107-product-group-excel-column-v39';
 const productImageFitCss = '\n/* Server-enforced product commerce lock. */\n.product-media{position:relative!important;overflow:hidden!important;background:#fff!important}.product-media:has(.product-image-placeholder:not([hidden])),.product-media:has(.product-image-placeholder:not([hidden])):before,.product-media .product-image-placeholder:not([hidden]){background:#fff!important}.product-media img.product-official-image{display:block!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;margin:0!important;padding:0!important;object-fit:contain!important;object-position:center center!important}.product-price-stack .price,.product-price-stack .regular-price,.product-discount-badge{visibility:visible!important;opacity:1!important}\n';
 const noCacheHeaders = {
   'Cache-Control':'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0',
@@ -913,6 +913,7 @@ async function orderPdfBuffer(state, requestedCode) {
 const productWorkbookHeaders = [
   'ID hệ thống',
   'Tên sản phẩm',
+  'Nhóm hàng',
   'Giá khuyến mãi',
   'Giá thường',
   'Tên sản phẩm khuyến mãi',
@@ -938,12 +939,13 @@ const productWorkbookHeaders = [
   'Tổng số suất'
 ];
 
-const productWorkbookWidths = [20, 38, 16, 16, 34, 30, 46, 26, 20, 18, 24, 38, 46, 46, 46, 46, 46, 46, 20, 24, 20, 18, 46, 16, 16];
+const productWorkbookWidths = [20, 38, 24, 16, 16, 34, 30, 46, 26, 20, 18, 24, 38, 46, 46, 46, 46, 46, 46, 20, 24, 20, 18, 46, 16, 16];
 
 function productWorkbookRow(product, variant = null) {
   return {
     'ID hệ thống': spreadsheetText(product?.id),
     'Tên sản phẩm': spreadsheetText(product?.name),
+    'Nhóm hàng': spreadsheetText(product?.productGroup),
     'Giá khuyến mãi': spreadsheetNumber(product?.price),
     'Giá thường': spreadsheetNumber(product?.originalPrice),
     'Tên sản phẩm khuyến mãi': spreadsheetText(product?.promotionProductName),
@@ -986,11 +988,12 @@ function productWorkbookGuide() {
   const guideRows = [
     {'Cột': 'ID hệ thống', 'Yêu cầu': 'Giữ nguyên khi cập nhật danh sách đã tải xuống; để trống khi tạo sản phẩm mới', 'Ví dụ': 'sp-2026-01'},
     {'Cột': 'Tên sản phẩm', 'Yêu cầu': 'Bắt buộc; lặp lại trên các dòng phân loại của cùng sản phẩm', 'Ví dụ': 'Sản phẩm ưu đãi BlackFriday'},
+    {'Cột': 'Nhóm hàng', 'Yêu cầu': 'Không bắt buộc; dùng để phân nhóm sản phẩm', 'Ví dụ': 'Điện gia dụng'},
     {'Cột': 'Giá khuyến mãi', 'Yêu cầu': 'Giá chung khi không có phân loại; nếu có phân loại, hệ thống lấy giá thấp nhất', 'Ví dụ': '350000'},
     {'Cột': 'Giá thường', 'Yêu cầu': 'Không bắt buộc; lớn hơn Giá khuyến mãi để hiển thị giá gạch ngang và % giảm', 'Ví dụ': '450000'},
     {'Cột': 'Tên sản phẩm khuyến mãi', 'Yêu cầu': 'Không bắt buộc; tên hàng tặng kèm trên dải khuyến mãi Black Friday', 'Ví dụ': 'Nồi lẩu điện'},
     {'Cột': 'Giá trị sản phẩm khuyến mãi', 'Yêu cầu': 'Không bắt buộc; giá trị quà tặng hiển thị sau chữ TRỊ GIÁ', 'Ví dụ': '990.000 ₫'},
-    {'Cột': 'Ảnh sản phẩm khuyến mãi (URL)', 'Yêu cầu': 'Không bắt buộc; lớp phủ chỉ hiện khi có đủ tên quà tặng, giá trị và link ảnh', 'Ví dụ': 'https://example.com/noi-lau.jpg'},
+    {'Cột': 'Ảnh sản phẩm khuyến mãi (URL)', 'Yêu cầu': 'Không bắt buộc; lớp phủ hiện khi có tên quà và link ảnh; giá trị quà không bắt buộc', 'Ví dụ': 'https://example.com/noi-lau.jpg'},
     {'Cột': 'Suất còn lại', 'Yêu cầu': 'Số suất đang còn; dải đổi màu theo tỷ lệ so với Tổng số suất', 'Ví dụ': '20'},
     {'Cột': 'Tổng số suất', 'Yêu cầu': 'Tổng số suất ưu đãi của sản phẩm', 'Ví dụ': '20'},
     {'Cột': 'Thương hiệu', 'Yêu cầu': 'Nhập tên thương hiệu; bộ lọc sẽ tự động được tạo', 'Ví dụ': 'Kinh Đô'},
@@ -1016,6 +1019,7 @@ function productImportTemplateWorkbook() {
   const exampleProduct = {
     id: '',
     name: 'Sản phẩm ưu đãi BlackFriday',
+    productGroup: 'Bánh trung thu',
     price: 350000,
     originalPrice: 450000,
     promotionProductName: 'Nồi lẩu điện',
@@ -1167,6 +1171,7 @@ async function productCatalogWorkbook(state) {
   catalogue.columns = [
     {key:'image', width:18},
     {key:'name', width:44},
+    {key:'productGroup', width:24},
     {key:'price', width:20},
     {key:'brand', width:24},
     {key:'sku', width:22},
@@ -1174,20 +1179,20 @@ async function productCatalogWorkbook(state) {
     {key:'dealSlotsRemaining', width:16},
     {key:'dealSlotsTotal', width:16}
   ];
-  catalogue.mergeCells('A1:H1');
+  catalogue.mergeCells('A1:I1');
   catalogue.getCell('A1').value = 'DANH MỤC SẢN PHẨM';
   catalogue.getCell('A1').font = {name:'Be Vietnam Pro', size:18, bold:true, color:{argb:'FFFFFFFF'}};
   catalogue.getCell('A1').fill = {type:'pattern', pattern:'solid', fgColor:{argb:'FFD72D58'}};
   catalogue.getCell('A1').alignment = {horizontal:'left', vertical:'middle'};
   catalogue.getRow(1).height = 34;
-  catalogue.mergeCells('A2:H2');
+  catalogue.mergeCells('A2:I2');
   catalogue.getCell('A2').value = `Danh sách ${products.length} sản phẩm đang hiển thị trên website`;
   catalogue.getCell('A2').font = {name:'Be Vietnam Pro', size:10, color:{argb:'FF6E6967'}};
   catalogue.getCell('A2').alignment = {vertical:'middle'};
   catalogue.getRow(2).height = 22;
   catalogue.getRow(3).height = 8;
 
-  const headerRow = catalogue.addRow(['Hình ảnh', 'Tên sản phẩm', 'Giá bán', 'Thương hiệu', 'Mã sản phẩm', 'Phân loại', 'Suất còn lại', 'Tổng số suất']);
+  const headerRow = catalogue.addRow(['Hình ảnh', 'Tên sản phẩm', 'Nhóm hàng', 'Giá bán', 'Thương hiệu', 'Mã sản phẩm', 'Phân loại', 'Suất còn lại', 'Tổng số suất']);
   headerRow.height = 26;
   headerRow.eachCell(cell => {
     cell.font = {name:'Be Vietnam Pro', size:10, bold:true, color:{argb:'FFFFFFFF'}};
@@ -1200,6 +1205,7 @@ async function productCatalogWorkbook(state) {
     const row = catalogue.addRow([
       '',
       String(product?.name || 'Sản phẩm chưa có tên'),
+      String(product?.productGroup || ''),
       productCatalogPrice(product),
       String(product?.brand || ''),
       String(product?.sku || ''),
@@ -1214,8 +1220,8 @@ async function productCatalogWorkbook(state) {
       cell.border = {bottom:{style:'thin', color:{argb:'FFE5D7CC'}}};
     });
     row.getCell(2).font = {name:'Be Vietnam Pro', size:10, bold:true, color:{argb:'FF242224'}};
-    row.getCell(3).numFmt = '#,##0 "đ"';
-    row.getCell(3).font = {name:'Be Vietnam Pro', size:10, bold:true, color:{argb:'FFD72D58'}};
+    row.getCell(4).numFmt = '#,##0 "đ"';
+    row.getCell(4).font = {name:'Be Vietnam Pro', size:10, bold:true, color:{argb:'FFD72D58'}};
     row.getCell(1).alignment = {horizontal:'center', vertical:'middle'};
 
     const imageBuffer = await catalogImageBuffer(product?.image);

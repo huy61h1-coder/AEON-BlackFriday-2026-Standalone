@@ -83,6 +83,7 @@ function normaliseProduct(product) {
     details: String(product.details || product.description || ''),
     label: String(product.label || ''),
     brand: normaliseAeonBrand(product.brand) || inferAeonBrandFromProductName(product.name),
+    productGroup: String(product.productGroup || product.category || product.group || '').trim().slice(0, 100),
     promotionProductName: String(product.promotionProductName || product.promoName || '').trim().slice(0, 160),
     promotionProductValue: String(product.promotionProductValue || product.promoValue || '').trim().slice(0, 120),
     promotionProductImage: normaliseGiftImageList(product.promotionProductImage || product.promoImage || '').join(', '),
@@ -692,6 +693,7 @@ function productFromStorefrontForm(form, existing = {}, variants = []) {
     dealSlotsTotal: Math.max(1, cleanDealSlotCount(data.dealSlotsTotal, cleanDealSlotCount(existing.dealSlotsTotal, 20))),
     label: cleanStorefrontProductText(data.label, 100),
     brand: normaliseAeonBrand(data.brand) || inferAeonBrandFromProductName(name),
+    productGroup: cleanStorefrontProductText(data.productGroup, 100),
     description,
     weight: cleanStorefrontProductText(data.weight, 160, true),
     ingredients: cleanStorefrontProductText(data.ingredients, 250, true),
@@ -753,7 +755,7 @@ function openStorefrontProductEditor(id) {
     return;
   }
   const existingImages = found ? normaliseProductImages(found.images, found.image) : [];
-  const existing = found ? {...found, image: existingImages[0] || '', images: existingImages, variants: normaliseVariants(found.variants, Math.max(0, Number(found.price) || 0))} : {id: '', name: '', price: '', originalPrice: '', dealSlotsRemaining: 0, dealSlotsTotal: 20, description: '', details: '', label: '', brand: '', image: '', images: [], weight: '', ingredients: '', sku: '', variants: [], promotionProductName: '', promotionProductValue: '', promotionProductImage: '', bg: '#e9c38b', box: '#8f1834'};
+  const existing = found ? {...found, image: existingImages[0] || '', images: existingImages, variants: normaliseVariants(found.variants, Math.max(0, Number(found.price) || 0))} : {id: '', name: '', price: '', originalPrice: '', dealSlotsRemaining: 0, dealSlotsTotal: 20, description: '', details: '', label: '', brand: '', productGroup: '', image: '', images: [], weight: '', ingredients: '', sku: '', variants: [], promotionProductName: '', promotionProductValue: '', promotionProductImage: '', bg: '#e9c38b', box: '#8f1834'};
   storefrontAdminLastFocus = document.activeElement;
   let modal = $('#storefrontAdminEditor');
   if (!modal) {
@@ -770,6 +772,7 @@ function openStorefrontProductEditor(id) {
     <form id="storefrontProductForm">
       <div class="storefront-admin-form-grid">
         <label>Tên sản phẩm<input name="name" required value="${escapeHtml(existing.name)}"></label>
+        <label>Nhóm hàng<input name="productGroup" maxlength="100" value="${escapeHtml(existing.productGroup || '')}" placeholder="Ví dụ: Điện gia dụng"></label>
         <label>Thương hiệu<input name="brand" value="${escapeHtml(normaliseAeonBrand(existing.brand))}" placeholder="Nhập tên thương hiệu"><small>Tự động đưa vào bộ lọc thương hiệu sau khi lưu.</small></label>
         ${existing.id ? '' : `<label>Vị trí trong danh sách<select name="insertPosition">${storefrontProductInsertPositionOptions(aeonStore.products())}</select><small>Sản phẩm sẽ được chèn đúng vị trí này khi lưu.</small></label>`}
         <label>Giá khuyến mãi (VNĐ)<small data-variant-price-hint></small><input name="price" type="number" min="0" inputmode="numeric" required value="${existing.price ?? ''}" placeholder="Ví dụ: 750000"${existing.variants?.length ? ' readonly' : ''}></label>

@@ -893,6 +893,7 @@ async function saveImportedProducts(drafts) {
       brand: normaliseAeonBrand(draft.brand) || normaliseAeonBrand(existing?.brand) || inferAeonBrandFromProductName(name),
       description,
       sku,
+      productGroup: cleanTextImport(draft.productGroup ?? existing?.productGroup, 100),
       label: cleanTextImport(draft.label, 100),
       promotionProductName: cleanTextImport(draft.promotionProductName ?? existing?.promotionProductName, 160),
       promotionProductValue: cleanTextImport(draft.promotionProductValue ?? existing?.promotionProductValue, 120),
@@ -1007,6 +1008,7 @@ function renderImportPreview(target, analysis, products) {
         <header><label class="import-check"><input type="checkbox" data-import-select ${selectByDefault ? 'checked' : ''} ${canSelect ? '' : 'disabled'}><span>Chọn sản phẩm ${index + 1}</span></label><span class="import-confidence">Độ tin cậy ${Math.max(0, Math.min(100, Number(candidate.confidence) || 0))}%</span></header>
         <div class="import-fields">
           <label>Tên sản phẩm<input data-import-name value="${escapeHtml(candidate.name || '')}" required></label>
+          <label>Nhóm hàng<input data-import-product-group value="${escapeHtml(candidate.productGroup || existing?.productGroup || '')}" placeholder="Ví dụ: Điện gia dụng"></label>
           <label>Thương hiệu<input data-import-brand value="${escapeHtml(normaliseAeonBrand(candidate.brand) || normaliseAeonBrand(existing?.brand) || inferAeonBrandFromProductName(candidate.name))}" placeholder="Tự động lấy từ file hoặc tên sản phẩm"></label>
           <label>Giá khuyến mãi (VNĐ)<input data-import-price type="number" min="0" inputmode="numeric" value="${Number(candidate.price) || ''}" required></label>
           <label>Giá thường (VNĐ)<input data-import-original-price type="number" min="0" inputmode="numeric" value="${Number(candidate.originalPrice) || ''}" placeholder="Để trống nếu không giảm giá"></label>
@@ -1061,6 +1063,7 @@ function renderImportPreview(target, analysis, products) {
         return {
           ...original,
           name: card.querySelector('[data-import-name]').value,
+          productGroup: card.querySelector('[data-import-product-group]').value,
           brand: card.querySelector('[data-import-brand]').value,
           price: card.querySelector('[data-import-price]').value,
           originalPrice: card.querySelector('[data-import-original-price]').value,
@@ -1255,6 +1258,7 @@ function openProductEditor(id, options = {}) {
     data.promotionProductName = cleanTextImport(data.promotionProductName, 160);
     data.promotionProductValue = cleanTextImport(data.promotionProductValue, 120);
     data.promotionProductImage = normaliseGiftImageList(data.promotionProductImage || '').join(', ');
+    data.productGroup = cleanTextImport(data.productGroup, 100);
     if (!Number.isFinite(data.price) || data.price < 0) throw new Error('Giá bán không hợp lệ.');
     data.images = normaliseProductImages([data.image, data.image2, data.image3, data.image4, data.image5, data.images]);
     delete data.image2; delete data.image3; delete data.image4; delete data.image5;
@@ -1292,6 +1296,7 @@ function openProductEditor(id, options = {}) {
       <form id="productForm">
         <div class="admin-form-grid">
           <label>Tên sản phẩm<input name="name" required value="${escapeHtml(existing.name)}"></label>
+          <label>Nhóm hàng<input name="productGroup" maxlength="100" value="${escapeHtml(existing.productGroup || '')}" placeholder="Ví dụ: Điện gia dụng"></label>
           <label>Thương hiệu<input name="brand" value="${escapeHtml(normaliseAeonBrand(existing.brand))}" placeholder="Nhập tên thương hiệu"><small>Tự động đưa vào bộ lọc thương hiệu sau khi lưu.</small></label>
           ${id ? '' : `<label>Vị trí trong danh sách<select name="insertPosition">${productInsertPositionOptions(currentProducts)}</select><small>Sản phẩm sẽ được chèn đúng vị trí này khi lưu.</small></label>`}
           <label>Giá khuyến mãi (VNĐ)<small data-variant-price-hint></small><input name="price" type="number" min="0" inputmode="numeric" required value="${existing.price ?? ''}" placeholder="Ví dụ: 750000"${editorVariants.length ? ' readonly' : ''}></label>
