@@ -18,10 +18,10 @@
 .brand-filter-reset{padding:7px 10px;white-space:nowrap}
 .brand-filter-reset:hover,.brand-filter-reset:focus-visible,.brand-chip:hover,.brand-chip:focus-visible{border-color:var(--red);color:var(--red);outline:0}
 .brand-filter-reset.is-active,.brand-chip.is-active{border-color:var(--red);background:var(--red);color:#fff}
-.brand-groups{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}
+.brand-groups{display:grid;grid-template-columns:minmax(0,1fr);gap:15px}
 .brand-group{min-width:0;padding-top:11px;border-top:1px solid rgba(222,214,201,.88)}
 .brand-group h4{margin-bottom:9px;font-size:11px;line-height:1.35}
-.brand-group-list{display:flex;flex-wrap:wrap;gap:7px}
+.brand-group-list{display:flex;flex-wrap:wrap;gap:7px;width:100%}
 .brand-chip{padding:6px 8px;line-height:1.25}
 .brand-chip:hover{transform:translateY(-1px)}
 .brand-empty{grid-column:1/-1}
