@@ -60,7 +60,7 @@ const types = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charse
 // Bump this whenever the storefront shell changes. It fingerprints every
 // local CSS/JS URL emitted by the Node deployment, so a CDN cannot revive an
 // obsolete interface after a new release.
-const storefrontBuild = '20261108-catalog-banner-qr-v64';
+const storefrontBuild = '20261108-catalog-price-quota-aligned-v65';
 const productImageFitCss = '\n/* Server-enforced product commerce lock. */\n.product-media{position:relative!important;overflow:hidden!important;background:#fff!important}.product-media:has(.product-image-placeholder:not([hidden])),.product-media:has(.product-image-placeholder:not([hidden])):before,.product-media .product-image-placeholder:not([hidden]){background:#fff!important}.product-media img.product-official-image{display:block!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;margin:0!important;padding:0!important;object-fit:contain!important;object-position:center center!important}.product-price-stack .price,.product-price-stack .regular-price,.product-discount-badge{visibility:visible!important;opacity:1!important}\n';
 const noCacheHeaders = {
   'Cache-Control':'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0',
@@ -1144,18 +1144,19 @@ async function productCatalogPdfBuffer(state) {
       text(saleText, x + 6, priceY, priceWidth, {bold:true, size:saleSize, color:'#f5c644', height:saleTextHeight, align:'center', limit:60});
       if (regularPrice > salePrice && salePrice > 0) {
         const regularText = formatPdfMoney(regularPrice);
-        let regularSize = 5.8;
+        let regularSize = 7.4;
         doc.font(pdfRegularFont).fontSize(regularSize);
-        while (doc.widthOfString(regularText) > priceWidth && regularSize > 4.4) {
+        while (doc.widthOfString(regularText) > priceWidth && regularSize > 6) {
           regularSize -= .2;
           doc.fontSize(regularSize);
         }
-        const regularY = priceY + Math.max(12, saleSize + 1);
-        text(regularText, x + 6, regularY, priceWidth, {size:regularSize, color:'#bab7b4', height:8, align:'center', limit:60});
+        const regularY = priceY + Math.max(regularSize + 5, saleSize + 1);
+        text(regularText, x + 6, regularY, priceWidth, {size:regularSize, color:'#bab7b4', height:regularSize + 2, align:'center', limit:60});
         doc.font(pdfRegularFont).fontSize(regularSize);
         const regularWidth = Math.min(priceWidth, doc.widthOfString(regularText));
         const regularX = x + (cardWidth - regularWidth) / 2;
-        doc.moveTo(regularX, regularY + 3).lineTo(regularX + regularWidth, regularY + 3).lineWidth(.45).strokeColor('#bab7b4').stroke();
+        const strikeY = regularY + regularSize * .55;
+        doc.moveTo(regularX, strikeY).lineTo(regularX + regularWidth, strikeY).lineWidth(.5).strokeColor('#bab7b4').stroke();
       }
 
       const booked = Math.max(0, Math.min(9999, Math.floor(Number(product?.dealSlotsRemaining) || 0)));
@@ -1167,7 +1168,7 @@ async function productCatalogPdfBuffer(state) {
       doc.roundedRect(quotaX, quotaY, quotaWidth, 10, 5).fill(quotaColor);
       doc.circle(quotaX + 8, quotaY + 5, 2.7).fill('#f06b1c');
       doc.circle(quotaX + 8, quotaY + 5.5, 1.2).fill('#ffd64d');
-      text(`${booked}/${total} Suất đã đặt trước`, quotaX + 13, quotaY + 2.5, quotaWidth - 17, {bold:true, size:4.5, color:booked / total >= .75 ? '#ffffff' : '#29221a', align:'center', limit:50});
+      text(`${booked}/${total} Suất đã đặt trước`, quotaX, quotaY + 2.5, quotaWidth, {bold:true, size:4.5, color:booked / total >= .75 ? '#ffffff' : '#29221a', align:'center', limit:50});
     };
 
     for (let pageIndex = 0; pageIndex < productPageCount; pageIndex += 1) {
