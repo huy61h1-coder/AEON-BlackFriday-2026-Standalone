@@ -1,0 +1,9 @@
+.catalog-export-button{
+  display:inline-flex;align-items:center;justify-content:center;gap:12px;min-height:38px;
+  padding:0 14px;border:1px solid var(--bf-red,#e21d3f);background:var(--bf-red,#e21d3f);
+  color:#fff!important;font:700 10px 'Be Vietnam Pro',sans-serif;text-decoration:none;white-space:nowrap
+}
+.catalog-export-button:hover,.catalog-export-button:focus-visible{
+  background:#ff3154;color:#fff!important;outline:2px solid rgba(226,29,63,.3);outline-offset:2px
+}
+@media(max-width:760px){.catalog-export-button{width:100%;min-height:40px}}
