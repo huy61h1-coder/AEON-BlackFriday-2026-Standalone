@@ -60,7 +60,7 @@ const types = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charse
 // Bump this whenever the storefront shell changes. It fingerprints every
 // local CSS/JS URL emitted by the Node deployment, so a CDN cannot revive an
 // obsolete interface after a new release.
-const storefrontBuild = '20261108-catalog-page4-wide-contact-v70';
+const storefrontBuild = '20261108-catalog-two-line-contact-v71';
 const productImageFitCss = '\n/* Server-enforced product commerce lock. */\n.product-media{position:relative!important;overflow:hidden!important;background:#fff!important}.product-media:has(.product-image-placeholder:not([hidden])),.product-media:has(.product-image-placeholder:not([hidden])):before,.product-media .product-image-placeholder:not([hidden]){background:#fff!important}.product-media img.product-official-image{display:block!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;margin:0!important;padding:0!important;object-fit:contain!important;object-position:center center!important}.product-price-stack .price,.product-price-stack .regular-price,.product-discount-badge{visibility:visible!important;opacity:1!important}\n';
 const noCacheHeaders = {
   'Cache-Control':'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0',
@@ -1284,26 +1284,25 @@ async function productCatalogPdfBuffer(state) {
     doc.roundedRect(contactQrX - 3, contactQrY - 3, contactQrSize + 6, contactQrSize + 6, 4).fill('#ffffff');
     image(orderQrSource, contactQrX, contactQrY, contactQrSize, contactQrSize);
     doc.link(contactQrX, contactQrY, contactQrSize, contactQrSize, catalogMoreProductsUrl);
-    text('HOTLINE TƯ VẤN & ĐẶT HÀNG', contactTextX, contactPanelY + 7, contactTextWidth, {bold:true, size:8.5, color:'#d7d2cf', align:'center', limit:50});
-    if (catalogHotline) {
-      let hotlineSize = 20;
-      doc.font(pdfBoldFont).fontSize(hotlineSize);
-      while (doc.widthOfString(catalogHotline) > contactTextWidth && hotlineSize > 10) {
-        hotlineSize -= .5;
-        doc.fontSize(hotlineSize);
-      }
-      text(catalogHotline, contactTextX, contactPanelY + 21, contactTextWidth, {bold:true, size:hotlineSize, color:'#f5c644', align:'center', limit:50});
+    const hotlineContactLine = `HOTLINE TƯ VẤN & ĐẶT HÀNG: ${catalogHotline || 'liên hệ tư vấn'}`;
+    let hotlineContactSize = 13;
+    doc.font(pdfBoldFont).fontSize(hotlineContactSize);
+    while (doc.widthOfString(hotlineContactLine) > contactTextWidth && hotlineContactSize > 8) {
+      hotlineContactSize -= .5;
+      doc.fontSize(hotlineContactSize);
     }
-    let contactPromptSize = 9;
-    doc.font(pdfBoldFont).fontSize(contactPromptSize);
-    while (doc.widthOfString(catalogOrderPrompt) > contactTextWidth && contactPromptSize > 5.5) {
-      contactPromptSize -= .25;
-      doc.fontSize(contactPromptSize);
+    text(hotlineContactLine, contactTextX, contactPanelY + 19, contactTextWidth, {bold:true, size:hotlineContactSize, color:'#f5c644', align:'center', limit:100});
+
+    const orderContactLine = `${catalogOrderPrompt} · ${catalogMoreProductsHost}`;
+    let orderContactSize = 10;
+    doc.font(pdfBoldFont).fontSize(orderContactSize);
+    while (doc.widthOfString(orderContactLine) > contactTextWidth && orderContactSize > 7) {
+      orderContactSize -= .25;
+      doc.fontSize(orderContactSize);
     }
-    text(catalogOrderPrompt, contactTextX, contactPanelY + 45, contactTextWidth, {bold:true, size:contactPromptSize, color:'#ffffff', height:11, align:'center', limit:120});
-    doc.font(pdfBoldFont).fontSize(8.5).fillColor('#f5c644')
-      .text(catalogMoreProductsHost, contactTextX, contactPanelY + 61, {width:contactTextWidth, align:'center', link:catalogMoreProductsUrl});
-    doc.link(contactTextX, contactPanelY + 59, contactTextWidth, 17, catalogMoreProductsUrl);
+    doc.font(pdfBoldFont).fontSize(orderContactSize).fillColor('#ffffff')
+      .text(orderContactLine, contactTextX, contactPanelY + 45, {width:contactTextWidth, align:'center', link:catalogMoreProductsUrl});
+    doc.link(contactTextX, contactPanelY + 43, contactTextWidth, 16, catalogMoreProductsUrl);
 
     const pageRange = doc.bufferedPageRange();
     for (let pageIndex = 0; pageIndex < pageRange.count; pageIndex += 1) {
