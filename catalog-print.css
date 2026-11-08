@@ -1,0 +1,31 @@
+.catalog-print-button{
+  display:inline-flex;align-items:center;justify-content:center;gap:12px;min-height:38px;
+  padding:0 14px;border:1px solid var(--bf-red,#e21d3f);background:var(--bf-red,#e21d3f);
+  color:#fff;font:700 10px 'Be Vietnam Pro',sans-serif;cursor:pointer;white-space:nowrap
+}
+.catalog-print-button:hover,.catalog-print-button:focus-visible{
+  background:#ff3154;color:#fff;outline:2px solid rgba(226,29,63,.3);outline-offset:2px
+}
+@media(max-width:760px){.catalog-print-button{width:100%;min-height:40px}}
+
+@page{size:A4 portrait;margin:10mm}
+@media print{
+  *,*::before,*::after{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  html,body{height:auto!important;min-width:0!important;overflow:visible!important;background:var(--bf-black,#090909)!important;color:var(--bf-white,#fffaf4)!important}
+  body::before{display:none!important}
+  .site-header{position:static!important;top:auto!important;height:auto!important;padding:0 0 5mm!important;background:transparent!important;backdrop-filter:none!important;box-shadow:none!important;border-bottom:1px solid var(--bf-line,rgba(255,255,255,.14))!important}
+  .site-header nav,.site-header .top-product-search,.site-header .cart-button,.site-header .menu-toggle,
+  #quoteDownload,.catalog-controls,#brandDirectory,#productGroupDirectory,.catalog-print-button,
+  .page-scroll-actions,.mobile-cart-cta,footer>a:last-child,.storefront-product-admin-actions{
+    display:none!important
+  }
+  .hero{min-height:0!important;break-inside:avoid!important;padding:10mm 4mm 6mm!important;grid-template-columns:1fr 1fr!important;overflow:hidden!important}
+  .hero h1{font-size:42pt!important}
+  .hero-art{min-height:90mm!important}
+  #collection{display:block!important;max-width:none!important;padding:8mm 0 0!important;background:#080808!important}
+  #collection .products{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:5mm!important;max-width:none!important}
+  #collection .product{min-width:0!important;break-inside:avoid!important;page-break-inside:avoid!important;box-shadow:none!important}
+  #collection .product-media{height:48mm!important}
+  footer{break-inside:avoid!important;padding:7mm 0 0!important}
+  a{color:inherit!important;text-decoration:none!important}
+}

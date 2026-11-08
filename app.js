@@ -279,6 +279,7 @@ const productSearchInput = $('#productSearchInput');
 const clearProductSearch = $('#clearProductSearch');
 const productPriceFilter = $('#productPriceFilter');
 const productSort = $('#productSort');
+const printCatalogButton = $('#printCatalog');
 const catalogResult = $('#catalogResult');
 let activeBrand = '';
 let activeProductGroup = '';
@@ -287,6 +288,7 @@ let productGroupDirectoryExpanded = false;
 let productSearchQuery = '';
 let productPriceFilterValue = 'all';
 let productSortValue = 'upload';
+let catalogPrintSnapshot = null;
 
 $('#openCart').innerHTML = '<svg class="cart-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.2 10.2a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 1.9-1.5L20 8H7.1"></path><circle cx="10" cy="20" r="1"></circle><circle cx="17" cy="20" r="1"></circle></svg><span>Giỏ hàng</span><b id="cartCount">0</b>';
 $('.drawer-head h2').textContent = 'Giỏ hàng';
@@ -297,7 +299,7 @@ $('footer p').textContent = '© 2026 AEON Black Friday.';
 
 document.body.insertAdjacentHTML('beforeend', '<button class="mobile-cart-cta" id="mobileCart" aria-label="Mở giỏ hàng"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.2 10.2a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 1.9-1.5L20 8H7.1"></path><circle cx="10" cy="20" r="1"></circle><circle cx="17" cy="20" r="1"></circle></svg><span>Giỏ hàng</span><b id="mobileCartCount">0</b><i>Xem giỏ →</i></button>');
 
-['product-detail.css', 'hotline.css?v=20260804-contact', 'promotion.css', 'hero-promotion.css', 'catalog-focus.css', 'hero-compact.css', 'admin-layout.css', 'storefront-refine.css', 'mobile-storefront.css', 'official-assets.css', 'product-modal-fix.css', 'product-variants.css', 'storefront-product-ux.css?v=20261107-discount-badge-desktop-v46', 'brand-directory.css?v=20261107-discount-badge-desktop-v46', 'storefront-admin.css?v=20261106-promo-fields', 'theme-customization.css?v=20261105-contrast', 'quote-download.css', 'catalog-search-sort.css?v=20260804-search-sort', 'toast-contrast.css?v=20261106-cart-notification'].forEach(href => {
+['product-detail.css', 'hotline.css?v=20260804-contact', 'promotion.css', 'hero-promotion.css', 'catalog-focus.css', 'hero-compact.css', 'admin-layout.css', 'storefront-refine.css', 'mobile-storefront.css', 'official-assets.css', 'product-modal-fix.css', 'product-variants.css', 'storefront-product-ux.css?v=20261108-catalog-export-v47', 'brand-directory.css?v=20261108-catalog-export-v47', 'storefront-admin.css?v=20261106-promo-fields', 'theme-customization.css?v=20261105-contrast', 'quote-download.css', 'catalog-search-sort.css?v=20260804-search-sort', 'toast-contrast.css?v=20261106-cart-notification'].forEach(href => {
   const alreadyLoaded = [...document.head.querySelectorAll('link[rel="stylesheet"]')]
     .some(link => link.getAttribute('href') === href);
   if (!alreadyLoaded) document.head.append(Object.assign(document.createElement('link'), {rel: 'stylesheet', href}));
@@ -1571,6 +1573,78 @@ productPriceFilter.addEventListener('change', () => {
   productPriceFilterValue = productPriceFilter.value;
   renderProducts();
 });
+
+function restoreCatalogAfterPrint() {
+  if (!catalogPrintSnapshot) return;
+  const snapshot = catalogPrintSnapshot;
+  catalogPrintSnapshot = null;
+  activeBrand = snapshot.activeBrand;
+  activeProductGroup = snapshot.activeProductGroup;
+  productSearchQuery = snapshot.productSearchQuery;
+  productPriceFilterValue = snapshot.productPriceFilterValue;
+  productSortValue = snapshot.productSortValue;
+  productPriceFilter.value = snapshot.productPriceFilterValue;
+  productSort.value = snapshot.productSortValue;
+  document.title = snapshot.title;
+  document.body.classList.remove('catalog-printing');
+  renderProducts();
+}
+
+function waitForCatalogImages() {
+  const imagePromises = [...grid.querySelectorAll('.product-media img')].map(image => {
+    image.loading = 'eager';
+    if (image.complete) return Promise.resolve();
+    return new Promise(resolve => {
+      const finish = () => resolve();
+      image.addEventListener('load', finish, {once:true});
+      image.addEventListener('error', finish, {once:true});
+      if (image.complete) finish();
+    });
+  });
+  return new Promise(resolve => {
+    const timeout = setTimeout(resolve, 12000);
+    Promise.all(imagePromises).then(() => {
+      clearTimeout(timeout);
+      resolve();
+    });
+  });
+}
+
+async function exportCatalog() {
+  if (catalogPrintSnapshot) return;
+  catalogPrintSnapshot = {
+    activeBrand,
+    activeProductGroup,
+    productSearchQuery,
+    productPriceFilterValue,
+    productSortValue,
+    title: document.title
+  };
+  activeBrand = '';
+  activeProductGroup = '';
+  productSearchQuery = '';
+  productPriceFilterValue = 'all';
+  productPriceFilter.value = 'all';
+  renderProducts();
+  document.title = 'AEON Black Friday - Catalog';
+  document.body.classList.add('catalog-printing');
+  try {
+    await waitForCatalogImages();
+    requestAnimationFrame(() => {
+      try {
+        window.print();
+      } catch {
+        restoreCatalogAfterPrint();
+      }
+      window.setTimeout(restoreCatalogAfterPrint, 2000);
+    });
+  } catch {
+    restoreCatalogAfterPrint();
+  }
+}
+
+printCatalogButton?.addEventListener('click', exportCatalog);
+window.addEventListener('afterprint', restoreCatalogAfterPrint);
 
 document.addEventListener('click', event => {
   const brandDirectoryToggle = event.target.closest('[data-brand-directory-toggle]');
