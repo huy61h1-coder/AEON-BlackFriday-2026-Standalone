@@ -60,7 +60,7 @@ const types = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charse
 // Bump this whenever the storefront shell changes. It fingerprints every
 // local CSS/JS URL emitted by the Node deployment, so a CDN cannot revive an
 // obsolete interface after a new release.
-const storefrontBuild = '20261108-catalog-ending-image-contact-v68';
+const storefrontBuild = '20261108-catalog-banner-newcity-logo-v69';
 const productImageFitCss = '\n/* Server-enforced product commerce lock. */\n.product-media{position:relative!important;overflow:hidden!important;background:#fff!important}.product-media:has(.product-image-placeholder:not([hidden])),.product-media:has(.product-image-placeholder:not([hidden])):before,.product-media .product-image-placeholder:not([hidden]){background:#fff!important}.product-media img.product-official-image{display:block!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;margin:0!important;padding:0!important;object-fit:contain!important;object-position:center center!important}.product-price-stack .price,.product-price-stack .regular-price,.product-discount-badge{visibility:visible!important;opacity:1!important}\n';
 const noCacheHeaders = {
   'Cache-Control':'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0',
@@ -927,6 +927,7 @@ async function productCatalogPdfBuffer(state) {
   const dark = /^#[0-9a-f]{6}$/i.test(layout.accentDarkColor || '') ? layout.accentDarkColor : '#a80f2a';
   const giftBackground = String(ui.giftRibbonBackgroundImage || '').trim();
   const bannerSource = String(ui.catalogBannerImage || '/assets/catalog/black-friday-catalog-banner.jpg').trim();
+  const bannerLogoSource = '/assets/catalog/aeon-binh-duong-newcity.png';
   const orderQrSource = String(ui.catalogOrderQrImage || '/assets/catalog/order-qr.png').trim();
   const closingImageSource = String(ui.catalogClosingImage || '/assets/catalog/black-friday-catalog-ending.png').trim();
   const catalogHotline = cleanPdfText(ui.catalogHotline ?? '0327 747 337', 50);
@@ -946,6 +947,7 @@ async function productCatalogPdfBuffer(state) {
     ...productImages.flatMap(item => [item.main, ...item.gifts]),
     giftBackground,
     bannerSource,
+    bannerLogoSource,
     orderQrSource,
     closingImageSource,
     String(ui.logoImage || '').trim()
@@ -1026,6 +1028,7 @@ async function productCatalogPdfBuffer(state) {
         const bannerHeight = bannerWidth * bannerInfo.height / bannerInfo.width;
         const bannerY = 12;
         image(bannerSource, margin, bannerY, bannerWidth, bannerHeight);
+        image(bannerLogoSource, margin + bannerWidth * 0.009, bannerY + bannerHeight * 0.02, bannerWidth * 0.085, bannerHeight * 0.12);
         const qrPanelWidth = Math.min(232, bannerWidth - 18);
         const qrPanelHeight = 42;
         const qrPanelX = margin + bannerWidth - qrPanelWidth - 8;

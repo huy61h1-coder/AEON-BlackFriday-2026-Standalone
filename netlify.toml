@@ -20,7 +20,7 @@
     CDN-Cache-Control = "no-store"
     Netlify-CDN-Cache-Control = "no-store"
     Pragma = "no-cache"
-    X-AEON-Build = "20261108-catalog-ending-image-contact-v68"
+    X-AEON-Build = "20261108-catalog-banner-newcity-logo-v69"
 
 [[headers]]
   for = "/index.html"
@@ -29,4 +29,4 @@
     CDN-Cache-Control = "no-store"
     Netlify-CDN-Cache-Control = "no-store"
     Pragma = "no-cache"
-    X-AEON-Build = "20261108-catalog-ending-image-contact-v68"
+    X-AEON-Build = "20261108-catalog-banner-newcity-logo-v69"
