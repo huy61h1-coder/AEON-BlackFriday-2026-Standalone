@@ -19,6 +19,7 @@ const canonicalStorefrontState = {
     "catalogOrderPrompt": "Quét mã đặt hàng & xem thêm sản phẩm",
     "catalogMoreProductsUrl": "https://aeonblackfriday.tinhgon.xyz",
     "catalogOrderQrImage": "/assets/catalog/order-qr.png",
+    "catalogClosingImage": "/assets/catalog/black-friday-catalog-ending.png",
     "logoText": "AEON",
     "logoSubtitle": "",
     "logoImage": "https://res.cloudinary.com/rnrbw9za/image/upload/v1793680754/logo_055_levnph.png",

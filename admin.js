@@ -1483,6 +1483,9 @@ function interfacePanel(panel) {
           <label>Đường dẫn ảnh mã QR<input name="catalogOrderQrImage" required value="${escapeHtml(ui.catalogOrderQrImage || '/assets/catalog/order-qr.png')}" placeholder="https://... hoặc /assets/uploads/ma-qr.png"><small>Ảnh PNG/JPG sẽ được dùng trong banner catalog.</small></label>
           <div class="upload-field"><label for="catalogOrderQrFile">Tải ảnh mã QR PNG/JPG từ máy</label><input id="catalogOrderQrFile" type="file" accept="image/png,image/jpeg"><button class="secondary-button" id="uploadCatalogOrderQr" type="button">Tải và lưu mã QR</button></div>
           <div class="asset-preview" id="catalogOrderQrPreview" aria-live="polite"></div>
+          <label>Đường dẫn ảnh ở trang cuối catalog<input name="catalogClosingImage" required value="${escapeHtml(ui.catalogClosingImage || '/assets/catalog/black-friday-catalog-ending.png')}" placeholder="https://... hoặc /assets/uploads/anh-trang-cuoi.png"><small>Ảnh này sẽ phủ khoảng trống ở trang cuối catalog. Nên dùng ảnh ngang PNG/JPG.</small></label>
+          <div class="upload-field"><label for="catalogClosingImageFile">Tải ảnh trang cuối PNG/JPG từ máy</label><input id="catalogClosingImageFile" type="file" accept="image/png,image/jpeg"><button class="secondary-button" id="uploadCatalogClosingImage" type="button">Tải và lưu ảnh trang cuối</button></div>
+          <div class="asset-preview" id="catalogClosingImagePreview" aria-live="polite"></div>
         </div>
         <button class="button primary" type="submit">Lưu giao diện</button>
       </form>
@@ -1490,8 +1493,11 @@ function interfacePanel(panel) {
   window.AEONPromotionRichText?.bindAll(panel);
   const form = $('#uiForm');
   const qrInput = form.elements.catalogOrderQrImage;
+  const closingImageInput = form.elements.catalogClosingImage;
   setPreview($('#catalogOrderQrPreview'), qrInput.value, 'Chưa chọn mã QR đặt hàng');
+  setPreview($('#catalogClosingImagePreview'), closingImageInput.value, 'Chưa chọn ảnh trang cuối catalog');
   qrInput.addEventListener('input', () => setPreview($('#catalogOrderQrPreview'), qrInput.value, 'Chưa chọn mã QR đặt hàng'));
+  closingImageInput.addEventListener('input', () => setPreview($('#catalogClosingImagePreview'), closingImageInput.value, 'Chưa chọn ảnh trang cuối catalog'));
   $('#uploadCatalogOrderQr').onclick = async () => {
     const button = $('#uploadCatalogOrderQr');
     const file = $('#catalogOrderQrFile').files[0];
@@ -1506,6 +1512,22 @@ function interfacePanel(panel) {
       toastAdmin(error.message);
     } finally {
       setBusy(button, false, 'Đang tải ảnh QR...', 'Tải và lưu mã QR');
+    }
+  };
+  $('#uploadCatalogClosingImage').onclick = async () => {
+    const button = $('#uploadCatalogClosingImage');
+    const file = $('#catalogClosingImageFile').files[0];
+    try {
+      if (!file) throw new Error('Hãy chọn ảnh trang cuối PNG hoặc JPG trước.');
+      if (!['image/png', 'image/jpeg'].includes(file.type)) throw new Error('Ảnh trang cuối cần là PNG hoặc JPG để xuất PDF rõ nét.');
+      setBusy(button, true, 'Đang tải ảnh...', 'Tải và lưu ảnh trang cuối');
+      closingImageInput.value = await uploadOfficialImage(file);
+      setPreview($('#catalogClosingImagePreview'), closingImageInput.value, 'Chưa chọn ảnh trang cuối catalog');
+      form.requestSubmit();
+    } catch (error) {
+      toastAdmin(error.message);
+    } finally {
+      setBusy(button, false, 'Đang tải ảnh...', 'Tải và lưu ảnh trang cuối');
     }
   };
   $('#uiForm').onsubmit = async event => {
@@ -1524,6 +1546,9 @@ function interfacePanel(panel) {
       const rawCatalogQrImage = String(values.catalogOrderQrImage || '').trim();
       const catalogOrderQrImage = normaliseImageUrl(rawCatalogQrImage);
       if (!catalogOrderQrImage) throw new Error('Hãy nhập đường dẫn ảnh mã QR hợp lệ hoặc tải ảnh PNG/JPG lên.');
+      const rawCatalogClosingImage = String(values.catalogClosingImage || '').trim();
+      const catalogClosingImage = normaliseImageUrl(rawCatalogClosingImage);
+      if (!catalogClosingImage) throw new Error('Hãy nhập đường dẫn ảnh trang cuối hợp lệ hoặc tải ảnh PNG/JPG lên.');
       let catalogMoreProductsUrl = '';
       try {
         const link = new URL(String(values.catalogMoreProductsUrl || '').trim());
@@ -1541,6 +1566,7 @@ function interfacePanel(panel) {
         catalogOrderPrompt,
         catalogMoreProductsUrl,
         catalogOrderQrImage,
+        catalogClosingImage,
         promotionText: window.AEONPromotionRichText?.clean(values.promotionText, 6000) || String(values.promotionText || '').replace(/\r\n?/g, '\n').trim().slice(0, 6000)
       };
       await saveShared('aeon-ui', nextUi);

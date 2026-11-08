@@ -60,7 +60,7 @@ const types = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charse
 // Bump this whenever the storefront shell changes. It fingerprints every
 // local CSS/JS URL emitted by the Node deployment, so a CDN cannot revive an
 // obsolete interface after a new release.
-const storefrontBuild = '20261108-catalog-transparent-qr-banner-v67';
+const storefrontBuild = '20261108-catalog-ending-image-contact-v68';
 const productImageFitCss = '\n/* Server-enforced product commerce lock. */\n.product-media{position:relative!important;overflow:hidden!important;background:#fff!important}.product-media:has(.product-image-placeholder:not([hidden])),.product-media:has(.product-image-placeholder:not([hidden])):before,.product-media .product-image-placeholder:not([hidden]){background:#fff!important}.product-media img.product-official-image{display:block!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;margin:0!important;padding:0!important;object-fit:contain!important;object-position:center center!important}.product-price-stack .price,.product-price-stack .regular-price,.product-discount-badge{visibility:visible!important;opacity:1!important}\n';
 const noCacheHeaders = {
   'Cache-Control':'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0',
@@ -928,6 +928,7 @@ async function productCatalogPdfBuffer(state) {
   const giftBackground = String(ui.giftRibbonBackgroundImage || '').trim();
   const bannerSource = String(ui.catalogBannerImage || '/assets/catalog/black-friday-catalog-banner.jpg').trim();
   const orderQrSource = String(ui.catalogOrderQrImage || '/assets/catalog/order-qr.png').trim();
+  const closingImageSource = String(ui.catalogClosingImage || '/assets/catalog/black-friday-catalog-ending.png').trim();
   const catalogHotline = cleanPdfText(ui.catalogHotline ?? '0327 747 337', 50);
   const catalogOrderPrompt = cleanPdfText(ui.catalogOrderPrompt || 'Quét mã đặt hàng & xem thêm sản phẩm', 120);
   const catalogMoreProductsUrl = safeCatalogLink(ui.catalogMoreProductsUrl) || 'https://aeonblackfriday.tinhgon.xyz';
@@ -946,6 +947,7 @@ async function productCatalogPdfBuffer(state) {
     giftBackground,
     bannerSource,
     orderQrSource,
+    closingImageSource,
     String(ui.logoImage || '').trim()
   ].filter(Boolean))];
   const imageBuffers = new Map();
@@ -968,6 +970,8 @@ async function productCatalogPdfBuffer(state) {
     const bannerBuffer = imageBuffers.get(bannerSource);
     const bannerInfo = bannerBuffer && imageDimensions(bannerBuffer);
     const hasBanner = Boolean(bannerInfo);
+    const closingBannerBuffer = imageBuffers.get(closingImageSource);
+    const closingBannerInfo = closingBannerBuffer && imageDimensions(closingBannerBuffer);
     const firstPageCapacity = hasBanner ? columns * 4 : columns * 5;
     const laterPageCapacity = columns * 5;
     const productPageCount = Math.max(1, products.length <= firstPageCapacity
@@ -1228,34 +1232,61 @@ async function productCatalogPdfBuffer(state) {
     const lastProductsBottom = lastRows
       ? lastGridStartY + (lastRows - 1) * (lastCardHeight + gap) + lastCardHeight
       : lastGridStartY;
-    const contactPanelHeight = 104;
-    const contactPanelTopLimit = lastProductsBottom + 14;
-    const contactPanelBottomLimit = pageHeight - 38;
+    const contactPanelHeight = 96;
+    const closingBannerWidth = pageWidth - margin * 2;
+    const closingBannerHeight = closingBannerInfo
+      ? Math.min(280, closingBannerWidth * closingBannerInfo.height / closingBannerInfo.width)
+      : 0;
+    const closingSectionGap = closingBannerHeight ? 12 : 0;
+    const closingSectionHeight = closingBannerHeight + closingSectionGap + contactPanelHeight;
+    const closingSectionTopLimit = lastProductsBottom + 14;
+    const closingSectionBottomLimit = pageHeight - 38;
     let contactPageIndex = lastPageIndex;
-    let contactPanelY;
-    if (contactPanelBottomLimit - contactPanelTopLimit >= contactPanelHeight) {
-      contactPanelY = contactPanelTopLimit + (contactPanelBottomLimit - contactPanelTopLimit - contactPanelHeight) / 2;
+    let closingSectionY;
+    if (closingSectionBottomLimit - closingSectionTopLimit >= closingSectionHeight) {
+      closingSectionY = closingSectionTopLimit + (closingSectionBottomLimit - closingSectionTopLimit - closingSectionHeight) / 2;
       doc.switchToPage(contactPageIndex);
     } else {
       doc.addPage();
       contactPageIndex = productPageCount;
       doc.rect(0, 0, pageWidth, pageHeight).fill('#09090b');
       doc.rect(0, 0, pageWidth, 5).fill('#bd1232');
-      contactPanelY = (pageHeight - contactPanelHeight) / 2;
+      closingSectionY = (pageHeight - closingSectionHeight) / 2;
     }
 
-    const contactPanelWidth = Math.min(380, pageWidth - margin * 2);
+    if (closingBannerHeight) image(closingImageSource, margin, closingSectionY, closingBannerWidth, closingBannerHeight);
+    const contactPanelY = closingSectionY + closingBannerHeight + closingSectionGap;
+    const contactPanelWidth = Math.min(440, pageWidth - margin * 2);
     const contactPanelX = (pageWidth - contactPanelWidth) / 2;
-    const contactTextX = contactPanelX + 12;
-    const contactTextWidth = contactPanelWidth - 24;
+    const contactQrSize = 70;
+    const contactQrX = contactPanelX + 12;
+    const contactQrY = contactPanelY + (contactPanelHeight - contactQrSize) / 2;
+    const contactTextX = contactQrX + contactQrSize + 18;
+    const contactTextWidth = contactPanelWidth - (contactTextX - contactPanelX) - 12;
     doc.roundedRect(contactPanelX, contactPanelY, contactPanelWidth, contactPanelHeight, 8).fill('#171719').strokeColor('#4a4140').lineWidth(.8).stroke();
-    text('HOTLINE TƯ VẤN & ĐẶT HÀNG', contactTextX, contactPanelY + 12, contactTextWidth, {bold:true, size:8, color:'#d7d2cf', align:'center', limit:50});
-    if (catalogHotline) text(catalogHotline, contactTextX, contactPanelY + 33, contactTextWidth, {bold:true, size:19, color:'#f5c644', align:'center', limit:50});
-    doc.moveTo(contactPanelX + 25, contactPanelY + 64).lineTo(contactPanelX + contactPanelWidth - 25, contactPanelY + 64).lineWidth(.6).strokeColor('#4a4140').stroke();
-    text('Xem thêm sản phẩm:', contactTextX, contactPanelY + 73, contactTextWidth, {size:7, color:'#d7d2cf', align:'center', limit:40});
-    doc.font(pdfBoldFont).fontSize(8).fillColor('#f5c644')
-      .text(catalogMoreProductsHost, contactTextX, contactPanelY + 86, {width:contactTextWidth, align:'center', link:catalogMoreProductsUrl});
-    doc.link(contactTextX, contactPanelY + 82, contactTextWidth, 22, catalogMoreProductsUrl);
+    doc.roundedRect(contactQrX - 3, contactQrY - 3, contactQrSize + 6, contactQrSize + 6, 4).fill('#ffffff');
+    image(orderQrSource, contactQrX, contactQrY, contactQrSize, contactQrSize);
+    doc.link(contactQrX, contactQrY, contactQrSize, contactQrSize, catalogMoreProductsUrl);
+    text('HOTLINE TƯ VẤN & ĐẶT HÀNG', contactTextX, contactPanelY + 9, contactTextWidth, {bold:true, size:7.5, color:'#d7d2cf', limit:50});
+    if (catalogHotline) {
+      let hotlineSize = 17;
+      doc.font(pdfBoldFont).fontSize(hotlineSize);
+      while (doc.widthOfString(catalogHotline) > contactTextWidth && hotlineSize > 10) {
+        hotlineSize -= .5;
+        doc.fontSize(hotlineSize);
+      }
+      text(catalogHotline, contactTextX, contactPanelY + 25, contactTextWidth, {bold:true, size:hotlineSize, color:'#f5c644', limit:50});
+    }
+    let contactPromptSize = 7.5;
+    doc.font(pdfBoldFont).fontSize(contactPromptSize);
+    while (doc.widthOfString(catalogOrderPrompt) > contactTextWidth && contactPromptSize > 5.5) {
+      contactPromptSize -= .25;
+      doc.fontSize(contactPromptSize);
+    }
+    text(catalogOrderPrompt, contactTextX, contactPanelY + 49, contactTextWidth, {bold:true, size:contactPromptSize, color:'#ffffff', height:11, limit:120});
+    doc.font(pdfBoldFont).fontSize(7.5).fillColor('#f5c644')
+      .text(catalogMoreProductsHost, contactTextX, contactPanelY + 69, {width:contactTextWidth, link:catalogMoreProductsUrl});
+    doc.link(contactTextX, contactPanelY + 66, contactTextWidth, 18, catalogMoreProductsUrl);
 
     const pageRange = doc.bufferedPageRange();
     for (let pageIndex = 0; pageIndex < pageRange.count; pageIndex += 1) {
