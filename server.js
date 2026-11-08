@@ -60,7 +60,7 @@ const types = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charse
 // Bump this whenever the storefront shell changes. It fingerprints every
 // local CSS/JS URL emitted by the Node deployment, so a CDN cannot revive an
 // obsolete interface after a new release.
-const storefrontBuild = '20261108-catalog-last-page-qr-v63';
+const storefrontBuild = '20261108-catalog-banner-qr-v64';
 const productImageFitCss = '\n/* Server-enforced product commerce lock. */\n.product-media{position:relative!important;overflow:hidden!important;background:#fff!important}.product-media:has(.product-image-placeholder:not([hidden])),.product-media:has(.product-image-placeholder:not([hidden])):before,.product-media .product-image-placeholder:not([hidden]){background:#fff!important}.product-media img.product-official-image{display:block!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;margin:0!important;padding:0!important;object-fit:contain!important;object-position:center center!important}.product-price-stack .price,.product-price-stack .regular-price,.product-discount-badge{visibility:visible!important;opacity:1!important}\n';
 const noCacheHeaders = {
   'Cache-Control':'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0',
@@ -1005,7 +1005,21 @@ async function productCatalogPdfBuffer(state) {
       if (pageNumber === 1 && hasBanner) {
         const bannerWidth = pageWidth - margin * 2;
         const bannerHeight = bannerWidth * bannerInfo.height / bannerInfo.width;
-        image(bannerSource, margin, 12, bannerWidth, bannerHeight);
+        const bannerY = 12;
+        image(bannerSource, margin, bannerY, bannerWidth, bannerHeight);
+        const qrPanelWidth = Math.min(232, bannerWidth - 18);
+        const qrPanelHeight = 42;
+        const qrPanelX = margin + bannerWidth - qrPanelWidth - 8;
+        const qrPanelY = bannerY + bannerHeight - qrPanelHeight - 7;
+        const qrSize = 36;
+        const qrX = qrPanelX + qrPanelWidth - qrSize - 3;
+        const qrY = qrPanelY + 3;
+        doc.roundedRect(qrPanelX, qrPanelY, qrPanelWidth, qrPanelHeight, 4).fill('#14152b').strokeColor('#f5c644').lineWidth(.8).stroke();
+        text('Quét mã đặt hàng', qrPanelX + 8, qrPanelY + 9, qrPanelWidth - qrSize - 20, {bold:true, size:8, color:'#ffffff', limit:40});
+        text('& xem thêm sản phẩm', qrPanelX + 8, qrPanelY + 24, qrPanelWidth - qrSize - 20, {bold:true, size:7, color:'#f5c644', limit:40});
+        doc.roundedRect(qrX - 1, qrY - 1, qrSize + 2, qrSize + 2, 2).fill('#ffffff');
+        image(orderQrSource, qrX, qrY, qrSize, qrSize);
+        doc.link(qrX, qrY, qrSize, qrSize, 'https://aeonblackfriday.tinhgon.xyz');
         return 12 + bannerHeight + 7;
       }
       doc.rect(0, 0, pageWidth, 3).fill('#bd1232');
@@ -1189,7 +1203,7 @@ async function productCatalogPdfBuffer(state) {
     const lastProductsBottom = lastRows
       ? lastGridStartY + (lastRows - 1) * (lastCardHeight + gap) + lastCardHeight
       : lastGridStartY;
-    const contactPanelHeight = 130;
+    const contactPanelHeight = 104;
     const contactPanelTopLimit = lastProductsBottom + 14;
     const contactPanelBottomLimit = pageHeight - 38;
     let contactPageIndex = lastPageIndex;
@@ -1205,25 +1219,19 @@ async function productCatalogPdfBuffer(state) {
       contactPanelY = (pageHeight - contactPanelHeight) / 2;
     }
 
-    const contactPanelWidth = Math.min(440, pageWidth - margin * 2);
+    const contactPanelWidth = Math.min(380, pageWidth - margin * 2);
     const contactPanelX = (pageWidth - contactPanelWidth) / 2;
-    const contactQrSize = 106;
-    const contactQrX = contactPanelX + 12;
-    const contactQrY = contactPanelY + (contactPanelHeight - contactQrSize) / 2;
-    const contactTextX = contactQrX + contactQrSize + 18;
-    const contactTextWidth = contactPanelWidth - (contactTextX - contactPanelX) - 12;
+    const contactTextX = contactPanelX + 12;
+    const contactTextWidth = contactPanelWidth - 24;
     doc.roundedRect(contactPanelX, contactPanelY, contactPanelWidth, contactPanelHeight, 8).fill('#171719').strokeColor('#4a4140').lineWidth(.8).stroke();
-    doc.roundedRect(contactQrX - 3, contactQrY - 3, contactQrSize + 6, contactQrSize + 6, 5).fill('#ffffff');
-    image(orderQrSource, contactQrX, contactQrY, contactQrSize, contactQrSize);
-    text('ĐẶT HÀNG NGAY', contactTextX, contactPanelY + 16, contactTextWidth, {bold:true, size:14, color:'#f5c644', limit:40});
-    text('Quét mã QR để đặt hàng', contactTextX, contactPanelY + 38, contactTextWidth, {size:8, color:'#ffffff', limit:50});
-    text('HOTLINE TƯ VẤN', contactTextX, contactPanelY + 60, contactTextWidth, {bold:true, size:7, color:'#d7d2cf', limit:40});
-    text('0327 747 337', contactTextX, contactPanelY + 75, contactTextWidth, {bold:true, size:16, color:'#f5c644', limit:30});
+    text('HOTLINE TƯ VẤN & ĐẶT HÀNG', contactTextX, contactPanelY + 12, contactTextWidth, {bold:true, size:8, color:'#d7d2cf', align:'center', limit:50});
+    text('0327 747 337', contactTextX, contactPanelY + 33, contactTextWidth, {bold:true, size:19, color:'#f5c644', align:'center', limit:30});
+    doc.moveTo(contactPanelX + 25, contactPanelY + 64).lineTo(contactPanelX + contactPanelWidth - 25, contactPanelY + 64).lineWidth(.6).strokeColor('#4a4140').stroke();
     const siteUrl = 'aeonblackfriday.tinhgon.xyz';
-    text('Xem thêm sản phẩm:', contactTextX, contactPanelY + 100, contactTextWidth, {size:6.5, color:'#d7d2cf', limit:40});
+    text('Xem thêm sản phẩm:', contactTextX, contactPanelY + 73, contactTextWidth, {size:7, color:'#d7d2cf', align:'center', limit:40});
     doc.font(pdfBoldFont).fontSize(8).fillColor('#f5c644')
-      .text(siteUrl, contactTextX, contactPanelY + 112, {width:contactTextWidth, link:`https://${siteUrl}`});
-    doc.link(contactTextX, contactPanelY + 108, contactTextWidth, 22, `https://${siteUrl}`);
+      .text(siteUrl, contactTextX, contactPanelY + 86, {width:contactTextWidth, align:'center', link:`https://${siteUrl}`});
+    doc.link(contactTextX, contactPanelY + 82, contactTextWidth, 22, `https://${siteUrl}`);
 
     const pageRange = doc.bufferedPageRange();
     for (let pageIndex = 0; pageIndex < pageRange.count; pageIndex += 1) {
