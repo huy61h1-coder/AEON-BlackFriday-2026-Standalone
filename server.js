@@ -60,7 +60,7 @@ const types = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charse
 // Bump this whenever the storefront shell changes. It fingerprints every
 // local CSS/JS URL emitted by the Node deployment, so a CDN cannot revive an
 // obsolete interface after a new release.
-const storefrontBuild = '20261108-catalog-contact-last-page-v61';
+const storefrontBuild = '20261108-catalog-corner-qr-v62';
 const productImageFitCss = '\n/* Server-enforced product commerce lock. */\n.product-media{position:relative!important;overflow:hidden!important;background:#fff!important}.product-media:has(.product-image-placeholder:not([hidden])),.product-media:has(.product-image-placeholder:not([hidden])):before,.product-media .product-image-placeholder:not([hidden]){background:#fff!important}.product-media img.product-official-image{display:block!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;margin:0!important;padding:0!important;object-fit:contain!important;object-position:center center!important}.product-price-stack .price,.product-price-stack .regular-price,.product-discount-badge{visibility:visible!important;opacity:1!important}\n';
 const noCacheHeaders = {
   'Cache-Control':'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0',
@@ -946,7 +946,7 @@ async function productCatalogPdfBuffer(state) {
   return new Promise((resolve, reject) => {
     const pageWidth = 595.28;
     const pageHeight = 841.89;
-    const margin = 18;
+    const margin = 24;
     const gap = 5;
     const columns = 5;
     const cardWidth = (pageWidth - margin * 2 - gap * (columns - 1)) / columns;
@@ -1158,7 +1158,7 @@ async function productCatalogPdfBuffer(state) {
 
     for (let pageIndex = 0; pageIndex < productPageCount; pageIndex += 1) {
       if (pageIndex > 0) doc.addPage();
-      const gridStartY = drawHeader(pageIndex + 1);
+      const gridStartY = Math.max(drawHeader(pageIndex + 1), 24);
       const compactBannerPage = pageIndex === 0 && hasBanner;
       const cardHeight = compactBannerPage ? 143 : 155;
       const imageHeight = compactBannerPage ? 60 : 68;
@@ -1212,6 +1212,17 @@ async function productCatalogPdfBuffer(state) {
       doc.moveTo(margin, pageHeight - 22).lineTo(pageWidth - margin, pageHeight - 22).lineWidth(.5).strokeColor(lineColor).stroke();
       text('Hotline 0327 747 337 · Quét QR trang cuối · Xem thêm: aeonblackfriday.tinhgon.xyz', margin, pageHeight - 16, 450, {size:6, color:muted, limit:120});
       text(`${pageIndex + 1}/${pageRange.count}`, pageWidth - margin - 44, pageHeight - 16, 44, {size:6, color:muted, align:'right', limit:20});
+      const cornerQrSize = 22;
+      const cornerQrPositions = [
+        [0, 0],
+        [pageWidth - cornerQrSize, 0],
+        [0, pageHeight - cornerQrSize],
+        [pageWidth - cornerQrSize, pageHeight - cornerQrSize]
+      ];
+      cornerQrPositions.forEach(([qrX, qrY]) => {
+        doc.rect(qrX, qrY, cornerQrSize, cornerQrSize).fill('#ffffff');
+        image(orderQrSource, qrX + 1, qrY + 1, cornerQrSize - 2, cornerQrSize - 2);
+      });
     }
     doc.end();
   });
