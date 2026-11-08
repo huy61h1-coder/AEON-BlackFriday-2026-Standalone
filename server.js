@@ -60,7 +60,7 @@ const types = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charse
 // Bump this whenever the storefront shell changes. It fingerprints every
 // local CSS/JS URL emitted by the Node deployment, so a CDN cannot revive an
 // obsolete interface after a new release.
-const storefrontBuild = '20261108-catalog-gift-ribbon-compact-v58';
+const storefrontBuild = '20261108-catalog-compact-rows-v59';
 const productImageFitCss = '\n/* Server-enforced product commerce lock. */\n.product-media{position:relative!important;overflow:hidden!important;background:#fff!important}.product-media:has(.product-image-placeholder:not([hidden])),.product-media:has(.product-image-placeholder:not([hidden])):before,.product-media .product-image-placeholder:not([hidden]){background:#fff!important}.product-media img.product-official-image{display:block!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;margin:0!important;padding:0!important;object-fit:contain!important;object-position:center center!important}.product-price-stack .price,.product-price-stack .regular-price,.product-discount-badge{visibility:visible!important;opacity:1!important}\n';
 const noCacheHeaders = {
   'Cache-Control':'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0',
@@ -948,13 +948,11 @@ async function productCatalogPdfBuffer(state) {
     const gap = 5;
     const columns = 5;
     const cardWidth = (pageWidth - margin * 2 - gap * (columns - 1)) / columns;
-    const cardHeight = 188;
-    const imageHeight = 80;
-    const laterPageCapacity = 20;
     const bannerBuffer = imageBuffers.get(bannerSource);
     const bannerInfo = bannerBuffer && imageDimensions(bannerBuffer);
     const hasBanner = Boolean(bannerInfo);
-    const firstPageCapacity = hasBanner ? columns * 3 : laterPageCapacity;
+    const firstPageCapacity = hasBanner ? columns * 4 : columns * 5;
+    const laterPageCapacity = columns * 5;
     const pageCount = Math.max(1, products.length <= firstPageCapacity
       ? 1
       : 1 + Math.ceil((products.length - firstPageCapacity) / laterPageCapacity));
@@ -1011,7 +1009,7 @@ async function productCatalogPdfBuffer(state) {
       doc.rect(0, 0, pageWidth, 3).fill('#bd1232');
       return 16;
     };
-    const drawGiftRibbon = (product, itemImages, x, ribbonBottom, width, minimumHeight) => {
+    const drawGiftRibbon = (product, itemImages, x, ribbonBottom, width, minimumHeight, productImageHeight) => {
       const rawName = cleanPdfText(product?.promotionProductName || product?.promoName || '', 160);
       const name = rawName.replace(/^tặng\s*/i, '').trim();
       const rawValue = cleanPdfText(product?.promotionProductValue || product?.promoValue || '', 120);
@@ -1030,7 +1028,7 @@ async function productCatalogPdfBuffer(state) {
         doc.font(pdfBoldFont).fontSize(size);
         return doc.heightOfString(content, {width:copyWidth, lineGap:0});
       };
-      const maximumHeight = Math.min(imageHeight - 8, 22);
+      const maximumHeight = Math.min(productImageHeight - 8, 18);
       let titleHeight = measureText(giftTitle, titleSize);
       let valueHeight = measureText(giftValue, valueSize);
       let textHeight = titleHeight + (giftTitle && giftValue ? 1 : 0) + valueHeight;
@@ -1071,7 +1069,7 @@ async function productCatalogPdfBuffer(state) {
         image(giftSources[1], secondGiftX, y + 2, 12, height - 4);
       }
     };
-    const drawProduct = (product, itemImages, x, y) => {
+    const drawProduct = (product, itemImages, x, y, cardHeight, imageHeight, titleBlockHeight) => {
       const cardBottom = y + cardHeight;
       doc.roundedRect(x, y, cardWidth, cardHeight, 5).fill('#171719').strokeColor('#303033').lineWidth(.6).stroke();
       const mediaX = x + 5;
@@ -1079,7 +1077,7 @@ async function productCatalogPdfBuffer(state) {
       const mediaWidth = cardWidth - 10;
       doc.roundedRect(mediaX, mediaY, mediaWidth, imageHeight, 3).fill('#ffffff');
       if (!image(itemImages.main, mediaX + 3, mediaY + 3, mediaWidth - 6, imageHeight - 6)) {
-        text('Hình ảnh đang cập nhật', mediaX + 6, mediaY + 50, mediaWidth - 12, {size:5.2, color:'#777777', align:'center', limit:80});
+        text('Hình ảnh đang cập nhật', mediaX + 6, mediaY + imageHeight / 2 - 3, mediaWidth - 12, {size:5.2, color:'#777777', align:'center', limit:80});
       }
 
       const salePrice = productCatalogPrice(product);
@@ -1098,9 +1096,9 @@ async function productCatalogPdfBuffer(state) {
       const hasGift = Boolean(cleanPdfText(product?.promotionProductName || product?.promoName || '', 160)
         || cleanPdfText(product?.promotionProductValue || product?.promoValue || '', 120)
         || itemImages.gifts.some(source => imageBuffers.get(source)));
-      if (hasGift) drawGiftRibbon(product, itemImages, mediaX + 3, mediaY + imageHeight + 2, mediaWidth - 6, 15);
+      if (hasGift) drawGiftRibbon(product, itemImages, mediaX + 3, mediaY + imageHeight + 2, mediaWidth - 6, 12, imageHeight);
 
-      const bodyY = y + imageHeight + 10;
+      const bodyY = y + imageHeight + 8;
       const brand = cleanPdfText(product?.brand || '', 60);
       if (brand) text(brand.toLocaleUpperCase('vi-VN'), x + 6, bodyY, cardWidth - 12, {bold:true, size:6.1, color:'#e61943', ellipsis:true, limit:70});
       const titleY = bodyY + (brand ? 8 : 0);
@@ -1109,23 +1107,23 @@ async function productCatalogPdfBuffer(state) {
       let titleSize = 7.2;
       doc.font(pdfBoldFont).fontSize(titleSize);
       let titleHeight = doc.heightOfString(productTitle, {width:titleWidth, lineGap:0});
-      while (titleHeight > 27 && titleSize > 3.4) {
-        titleSize = Math.max(3.4, titleSize - .2);
+      while (titleHeight > titleBlockHeight - 1 && titleSize > 2.6) {
+        titleSize = Math.max(2.6, titleSize - .2);
         doc.fontSize(titleSize);
         titleHeight = doc.heightOfString(productTitle, {width:titleWidth, lineGap:0});
       }
       text(productTitle, x + 6, titleY, titleWidth, {
-        bold:true, size:titleSize, color:'#ffffff', height:28, lineGap:0, limit:240
+        bold:true, size:titleSize, color:'#ffffff', height:titleBlockHeight, lineGap:0, limit:240
       });
-      const dividerY = titleY + 30;
+      const dividerY = titleY + titleBlockHeight + 2;
       doc.moveTo(x + 6, dividerY).lineTo(x + cardWidth - 6, dividerY).lineWidth(.45).strokeColor('#39393b').stroke();
-      const priceY = dividerY + 8;
+      const priceY = dividerY + 4;
       const priceWidth = cardWidth - 12;
       const saleText = salePrice ? formatPdfMoney(salePrice) : 'Liên hệ';
       doc.font(pdfBoldFont).fontSize(1);
       const saleTextWidthAtOnePoint = Math.max(.1, doc.widthOfString(saleText));
       const saleTargetWidth = Math.min(priceWidth, cardWidth - 16) * .92;
-      const saleSize = Math.min(20, saleTargetWidth / saleTextWidthAtOnePoint);
+      const saleSize = Math.min(16, saleTargetWidth / saleTextWidthAtOnePoint);
       const saleTextHeight = saleSize + 3;
       text(saleText, x + 6, priceY, priceWidth, {bold:true, size:saleSize, color:'#f5c644', height:saleTextHeight, align:'center', limit:60});
       if (regularPrice > salePrice && salePrice > 0) {
@@ -1136,7 +1134,7 @@ async function productCatalogPdfBuffer(state) {
           regularSize -= .2;
           doc.fontSize(regularSize);
         }
-        const regularY = priceY + Math.max(15, saleSize + 2);
+        const regularY = priceY + Math.max(12, saleSize + 1);
         text(regularText, x + 6, regularY, priceWidth, {size:regularSize, color:'#bab7b4', height:8, align:'center', limit:60});
         doc.font(pdfRegularFont).fontSize(regularSize);
         const regularWidth = Math.min(priceWidth, doc.widthOfString(regularText));
@@ -1146,19 +1144,23 @@ async function productCatalogPdfBuffer(state) {
 
       const booked = Math.max(0, Math.min(9999, Math.floor(Number(product?.dealSlotsRemaining) || 0)));
       const total = Math.max(1, Math.min(9999, Math.floor(Number(product?.dealSlotsTotal) || 20)));
-      const quotaY = cardBottom - 16;
+      const quotaY = cardBottom - 14;
       const quotaX = x + 5;
       const quotaWidth = cardWidth - 10;
       const quotaColor = booked / total >= .75 ? '#ed623e' : booked / total >= .4 ? '#f39a28' : '#f6c946';
-      doc.roundedRect(quotaX, quotaY, quotaWidth, 12, 6).fill(quotaColor);
-      doc.circle(quotaX + 9, quotaY + 6, 3.1).fill('#f06b1c');
-      doc.circle(quotaX + 9, quotaY + 6.5, 1.45).fill('#ffd64d');
-      text(`${booked}/${total} Suất đã đặt trước`, quotaX + 15, quotaY + 3, quotaWidth - 19, {bold:true, size:4.9, color:booked / total >= .75 ? '#ffffff' : '#29221a', align:'center', limit:50});
+      doc.roundedRect(quotaX, quotaY, quotaWidth, 10, 5).fill(quotaColor);
+      doc.circle(quotaX + 8, quotaY + 5, 2.7).fill('#f06b1c');
+      doc.circle(quotaX + 8, quotaY + 5.5, 1.2).fill('#ffd64d');
+      text(`${booked}/${total} Suất đã đặt trước`, quotaX + 13, quotaY + 2.5, quotaWidth - 17, {bold:true, size:4.5, color:booked / total >= .75 ? '#ffffff' : '#29221a', align:'center', limit:50});
     };
 
     for (let pageIndex = 0; pageIndex < pageCount; pageIndex += 1) {
       if (pageIndex > 0) doc.addPage();
       const gridStartY = drawHeader(pageIndex + 1);
+      const compactBannerPage = pageIndex === 0 && hasBanner;
+      const cardHeight = compactBannerPage ? 143 : 155;
+      const imageHeight = compactBannerPage ? 60 : 68;
+      const titleBlockHeight = compactBannerPage ? 18 : 20;
       const productOffset = pageIndex === 0 ? 0 : firstPageCapacity + (pageIndex - 1) * laterPageCapacity;
       const pageCapacity = pageIndex === 0 ? firstPageCapacity : laterPageCapacity;
       const pageProducts = products.slice(productOffset, productOffset + pageCapacity);
@@ -1167,7 +1169,7 @@ async function productCatalogPdfBuffer(state) {
         const row = Math.floor(itemIndex / columns);
         const x = margin + column * (cardWidth + gap);
         const y = gridStartY + row * (cardHeight + gap);
-        drawProduct(product, productImages[productOffset + itemIndex], x, y);
+        drawProduct(product, productImages[productOffset + itemIndex], x, y, cardHeight, imageHeight, titleBlockHeight);
       });
       if (!products.length) {
         text('Danh mục sản phẩm đang được cập nhật.', margin, gridStartY + 35, pageWidth - margin * 2, {size:12, color:muted, align:'center', limit:100});
