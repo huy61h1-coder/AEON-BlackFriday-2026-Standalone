@@ -60,7 +60,7 @@ const types = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charse
 // Bump this whenever the storefront shell changes. It fingerprints every
 // local CSS/JS URL emitted by the Node deployment, so a CDN cannot revive an
 // obsolete interface after a new release.
-const storefrontBuild = '20261108-catalog-text-aligned-v54';
+const storefrontBuild = '20261108-catalog-price-no-cart-v55';
 const productImageFitCss = '\n/* Server-enforced product commerce lock. */\n.product-media{position:relative!important;overflow:hidden!important;background:#fff!important}.product-media:has(.product-image-placeholder:not([hidden])),.product-media:has(.product-image-placeholder:not([hidden])):before,.product-media .product-image-placeholder:not([hidden]){background:#fff!important}.product-media img.product-official-image{display:block!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;margin:0!important;padding:0!important;object-fit:contain!important;object-position:center center!important}.product-price-stack .price,.product-price-stack .regular-price,.product-discount-badge{visibility:visible!important;opacity:1!important}\n';
 const noCacheHeaders = {
   'Cache-Control':'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0',
@@ -1120,26 +1120,15 @@ async function productCatalogPdfBuffer(state) {
       const dividerY = titleY + 30;
       doc.moveTo(x + 6, dividerY).lineTo(x + cardWidth - 6, dividerY).lineWidth(.45).strokeColor('#39393b').stroke();
       const priceY = dividerY + 8;
-      const actionSize = 20;
-      const actionX = x + cardWidth - actionSize - 5;
-      const priceWidth = actionX - (x + 6) - 5;
+      const priceWidth = cardWidth - 12;
       const saleText = salePrice ? formatPdfMoney(salePrice) : 'Liên hệ';
-      let saleSize = 9.2;
+      let saleSize = 12;
       doc.font(pdfBoldFont).fontSize(saleSize);
-      while (doc.widthOfString(saleText) > priceWidth && saleSize > 6.5) {
+      while (doc.widthOfString(saleText) > priceWidth && saleSize > 8.5) {
         saleSize -= .25;
         doc.fontSize(saleSize);
       }
-      text(saleText, x + 6, priceY, priceWidth, {bold:true, size:saleSize, color:'#f5c644', height:12, limit:60});
-      doc.rect(actionX, priceY - 4, actionSize, actionSize).fill('#e61943');
-      const cartLeft = actionX + 4;
-      const cartTop = priceY;
-      doc.lineWidth(1).strokeColor('#ffffff')
-        .moveTo(cartLeft, cartTop).lineTo(cartLeft + 2, cartTop)
-        .lineTo(cartLeft + 4, cartTop + 8).lineTo(cartLeft + 14, cartTop + 8)
-        .lineTo(cartLeft + 16, cartTop + 2).lineTo(cartLeft + 3, cartTop + 2).stroke();
-      doc.circle(cartLeft + 6, cartTop + 12, 1).fill('#ffffff');
-      doc.circle(cartLeft + 12.5, cartTop + 12, 1).fill('#ffffff');
+      text(saleText, x + 6, priceY, priceWidth, {bold:true, size:saleSize, color:'#f5c644', height:15, limit:60});
       if (regularPrice > salePrice && salePrice > 0) {
         const regularText = formatPdfMoney(regularPrice);
         let regularSize = 5.8;
@@ -1148,10 +1137,10 @@ async function productCatalogPdfBuffer(state) {
           regularSize -= .2;
           doc.fontSize(regularSize);
         }
-        text(regularText, x + 6, priceY + 12, priceWidth, {size:regularSize, color:'#bab7b4', height:8, limit:60});
+        text(regularText, x + 6, priceY + 15, priceWidth, {size:regularSize, color:'#bab7b4', height:8, limit:60});
         doc.font(pdfRegularFont).fontSize(regularSize);
         const regularWidth = Math.min(priceWidth, doc.widthOfString(regularText));
-        doc.moveTo(x + 6, priceY + 15).lineTo(x + 6 + regularWidth, priceY + 15).lineWidth(.45).strokeColor('#bab7b4').stroke();
+        doc.moveTo(x + 6, priceY + 18).lineTo(x + 6 + regularWidth, priceY + 18).lineWidth(.45).strokeColor('#bab7b4').stroke();
       }
 
       const booked = Math.max(0, Math.min(9999, Math.floor(Number(product?.dealSlotsRemaining) || 0)));
