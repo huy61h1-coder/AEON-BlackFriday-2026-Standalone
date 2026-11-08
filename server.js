@@ -60,7 +60,7 @@ const types = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charse
 // Bump this whenever the storefront shell changes. It fingerprints every
 // local CSS/JS URL emitted by the Node deployment, so a CDN cannot revive an
 // obsolete interface after a new release.
-const storefrontBuild = '20261108-catalog-two-line-contact-v71';
+const storefrontBuild = '20261108-catalog-qr-yellow-aligned-v72';
 const productImageFitCss = '\n/* Server-enforced product commerce lock. */\n.product-media{position:relative!important;overflow:hidden!important;background:#fff!important}.product-media:has(.product-image-placeholder:not([hidden])),.product-media:has(.product-image-placeholder:not([hidden])):before,.product-media .product-image-placeholder:not([hidden]){background:#fff!important}.product-media img.product-official-image{display:block!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;margin:0!important;padding:0!important;object-fit:contain!important;object-position:center center!important}.product-price-stack .price,.product-price-stack .regular-price,.product-discount-badge{visibility:visible!important;opacity:1!important}\n';
 const noCacheHeaders = {
   'Cache-Control':'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0',
@@ -1029,24 +1029,26 @@ async function productCatalogPdfBuffer(state) {
         const bannerY = 12;
         image(bannerSource, margin, bannerY, bannerWidth, bannerHeight);
         image(bannerLogoSource, margin + bannerWidth * 0.009, bannerY + bannerHeight * 0.02, bannerWidth * 0.085, bannerHeight * 0.12);
-        const qrPanelWidth = Math.min(232, bannerWidth - 18);
-        const qrPanelHeight = 42;
+        const qrPanelWidth = Math.min(290, bannerWidth - 18);
+        const qrPanelHeight = 52;
         const qrPanelX = margin + bannerWidth - qrPanelWidth - 8;
         const qrPanelY = bannerY + bannerHeight - qrPanelHeight - 7;
-        const qrSize = 36;
+        const qrSize = 42;
         const qrX = qrPanelX + qrPanelWidth - qrSize - 3;
-        const qrY = qrPanelY + 3;
-        const promptWidth = qrPanelWidth - qrSize - 20;
-        let promptSize = 8;
+        const qrY = qrPanelY + (qrPanelHeight - qrSize) / 2;
+        const promptWidth = qrPanelWidth - qrSize - 24;
+        let promptSize = 9.5;
         doc.font(pdfBoldFont).fontSize(promptSize);
-        while (doc.widthOfString(catalogOrderPrompt) > promptWidth && promptSize > 6) {
+        while (doc.widthOfString(catalogOrderPrompt) > promptWidth && promptSize > 7) {
           promptSize -= .25;
           doc.fontSize(promptSize);
         }
         const promptNeedsWrap = doc.widthOfString(catalogOrderPrompt) > promptWidth;
-        doc.font(pdfBoldFont).fontSize(promptSize).fillColor('#ffffff').strokeColor('#000000').lineWidth(.8)
-          .text(catalogOrderPrompt, qrPanelX + 8, qrPanelY + (promptNeedsWrap ? 9 : 15), {
-            width:promptWidth, height:promptNeedsWrap ? 24 : 12, align:'center', lineGap:0, stroke:true, fill:true
+        const promptHeight = promptNeedsWrap ? 24 : 12;
+        const promptY = qrY + qrSize - promptHeight;
+        doc.font(pdfBoldFont).fontSize(promptSize).fillColor('#f5c644').strokeColor('#000000').lineWidth(.8)
+          .text(catalogOrderPrompt, qrPanelX + 8, promptY, {
+            width:promptWidth, height:promptHeight, align:'center', lineGap:0, stroke:true, fill:true
           });
         doc.roundedRect(qrX - 1, qrY - 1, qrSize + 2, qrSize + 2, 2).fill('#ffffff');
         image(orderQrSource, qrX, qrY, qrSize, qrSize);
