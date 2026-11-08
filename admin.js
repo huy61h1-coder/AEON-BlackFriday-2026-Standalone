@@ -1466,7 +1466,7 @@ function interfacePanel(panel) {
     <section class="admin-card editor">
       <p class="eyebrow">NỘI DUNG TRANG CHỦ</p>
       <h2>Nội dung trang chủ</h2>
-      <p class="admin-card-description">Những nội dung này xuất hiện ở trang chủ. Logo và danh mục sản phẩm được quản lý riêng trong mục “Danh mục & logo”, nên sẽ không bị thay đổi tại đây.</p>
+      <p class="admin-card-description">Chỉnh nội dung trang chủ và thông tin hotline, hướng dẫn đặt hàng, đường dẫn sản phẩm cùng mã QR dùng trong catalog PDF. Logo và danh mục sản phẩm được quản lý riêng trong mục “Danh mục & logo”.</p>
       <form id="uiForm">
         <div class="admin-form-grid one">
           <label>Hiển thị khu vực hero<select name="heroDisplayMode"><option value="content-image"${normaliseHeroDisplayMode(ui.heroDisplayMode) === 'content-image' ? ' selected' : ''}>Hiển thị nội dung và hình ảnh</option><option value="image-only"${normaliseHeroDisplayMode(ui.heroDisplayMode) === 'image-only' ? ' selected' : ''}>Chỉ hiển thị hình ảnh</option></select><small>Ảnh banner phủ toàn bộ chiều cao hero và chừa lề theo giao diện.</small></label>
@@ -1476,11 +1476,38 @@ function interfacePanel(panel) {
           <label>Giới thiệu hero<textarea name="intro" required rows="3">${escapeHtml(ui.intro)}</textarea></label>
           <label>Tiêu đề khu vực ưu đãi<input name="promotionTitle" maxlength="80" required value="${escapeHtml(ui.promotionTitle)}"></label>
           <div class="promotion-richtext-field"><span>Nội dung ưu đãi mùa trăng</span>${window.AEONPromotionRichText?.editorMarkup({name:'promotionText', value:ui.promotionText, limit:6000}) || `<textarea name="promotionText" maxlength="6000" required rows="5">${escapeHtml(ui.promotionText)}</textarea>`}</div>
+          <p class="eyebrow">THÔNG TIN LIÊN HỆ TRONG CATALOG</p>
+          <label>Hotline<input name="catalogHotline" maxlength="50" value="${escapeHtml(ui.catalogHotline ?? '0327 747 337')}" placeholder="Ví dụ: 0327 747 337"></label>
+          <label>Nội dung cạnh mã QR<input name="catalogOrderPrompt" maxlength="120" required value="${escapeHtml(ui.catalogOrderPrompt || 'Quét mã đặt hàng & xem thêm sản phẩm')}"></label>
+          <label>Đường dẫn xem thêm sản phẩm<input name="catalogMoreProductsUrl" type="url" maxlength="500" required value="${escapeHtml(ui.catalogMoreProductsUrl || 'https://aeonblackfriday.tinhgon.xyz')}" placeholder="https://..."></label>
+          <label>Đường dẫn ảnh mã QR<input name="catalogOrderQrImage" required value="${escapeHtml(ui.catalogOrderQrImage || '/assets/catalog/order-qr.png')}" placeholder="https://... hoặc /assets/uploads/ma-qr.png"><small>Ảnh PNG/JPG sẽ được dùng trong banner catalog.</small></label>
+          <div class="upload-field"><label for="catalogOrderQrFile">Tải ảnh mã QR PNG/JPG từ máy</label><input id="catalogOrderQrFile" type="file" accept="image/png,image/jpeg"><button class="secondary-button" id="uploadCatalogOrderQr" type="button">Tải và lưu mã QR</button></div>
+          <div class="asset-preview" id="catalogOrderQrPreview" aria-live="polite"></div>
         </div>
         <button class="button primary" type="submit">Lưu giao diện</button>
       </form>
     </section>`;
   window.AEONPromotionRichText?.bindAll(panel);
+  const form = $('#uiForm');
+  const qrInput = form.elements.catalogOrderQrImage;
+  setPreview($('#catalogOrderQrPreview'), qrInput.value, 'Chưa chọn mã QR đặt hàng');
+  qrInput.addEventListener('input', () => setPreview($('#catalogOrderQrPreview'), qrInput.value, 'Chưa chọn mã QR đặt hàng'));
+  $('#uploadCatalogOrderQr').onclick = async () => {
+    const button = $('#uploadCatalogOrderQr');
+    const file = $('#catalogOrderQrFile').files[0];
+    try {
+      if (!file) throw new Error('Hãy chọn ảnh mã QR PNG hoặc JPG trước.');
+      if (!['image/png', 'image/jpeg'].includes(file.type)) throw new Error('Mã QR cần là ảnh PNG hoặc JPG để xuất PDF rõ nét.');
+      setBusy(button, true, 'Đang tải ảnh QR...', 'Tải và lưu mã QR');
+      qrInput.value = await uploadOfficialImage(file);
+      setPreview($('#catalogOrderQrPreview'), qrInput.value, 'Chưa chọn mã QR đặt hàng');
+      form.requestSubmit();
+    } catch (error) {
+      toastAdmin(error.message);
+    } finally {
+      setBusy(button, false, 'Đang tải ảnh QR...', 'Tải và lưu mã QR');
+    }
+  };
   $('#uiForm').onsubmit = async event => {
     event.preventDefault();
     const form = event.currentTarget;
@@ -1492,11 +1519,28 @@ function interfacePanel(panel) {
       } catch {
         latestUi = aeonStore.ui();
       }
+      const catalogHotline = String(values.catalogHotline || '').trim().slice(0, 50);
+      const catalogOrderPrompt = String(values.catalogOrderPrompt || '').trim().slice(0, 120);
+      const rawCatalogQrImage = String(values.catalogOrderQrImage || '').trim();
+      const catalogOrderQrImage = normaliseImageUrl(rawCatalogQrImage);
+      if (!catalogOrderQrImage) throw new Error('Hãy nhập đường dẫn ảnh mã QR hợp lệ hoặc tải ảnh PNG/JPG lên.');
+      let catalogMoreProductsUrl = '';
+      try {
+        const link = new URL(String(values.catalogMoreProductsUrl || '').trim());
+        if (!['http:', 'https:'].includes(link.protocol)) throw new Error('invalid protocol');
+        catalogMoreProductsUrl = link.href;
+      } catch {
+        throw new Error('Hãy nhập đường dẫn xem thêm sản phẩm bắt đầu bằng http:// hoặc https://.');
+      }
       const nextUi = {
         ...aeonStore.ui(),
         ...latestUi,
         ...values,
         heroDisplayMode: normaliseHeroDisplayMode(values.heroDisplayMode),
+        catalogHotline,
+        catalogOrderPrompt,
+        catalogMoreProductsUrl,
+        catalogOrderQrImage,
         promotionText: window.AEONPromotionRichText?.clean(values.promotionText, 6000) || String(values.promotionText || '').replace(/\r\n?/g, '\n').trim().slice(0, 6000)
       };
       await saveShared('aeon-ui', nextUi);

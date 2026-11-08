@@ -60,7 +60,7 @@ const types = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charse
 // Bump this whenever the storefront shell changes. It fingerprints every
 // local CSS/JS URL emitted by the Node deployment, so a CDN cannot revive an
 // obsolete interface after a new release.
-const storefrontBuild = '20261108-catalog-price-quota-aligned-v65';
+const storefrontBuild = '20261108-catalog-contact-settings-v66';
 const productImageFitCss = '\n/* Server-enforced product commerce lock. */\n.product-media{position:relative!important;overflow:hidden!important;background:#fff!important}.product-media:has(.product-image-placeholder:not([hidden])),.product-media:has(.product-image-placeholder:not([hidden])):before,.product-media .product-image-placeholder:not([hidden]){background:#fff!important}.product-media img.product-official-image{display:block!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;margin:0!important;padding:0!important;object-fit:contain!important;object-position:center center!important}.product-price-stack .price,.product-price-stack .regular-price,.product-discount-badge{visibility:visible!important;opacity:1!important}\n';
 const noCacheHeaders = {
   'Cache-Control':'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0',
@@ -700,6 +700,15 @@ function formatPdfMoney(value) {
   return `${pdfMoney.format(Math.max(0, Math.round(Number(value) || 0)))} đ`;
 }
 
+function safeCatalogLink(value) {
+  try {
+    const url = new URL(String(value || ''));
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url.href : '';
+  } catch {
+    return '';
+  }
+}
+
 function directGoogleDriveImage(value) {
   const url = String(value || '').trim();
   const match = /^https?:\/\/drive\.google\.com\/file\/d\/([^/]+)/i.exec(url);
@@ -918,7 +927,13 @@ async function productCatalogPdfBuffer(state) {
   const dark = /^#[0-9a-f]{6}$/i.test(layout.accentDarkColor || '') ? layout.accentDarkColor : '#a80f2a';
   const giftBackground = String(ui.giftRibbonBackgroundImage || '').trim();
   const bannerSource = String(ui.catalogBannerImage || '/assets/catalog/black-friday-catalog-banner.jpg').trim();
-  const orderQrSource = '/assets/catalog/order-qr.png';
+  const orderQrSource = String(ui.catalogOrderQrImage || '/assets/catalog/order-qr.png').trim();
+  const catalogHotline = cleanPdfText(ui.catalogHotline ?? '0327 747 337', 50);
+  const catalogOrderPrompt = cleanPdfText(ui.catalogOrderPrompt || 'Quét mã đặt hàng & xem thêm sản phẩm', 120);
+  const catalogMoreProductsUrl = safeCatalogLink(ui.catalogMoreProductsUrl) || 'https://aeonblackfriday.tinhgon.xyz';
+  const catalogMoreProductsHost = (() => {
+    try { return new URL(catalogMoreProductsUrl).host; } catch { return 'aeonblackfriday.tinhgon.xyz'; }
+  })();
   const productImages = products.map(product => {
     const images = Array.isArray(product?.images) ? product.images : [];
     const main = String(images.find(Boolean) || product?.image || '').trim();
@@ -1015,11 +1030,18 @@ async function productCatalogPdfBuffer(state) {
         const qrX = qrPanelX + qrPanelWidth - qrSize - 3;
         const qrY = qrPanelY + 3;
         doc.roundedRect(qrPanelX, qrPanelY, qrPanelWidth, qrPanelHeight, 4).fill('#14152b').strokeColor('#f5c644').lineWidth(.8).stroke();
-        text('Quét mã đặt hàng', qrPanelX + 8, qrPanelY + 9, qrPanelWidth - qrSize - 20, {bold:true, size:8, color:'#ffffff', limit:40});
-        text('& xem thêm sản phẩm', qrPanelX + 8, qrPanelY + 24, qrPanelWidth - qrSize - 20, {bold:true, size:7, color:'#f5c644', limit:40});
+        const promptWidth = qrPanelWidth - qrSize - 20;
+        let promptSize = 8;
+        doc.font(pdfBoldFont).fontSize(promptSize);
+        while (doc.widthOfString(catalogOrderPrompt) > promptWidth && promptSize > 6) {
+          promptSize -= .25;
+          doc.fontSize(promptSize);
+        }
+        const promptNeedsWrap = doc.widthOfString(catalogOrderPrompt) > promptWidth;
+        text(catalogOrderPrompt, qrPanelX + 8, qrPanelY + (promptNeedsWrap ? 9 : 15), promptWidth, {bold:true, size:promptSize, color:'#ffffff', height:promptNeedsWrap ? 24 : 12, align:'center', limit:120});
         doc.roundedRect(qrX - 1, qrY - 1, qrSize + 2, qrSize + 2, 2).fill('#ffffff');
         image(orderQrSource, qrX, qrY, qrSize, qrSize);
-        doc.link(qrX, qrY, qrSize, qrSize, 'https://aeonblackfriday.tinhgon.xyz');
+        doc.link(qrX, qrY, qrSize, qrSize, catalogMoreProductsUrl);
         return 12 + bannerHeight + 7;
       }
       doc.rect(0, 0, pageWidth, 3).fill('#bd1232');
@@ -1226,19 +1248,18 @@ async function productCatalogPdfBuffer(state) {
     const contactTextWidth = contactPanelWidth - 24;
     doc.roundedRect(contactPanelX, contactPanelY, contactPanelWidth, contactPanelHeight, 8).fill('#171719').strokeColor('#4a4140').lineWidth(.8).stroke();
     text('HOTLINE TƯ VẤN & ĐẶT HÀNG', contactTextX, contactPanelY + 12, contactTextWidth, {bold:true, size:8, color:'#d7d2cf', align:'center', limit:50});
-    text('0327 747 337', contactTextX, contactPanelY + 33, contactTextWidth, {bold:true, size:19, color:'#f5c644', align:'center', limit:30});
+    if (catalogHotline) text(catalogHotline, contactTextX, contactPanelY + 33, contactTextWidth, {bold:true, size:19, color:'#f5c644', align:'center', limit:50});
     doc.moveTo(contactPanelX + 25, contactPanelY + 64).lineTo(contactPanelX + contactPanelWidth - 25, contactPanelY + 64).lineWidth(.6).strokeColor('#4a4140').stroke();
-    const siteUrl = 'aeonblackfriday.tinhgon.xyz';
     text('Xem thêm sản phẩm:', contactTextX, contactPanelY + 73, contactTextWidth, {size:7, color:'#d7d2cf', align:'center', limit:40});
     doc.font(pdfBoldFont).fontSize(8).fillColor('#f5c644')
-      .text(siteUrl, contactTextX, contactPanelY + 86, {width:contactTextWidth, align:'center', link:`https://${siteUrl}`});
-    doc.link(contactTextX, contactPanelY + 82, contactTextWidth, 22, `https://${siteUrl}`);
+      .text(catalogMoreProductsHost, contactTextX, contactPanelY + 86, {width:contactTextWidth, align:'center', link:catalogMoreProductsUrl});
+    doc.link(contactTextX, contactPanelY + 82, contactTextWidth, 22, catalogMoreProductsUrl);
 
     const pageRange = doc.bufferedPageRange();
     for (let pageIndex = 0; pageIndex < pageRange.count; pageIndex += 1) {
       doc.switchToPage(pageRange.start + pageIndex);
       doc.moveTo(margin, pageHeight - 22).lineTo(pageWidth - margin, pageHeight - 22).lineWidth(.5).strokeColor(lineColor).stroke();
-      text('Hotline 0327 747 337 · Quét QR trang cuối · Xem thêm: aeonblackfriday.tinhgon.xyz', margin, pageHeight - 16, 450, {size:6, color:muted, limit:120});
+      text(`Hotline ${catalogHotline || 'liên hệ tư vấn'} · Quét mã QR đặt hàng · Xem thêm: ${catalogMoreProductsHost}`, margin, pageHeight - 16, 450, {size:6, color:muted, limit:140});
       text(`${pageIndex + 1}/${pageRange.count}`, pageWidth - margin - 44, pageHeight - 16, 44, {size:6, color:muted, align:'right', limit:20});
     }
     doc.end();
