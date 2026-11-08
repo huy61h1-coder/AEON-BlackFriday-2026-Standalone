@@ -60,7 +60,7 @@ const types = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charse
 // Bump this whenever the storefront shell changes. It fingerprints every
 // local CSS/JS URL emitted by the Node deployment, so a CDN cannot revive an
 // obsolete interface after a new release.
-const storefrontBuild = '20261108-catalog-ui-quota-fire-v78';
+const storefrontBuild = '20261108-catalog-qr-caption-close-v79';
 const productImageFitCss = '\n/* Server-enforced product commerce lock. */\n.product-media{position:relative!important;overflow:hidden!important;background:#fff!important}.product-media:has(.product-image-placeholder:not([hidden])),.product-media:has(.product-image-placeholder:not([hidden])):before,.product-media .product-image-placeholder:not([hidden]){background:#fff!important}.product-media img.product-official-image{display:block!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;margin:0!important;padding:0!important;object-fit:contain!important;object-position:center center!important}.product-price-stack .price,.product-price-stack .regular-price,.product-discount-badge{visibility:visible!important;opacity:1!important}\n';
 const noCacheHeaders = {
   'Cache-Control':'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0',
@@ -1048,7 +1048,7 @@ async function productCatalogPdfBuffer(state) {
         const qrSize = 42;
         const qrX = qrPanelX + qrPanelWidth - qrSize - 3;
         const qrY = qrPanelY + (qrPanelHeight - qrSize) / 2;
-        const promptWidth = qrPanelWidth - qrSize - 24;
+        const promptWidth = qrPanelWidth - qrSize - 18;
         let promptSize = 9.5;
         doc.font(pdfBoldFont).fontSize(promptSize);
         while (doc.widthOfString(catalogOrderPrompt) > promptWidth && promptSize > 7) {
@@ -1060,7 +1060,7 @@ async function productCatalogPdfBuffer(state) {
         const promptY = qrY + qrSize - promptHeight;
         doc.font(pdfBoldFont).fontSize(promptSize).fillColor('#f5c644')
           .text(catalogOrderPrompt, qrPanelX + 8, promptY, {
-            width:promptWidth, height:promptHeight, align:'center', lineGap:0, fill:true
+            width:promptWidth, height:promptHeight, align:'right', lineGap:0, fill:true
           });
         doc.roundedRect(qrX - 1, qrY - 1, qrSize + 2, qrSize + 2, 2).fill('#ffffff');
         image(orderQrSource, qrX, qrY, qrSize, qrSize);
