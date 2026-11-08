@@ -60,7 +60,7 @@ const types = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charse
 // Bump this whenever the storefront shell changes. It fingerprints every
 // local CSS/JS URL emitted by the Node deployment, so a CDN cannot revive an
 // obsolete interface after a new release.
-const storefrontBuild = '20261108-catalog-contact-qr-v60';
+const storefrontBuild = '20261108-catalog-contact-last-page-v61';
 const productImageFitCss = '\n/* Server-enforced product commerce lock. */\n.product-media{position:relative!important;overflow:hidden!important;background:#fff!important}.product-media:has(.product-image-placeholder:not([hidden])),.product-media:has(.product-image-placeholder:not([hidden])):before,.product-media .product-image-placeholder:not([hidden]){background:#fff!important}.product-media img.product-official-image{display:block!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;margin:0!important;padding:0!important;object-fit:contain!important;object-position:center center!important}.product-price-stack .price,.product-price-stack .regular-price,.product-discount-badge{visibility:visible!important;opacity:1!important}\n';
 const noCacheHeaders = {
   'Cache-Control':'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0',
@@ -1187,19 +1187,24 @@ async function productCatalogPdfBuffer(state) {
     text('ĐẶT HÀNG NGAY', margin, 111, pageWidth - margin * 2, {bold:true, size:22, color:'#f5c644', align:'center', limit:40});
     text('Quét mã QR để đặt hàng nhanh chóng', margin, 141, pageWidth - margin * 2, {size:10, color:'#ffffff', align:'center', limit:60});
 
-    const qrCardSize = 176;
+    const qrCardSize = 164;
     const qrCardX = contactCenter - qrCardSize / 2;
-    const qrCardY = 180;
+    const qrCardY = 170;
     doc.roundedRect(qrCardX, qrCardY, qrCardSize, qrCardSize, 8).fill('#ffffff');
     image(orderQrSource, qrCardX + 8, qrCardY + 8, qrCardSize - 16, qrCardSize - 16);
 
-    text('HOTLINE TƯ VẤN', margin, 389, pageWidth - margin * 2, {bold:true, size:8, color:'#d7d2cf', align:'center', limit:40});
-    text('0327 747 337', margin, 410, pageWidth - margin * 2, {bold:true, size:20, color:'#f5c644', align:'center', limit:30});
-    text('XEM THÊM CÁC SẢN PHẨM KHÁC', margin, 471, pageWidth - margin * 2, {bold:true, size:12, color:'#ffffff', align:'center', limit:60});
+    const contactCardX = margin + 58;
+    const contactCardWidth = pageWidth - contactCardX * 2;
+    const contactCardY = 354;
+    doc.roundedRect(contactCardX, contactCardY, contactCardWidth, 148, 8).fill('#171719').strokeColor('#4a4140').lineWidth(.8).stroke();
+    text('HOTLINE TƯ VẤN & ĐẶT HÀNG', contactCardX + 12, contactCardY + 16, contactCardWidth - 24, {bold:true, size:8, color:'#d7d2cf', align:'center', limit:50});
+    text('0327 747 337', contactCardX + 12, contactCardY + 38, contactCardWidth - 24, {bold:true, size:20, color:'#f5c644', align:'center', limit:30});
+    doc.moveTo(contactCardX + 25, contactCardY + 77).lineTo(contactCardX + contactCardWidth - 25, contactCardY + 77).lineWidth(.6).strokeColor('#4a4140').stroke();
+    text('XEM THÊM CÁC SẢN PHẨM KHÁC', contactCardX + 12, contactCardY + 94, contactCardWidth - 24, {bold:true, size:10, color:'#ffffff', align:'center', limit:60});
     const siteUrl = 'aeonblackfriday.tinhgon.xyz';
     doc.font(pdfBoldFont).fontSize(10).fillColor('#f5c644')
-      .text(siteUrl, margin, 494, pageWidth - margin * 2, {align:'center', link:`https://${siteUrl}`});
-    doc.link(margin + 120, 490, pageWidth - margin * 2 - 240, 22, `https://${siteUrl}`);
+      .text(siteUrl, contactCardX + 12, contactCardY + 116, contactCardWidth - 24, {align:'center', link:`https://${siteUrl}`});
+    doc.link(contactCardX + 12, contactCardY + 110, contactCardWidth - 24, 24, `https://${siteUrl}`);
 
     const pageRange = doc.bufferedPageRange();
     for (let pageIndex = 0; pageIndex < pageRange.count; pageIndex += 1) {
