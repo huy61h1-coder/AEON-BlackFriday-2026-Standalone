@@ -60,7 +60,7 @@ const types = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charse
 // Bump this whenever the storefront shell changes. It fingerprints every
 // local CSS/JS URL emitted by the Node deployment, so a CDN cannot revive an
 // obsolete interface after a new release.
-const storefrontBuild = '20261108-catalog-gift-text-fit-v52';
+const storefrontBuild = '20261108-catalog-web-card-style-v53';
 const productImageFitCss = '\n/* Server-enforced product commerce lock. */\n.product-media{position:relative!important;overflow:hidden!important;background:#fff!important}.product-media:has(.product-image-placeholder:not([hidden])),.product-media:has(.product-image-placeholder:not([hidden])):before,.product-media .product-image-placeholder:not([hidden]){background:#fff!important}.product-media img.product-official-image{display:block!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;margin:0!important;padding:0!important;object-fit:contain!important;object-position:center center!important}.product-price-stack .price,.product-price-stack .regular-price,.product-discount-badge{visibility:visible!important;opacity:1!important}\n';
 const noCacheHeaders = {
   'Cache-Control':'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0',
@@ -948,13 +948,13 @@ async function productCatalogPdfBuffer(state) {
     const gap = 5;
     const columns = 5;
     const cardWidth = (pageWidth - margin * 2 - gap * (columns - 1)) / columns;
-    const cardHeight = 244;
-    const imageHeight = 110;
-    const laterPageCapacity = 15;
+    const cardHeight = 188;
+    const imageHeight = 80;
+    const laterPageCapacity = 20;
     const bannerBuffer = imageBuffers.get(bannerSource);
     const bannerInfo = bannerBuffer && imageDimensions(bannerBuffer);
     const hasBanner = Boolean(bannerInfo);
-    const firstPageCapacity = hasBanner ? columns * 2 : laterPageCapacity;
+    const firstPageCapacity = hasBanner ? columns * 3 : laterPageCapacity;
     const pageCount = Math.max(1, products.length <= firstPageCapacity
       ? 1
       : 1 + Math.ceil((products.length - firstPageCapacity) / laterPageCapacity));
@@ -1001,24 +1001,15 @@ async function productCatalogPdfBuffer(state) {
       }
     };
     const drawHeader = pageNumber => {
-      doc.rect(0, 0, pageWidth, pageHeight).fill('#f6f4f0');
+      doc.rect(0, 0, pageWidth, pageHeight).fill('#050505');
       if (pageNumber === 1 && hasBanner) {
         const bannerWidth = pageWidth - margin * 2;
         const bannerHeight = bannerWidth * bannerInfo.height / bannerInfo.width;
         image(bannerSource, margin, 12, bannerWidth, bannerHeight);
         return 12 + bannerHeight + 7;
       }
-      doc.rect(0, 0, pageWidth, 43).fill('#111113');
-      doc.rect(0, 41, pageWidth, 2).fill(accent);
-      const logo = String(ui.logoImage || '').trim();
-      if (!image(logo, margin, 7, 64, 28)) {
-        text(ui.logoText || 'AEON', margin, 10, 64, {bold:true, size:16, color:'#ffffff', limit:32});
-      }
-      text('BLACK FRIDAY 2026 · CATALOG SẢN PHẨM', margin + 76, 15, 280, {bold:true, size:8.2, color:'#ffffff', limit:80});
-      text(`${products.length} sản phẩm · Trang ${pageNumber}/${pageCount}`, pageWidth - margin - 170, 15, 170, {
-        size:7, color:'#e8e4df', align:'right', limit:100
-      });
-      return 54;
+      doc.rect(0, 0, pageWidth, 3).fill('#bd1232');
+      return 16;
     };
     const drawGiftRibbon = (product, itemImages, x, ribbonBottom, width, minimumHeight) => {
       const rawName = cleanPdfText(product?.promotionProductName || product?.promoName || '', 160);
@@ -1039,7 +1030,7 @@ async function productCatalogPdfBuffer(state) {
         doc.font(pdfBoldFont).fontSize(size);
         return doc.heightOfString(content, {width:copyWidth, lineGap:0});
       };
-      const maximumHeight = Math.min(imageHeight - 8, 68);
+      const maximumHeight = Math.min(imageHeight - 8, 44);
       let titleHeight = measureText(giftTitle, titleSize);
       let valueHeight = measureText(giftValue, valueSize);
       let textHeight = titleHeight + (giftTitle && giftValue ? 2 : 0) + valueHeight;
@@ -1052,7 +1043,7 @@ async function productCatalogPdfBuffer(state) {
       }
       const height = Math.max(minimumHeight, Math.min(maximumHeight, Math.ceil(textHeight + 8)));
       const y = ribbonBottom - height;
-      doc.roundedRect(x, y, width, height, 4).fill(dark);
+      doc.roundedRect(x, y, width, height, 4).fill('#bd1232');
       const ribbonImage = imageBuffers.get(giftBackground);
       if (ribbonImage && imageDimensions(ribbonImage)) {
         try { doc.image(ribbonImage, x, y, {width, height}); } catch { /* Keep the red fallback ribbon. */ }
@@ -1068,15 +1059,21 @@ async function productCatalogPdfBuffer(state) {
         doc.text(giftValue, x + 4, copyY, {width:copyWidth, height:valueHeight + 1, lineGap:0});
       }
       if (giftSources.length === 1) {
-        image(giftSources[0], x + width - 21, y + 2, 17, height - 4);
+        const giftX = x + width - 21;
+        doc.roundedRect(giftX - 1, y + 2, 18, height - 4, 2).fill('#ffffff');
+        image(giftSources[0], giftX, y + 3, 16, height - 6);
       } else if (giftSources.length === 2) {
-        image(giftSources[0], x + width - 32, y + 2, 14, height - 4);
-        image(giftSources[1], x + width - 17, y + 2, 13, height - 4);
+        const firstGiftX = x + width - 32;
+        const secondGiftX = x + width - 17;
+        doc.roundedRect(firstGiftX - 1, y + 2, 15, height - 4, 2).fill('#ffffff');
+        doc.roundedRect(secondGiftX - 1, y + 2, 14, height - 4, 2).fill('#ffffff');
+        image(giftSources[0], firstGiftX, y + 3, 13, height - 6);
+        image(giftSources[1], secondGiftX, y + 3, 12, height - 6);
       }
     };
     const drawProduct = (product, itemImages, x, y) => {
       const cardBottom = y + cardHeight;
-      doc.roundedRect(x, y, cardWidth, cardHeight, 5).fill('#171719').strokeColor('#36363a').lineWidth(.6).stroke();
+      doc.roundedRect(x, y, cardWidth, cardHeight, 5).fill('#171719').strokeColor('#303033').lineWidth(.6).stroke();
       const mediaX = x + 5;
       const mediaY = y + 5;
       const mediaWidth = cardWidth - 10;
@@ -1090,7 +1087,7 @@ async function productCatalogPdfBuffer(state) {
       const discount = salePrice > 0 && regularPrice > salePrice ? Math.round((1 - salePrice / regularPrice) * 100) : 0;
       if (discount) {
         const badgeWidth = 29;
-        doc.roundedRect(mediaX + mediaWidth - badgeWidth - 4, mediaY + 4, badgeWidth, 14, 2).fill(accent);
+        doc.roundedRect(mediaX + mediaWidth - badgeWidth - 4, mediaY + 4, badgeWidth, 14, 2).fill('#e61943');
         text(`-${discount}%`, mediaX + mediaWidth - badgeWidth - 4, mediaY + 7, badgeWidth, {bold:true, size:5.7, color:'#ffffff', align:'center', limit:10});
       }
       if (product?.label) {
@@ -1103,32 +1100,54 @@ async function productCatalogPdfBuffer(state) {
         || itemImages.gifts.some(source => imageBuffers.get(source)));
       if (hasGift) drawGiftRibbon(product, itemImages, mediaX + 3, mediaY + imageHeight - 3, mediaWidth - 6, 24);
 
-      const bodyY = y + imageHeight + 11;
+      const bodyY = y + imageHeight + 10;
       const brand = cleanPdfText(product?.brand || '', 60);
-      if (brand) text(brand.toLocaleUpperCase('vi-VN'), x + 6, bodyY, cardWidth - 12, {bold:true, size:5.6, color:accent, ellipsis:true, limit:70});
+      if (brand) text(brand.toLocaleUpperCase('vi-VN'), x + 6, bodyY, cardWidth - 12, {bold:true, size:6.1, color:'#e61943', ellipsis:true, limit:70});
       const titleY = bodyY + (brand ? 8 : 0);
       text(product?.name || 'Sản phẩm chưa có tên', x + 6, titleY, cardWidth - 12, {
-        bold:true, size:6.6, color:'#ffffff', height:24, ellipsis:true, lineGap:0, limit:180
+        bold:true, size:7.2, color:'#ffffff', height:21, ellipsis:true, lineGap:0, limit:180
       });
-      const priceY = titleY + 25;
-      text(salePrice ? formatPdfMoney(salePrice) : 'Liên hệ', x + 6, priceY, cardWidth - 12, {bold:true, size:9.5, color:'#f5c644', height:12, ellipsis:true, limit:60});
-      if (regularPrice > salePrice && salePrice > 0) {
-        text(formatPdfMoney(regularPrice), x + 6, priceY + 12, cardWidth - 12, {size:5.8, color:'#bab7b4', height:8, limit:60});
+      const dividerY = titleY + 23;
+      doc.moveTo(x + 6, dividerY).lineTo(x + cardWidth - 6, dividerY).lineWidth(.45).strokeColor('#39393b').stroke();
+      const priceY = dividerY + 8;
+      const actionSize = 26;
+      const actionX = x + cardWidth - actionSize - 5;
+      const priceWidth = actionX - (x + 6) - 5;
+      const saleText = salePrice ? formatPdfMoney(salePrice) : 'Liên hệ';
+      let saleSize = 9.2;
+      doc.font(pdfBoldFont).fontSize(saleSize);
+      while (doc.widthOfString(saleText) > priceWidth && saleSize > 7) {
+        saleSize -= .25;
+        doc.fontSize(saleSize);
       }
-      const sku = cleanPdfText(product?.sku || '', 60);
-      const group = cleanPdfText(product?.productGroup || '', 60);
-      if (sku) text(`Mã sản phẩm: ${sku}`, x + 6, priceY + 22, cardWidth - 12, {size:5, color:'#d0ccca', height:7, ellipsis:true, limit:85});
-      if (group) text(`Nhóm hàng: ${group}`, x + 6, priceY + 30, cardWidth - 12, {size:5, color:'#d0ccca', height:7, ellipsis:true, limit:85});
+      text(saleText, x + 6, priceY, priceWidth, {bold:true, size:saleSize, color:'#f5c644', height:12, ellipsis:true, limit:60});
+      doc.rect(actionX, priceY - 4, actionSize, actionSize).fill('#e61943');
+      const cartLeft = actionX + 6;
+      const cartTop = priceY + 2;
+      doc.lineWidth(1.2).strokeColor('#ffffff')
+        .moveTo(cartLeft, cartTop).lineTo(cartLeft + 3, cartTop)
+        .lineTo(cartLeft + 5, cartTop + 10).lineTo(cartLeft + 17, cartTop + 10)
+        .lineTo(cartLeft + 19, cartTop + 3).lineTo(cartLeft + 4, cartTop + 3).stroke();
+      doc.circle(cartLeft + 8, cartTop + 15, 1.3).fill('#ffffff');
+      doc.circle(cartLeft + 16, cartTop + 15, 1.3).fill('#ffffff');
+      if (regularPrice > salePrice && salePrice > 0) {
+        const regularText = formatPdfMoney(regularPrice);
+        text(regularText, x + 6, priceY + 12, priceWidth, {size:5.8, color:'#bab7b4', height:8, limit:60});
+        doc.font(pdfRegularFont).fontSize(5.8);
+        const regularWidth = Math.min(priceWidth, doc.widthOfString(regularText));
+        doc.moveTo(x + 6, priceY + 15).lineTo(x + 6 + regularWidth, priceY + 15).lineWidth(.45).strokeColor('#bab7b4').stroke();
+      }
 
       const booked = Math.max(0, Math.min(9999, Math.floor(Number(product?.dealSlotsRemaining) || 0)));
       const total = Math.max(1, Math.min(9999, Math.floor(Number(product?.dealSlotsTotal) || 20)));
-      const quotaY = cardBottom - 17;
+      const quotaY = cardBottom - 16;
       const quotaX = x + 5;
       const quotaWidth = cardWidth - 10;
-      doc.roundedRect(quotaX, quotaY, quotaWidth, 11, 5.5).fill('#dedbd5');
-      const quotaFill = Math.max(6, quotaWidth * Math.min(1, booked / total));
-      doc.roundedRect(quotaX, quotaY, quotaFill, 11, 5.5).fill(booked / total >= .75 ? '#e05c31' : booked / total >= .4 ? '#edae36' : '#f4c84d');
-      text(`${booked}/${total} suất đã đặt trước`, quotaX + 3, quotaY + 3, quotaWidth - 6, {bold:true, size:4.8, color:'#242224', align:'center', limit:50});
+      const quotaColor = booked / total >= .75 ? '#ed623e' : booked / total >= .4 ? '#f39a28' : '#f6c946';
+      doc.roundedRect(quotaX, quotaY, quotaWidth, 12, 6).fill(quotaColor);
+      doc.circle(quotaX + 9, quotaY + 6, 3.1).fill('#f06b1c');
+      doc.circle(quotaX + 9, quotaY + 6.5, 1.45).fill('#ffd64d');
+      text(`${booked}/${total} Suất đã đặt trước`, quotaX + 15, quotaY + 3, quotaWidth - 19, {bold:true, size:4.9, color:booked / total >= .75 ? '#ffffff' : '#29221a', align:'center', limit:50});
     };
 
     for (let pageIndex = 0; pageIndex < pageCount; pageIndex += 1) {
