@@ -1462,6 +1462,15 @@ function giftRibbonBackgroundPanel(panel) {
 }
 function interfacePanel(panel) {
   const ui = aeonStore.ui();
+  const catalogMoreProductsUrl = (() => {
+    try {
+      const url = new URL(ui.catalogMoreProductsUrl || 'https://blackfriday.tinhgon.xyz');
+      if (url.hostname.toLowerCase() === 'aeonblackfriday.tinhgon.xyz') url.hostname = 'blackfriday.tinhgon.xyz';
+      return url.href;
+    } catch {
+      return 'https://blackfriday.tinhgon.xyz';
+    }
+  })();
   panel.innerHTML = `
     <section class="admin-card editor">
       <p class="eyebrow">NỘI DUNG TRANG CHỦ</p>
@@ -1479,7 +1488,7 @@ function interfacePanel(panel) {
           <p class="eyebrow">THÔNG TIN LIÊN HỆ TRONG CATALOG</p>
           <label>Hotline<input name="catalogHotline" maxlength="50" value="${escapeHtml(ui.catalogHotline ?? '0327 747 337')}" placeholder="Ví dụ: 0327 747 337"></label>
           <label>Nội dung cạnh mã QR<input name="catalogOrderPrompt" maxlength="120" required value="${escapeHtml(ui.catalogOrderPrompt || 'Quét mã đặt hàng & xem thêm sản phẩm')}"></label>
-          <label>Đường dẫn xem thêm sản phẩm<input name="catalogMoreProductsUrl" type="url" maxlength="500" required value="${escapeHtml(ui.catalogMoreProductsUrl || 'https://aeonblackfriday.tinhgon.xyz')}" placeholder="https://..."></label>
+          <label>Đường dẫn xem thêm sản phẩm<input name="catalogMoreProductsUrl" type="url" maxlength="500" required value="${escapeHtml(catalogMoreProductsUrl)}" placeholder="https://..."></label>
           <label>Đường dẫn ảnh mã QR<input name="catalogOrderQrImage" required value="${escapeHtml(ui.catalogOrderQrImage || '/assets/catalog/order-qr.png')}" placeholder="https://... hoặc /assets/uploads/ma-qr.png"><small>Ảnh PNG/JPG sẽ được dùng trong banner catalog.</small></label>
           <div class="upload-field"><label for="catalogOrderQrFile">Tải ảnh mã QR PNG/JPG từ máy</label><input id="catalogOrderQrFile" type="file" accept="image/png,image/jpeg"><button class="secondary-button" id="uploadCatalogOrderQr" type="button">Tải và lưu mã QR</button></div>
           <div class="asset-preview" id="catalogOrderQrPreview" aria-live="polite"></div>

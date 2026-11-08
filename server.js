@@ -60,7 +60,7 @@ const types = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charse
 // Bump this whenever the storefront shell changes. It fingerprints every
 // local CSS/JS URL emitted by the Node deployment, so a CDN cannot revive an
 // obsolete interface after a new release.
-const storefrontBuild = '20261108-catalog-qr-yellow-clean-v73';
+const storefrontBuild = '20261108-blackfriday-domain-v74';
 const productImageFitCss = '\n/* Server-enforced product commerce lock. */\n.product-media{position:relative!important;overflow:hidden!important;background:#fff!important}.product-media:has(.product-image-placeholder:not([hidden])),.product-media:has(.product-image-placeholder:not([hidden])):before,.product-media .product-image-placeholder:not([hidden]){background:#fff!important}.product-media img.product-official-image{display:block!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;margin:0!important;padding:0!important;object-fit:contain!important;object-position:center center!important}.product-price-stack .price,.product-price-stack .regular-price,.product-discount-badge{visibility:visible!important;opacity:1!important}\n';
 const noCacheHeaders = {
   'Cache-Control':'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0',
@@ -932,9 +932,21 @@ async function productCatalogPdfBuffer(state) {
   const closingImageSource = String(ui.catalogClosingImage || '/assets/catalog/black-friday-catalog-ending.png').trim();
   const catalogHotline = cleanPdfText(ui.catalogHotline ?? '0327 747 337', 50);
   const catalogOrderPrompt = cleanPdfText(ui.catalogOrderPrompt || 'Quét mã đặt hàng & xem thêm sản phẩm', 120);
-  const catalogMoreProductsUrl = safeCatalogLink(ui.catalogMoreProductsUrl) || 'https://aeonblackfriday.tinhgon.xyz';
+  const catalogMoreProductsUrl = (() => {
+    const destination = safeCatalogLink(ui.catalogMoreProductsUrl) || 'https://blackfriday.tinhgon.xyz';
+    try {
+      const url = new URL(destination);
+      if (url.hostname.toLowerCase() === 'aeonblackfriday.tinhgon.xyz') url.hostname = 'blackfriday.tinhgon.xyz';
+      return url.href;
+    } catch {
+      return 'https://blackfriday.tinhgon.xyz';
+    }
+  })();
   const catalogMoreProductsHost = (() => {
-    try { return new URL(catalogMoreProductsUrl).host; } catch { return 'aeonblackfriday.tinhgon.xyz'; }
+    try {
+      const host = new URL(catalogMoreProductsUrl).host;
+      return host.toLowerCase() === 'blackfriday.tinhgon.xyz' ? 'Blackfriday.tinhgon.xyz' : host;
+    } catch { return 'Blackfriday.tinhgon.xyz'; }
   })();
   const productImages = products.map(product => {
     const images = Array.isArray(product?.images) ? product.images : [];

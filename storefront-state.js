@@ -17,7 +17,7 @@ const canonicalStorefrontState = {
     "giftRibbonBackgroundImage": "",
     "catalogHotline": "0327 747 337",
     "catalogOrderPrompt": "Quét mã đặt hàng & xem thêm sản phẩm",
-    "catalogMoreProductsUrl": "https://aeonblackfriday.tinhgon.xyz",
+    "catalogMoreProductsUrl": "https://blackfriday.tinhgon.xyz",
     "catalogOrderQrImage": "/assets/catalog/order-qr.png",
     "catalogClosingImage": "/assets/catalog/black-friday-catalog-ending.png",
     "logoText": "AEON",
