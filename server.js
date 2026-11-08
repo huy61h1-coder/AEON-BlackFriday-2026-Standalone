@@ -60,7 +60,7 @@ const types = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charse
 // Bump this whenever the storefront shell changes. It fingerprints every
 // local CSS/JS URL emitted by the Node deployment, so a CDN cannot revive an
 // obsolete interface after a new release.
-const storefrontBuild = '20261108-catalog-contact-settings-v66';
+const storefrontBuild = '20261108-catalog-transparent-qr-banner-v67';
 const productImageFitCss = '\n/* Server-enforced product commerce lock. */\n.product-media{position:relative!important;overflow:hidden!important;background:#fff!important}.product-media:has(.product-image-placeholder:not([hidden])),.product-media:has(.product-image-placeholder:not([hidden])):before,.product-media .product-image-placeholder:not([hidden]){background:#fff!important}.product-media img.product-official-image{display:block!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;margin:0!important;padding:0!important;object-fit:contain!important;object-position:center center!important}.product-price-stack .price,.product-price-stack .regular-price,.product-discount-badge{visibility:visible!important;opacity:1!important}\n';
 const noCacheHeaders = {
   'Cache-Control':'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0',
@@ -1029,7 +1029,6 @@ async function productCatalogPdfBuffer(state) {
         const qrSize = 36;
         const qrX = qrPanelX + qrPanelWidth - qrSize - 3;
         const qrY = qrPanelY + 3;
-        doc.roundedRect(qrPanelX, qrPanelY, qrPanelWidth, qrPanelHeight, 4).fill('#14152b').strokeColor('#f5c644').lineWidth(.8).stroke();
         const promptWidth = qrPanelWidth - qrSize - 20;
         let promptSize = 8;
         doc.font(pdfBoldFont).fontSize(promptSize);
@@ -1038,7 +1037,10 @@ async function productCatalogPdfBuffer(state) {
           doc.fontSize(promptSize);
         }
         const promptNeedsWrap = doc.widthOfString(catalogOrderPrompt) > promptWidth;
-        text(catalogOrderPrompt, qrPanelX + 8, qrPanelY + (promptNeedsWrap ? 9 : 15), promptWidth, {bold:true, size:promptSize, color:'#ffffff', height:promptNeedsWrap ? 24 : 12, align:'center', limit:120});
+        doc.font(pdfBoldFont).fontSize(promptSize).fillColor('#ffffff').strokeColor('#000000').lineWidth(.8)
+          .text(catalogOrderPrompt, qrPanelX + 8, qrPanelY + (promptNeedsWrap ? 9 : 15), {
+            width:promptWidth, height:promptNeedsWrap ? 24 : 12, align:'center', lineGap:0, stroke:true, fill:true
+          });
         doc.roundedRect(qrX - 1, qrY - 1, qrSize + 2, qrSize + 2, 2).fill('#ffffff');
         image(orderQrSource, qrX, qrY, qrSize, qrSize);
         doc.link(qrX, qrY, qrSize, qrSize, catalogMoreProductsUrl);
