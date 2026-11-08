@@ -60,7 +60,7 @@ const types = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charse
 // Bump this whenever the storefront shell changes. It fingerprints every
 // local CSS/JS URL emitted by the Node deployment, so a CDN cannot revive an
 // obsolete interface after a new release.
-const storefrontBuild = '20261108-catalog-corner-qr-v62';
+const storefrontBuild = '20261108-catalog-last-page-qr-v63';
 const productImageFitCss = '\n/* Server-enforced product commerce lock. */\n.product-media{position:relative!important;overflow:hidden!important;background:#fff!important}.product-media:has(.product-image-placeholder:not([hidden])),.product-media:has(.product-image-placeholder:not([hidden])):before,.product-media .product-image-placeholder:not([hidden]){background:#fff!important}.product-media img.product-official-image{display:block!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;margin:0!important;padding:0!important;object-fit:contain!important;object-position:center center!important}.product-price-stack .price,.product-price-stack .regular-price,.product-discount-badge{visibility:visible!important;opacity:1!important}\n';
 const noCacheHeaders = {
   'Cache-Control':'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0',
@@ -946,7 +946,7 @@ async function productCatalogPdfBuffer(state) {
   return new Promise((resolve, reject) => {
     const pageWidth = 595.28;
     const pageHeight = 841.89;
-    const margin = 24;
+    const margin = 18;
     const gap = 5;
     const columns = 5;
     const cardWidth = (pageWidth - margin * 2 - gap * (columns - 1)) / columns;
@@ -1158,7 +1158,7 @@ async function productCatalogPdfBuffer(state) {
 
     for (let pageIndex = 0; pageIndex < productPageCount; pageIndex += 1) {
       if (pageIndex > 0) doc.addPage();
-      const gridStartY = Math.max(drawHeader(pageIndex + 1), 24);
+      const gridStartY = drawHeader(pageIndex + 1);
       const compactBannerPage = pageIndex === 0 && hasBanner;
       const cardHeight = compactBannerPage ? 143 : 155;
       const imageHeight = compactBannerPage ? 60 : 68;
@@ -1178,33 +1178,52 @@ async function productCatalogPdfBuffer(state) {
       }
     }
 
-    doc.addPage();
-    doc.rect(0, 0, pageWidth, pageHeight).fill('#09090b');
-    doc.rect(0, 0, pageWidth, 5).fill('#bd1232');
-    const contactCenter = pageWidth / 2;
-    const logoSource = String(ui.logoImage || '').trim();
-    if (logoSource && imageBuffers.get(logoSource)) image(logoSource, contactCenter - 34, 48, 68, 40);
-    text('ĐẶT HÀNG NGAY', margin, 111, pageWidth - margin * 2, {bold:true, size:22, color:'#f5c644', align:'center', limit:40});
-    text('Quét mã QR để đặt hàng nhanh chóng', margin, 141, pageWidth - margin * 2, {size:10, color:'#ffffff', align:'center', limit:60});
+    const lastPageIndex = productPageCount - 1;
+    const lastOffset = lastPageIndex === 0 ? 0 : firstPageCapacity + (lastPageIndex - 1) * laterPageCapacity;
+    const lastPageProducts = products.slice(lastOffset, lastOffset + (lastPageIndex === 0 ? firstPageCapacity : laterPageCapacity));
+    const lastGridStartY = lastPageIndex === 0
+      ? Math.max(hasBanner ? 12 + (pageWidth - margin * 2) * bannerInfo.height / bannerInfo.width + 7 : 16, 16)
+      : 16;
+    const lastCardHeight = lastPageIndex === 0 && hasBanner ? 143 : 155;
+    const lastRows = Math.ceil(lastPageProducts.length / columns);
+    const lastProductsBottom = lastRows
+      ? lastGridStartY + (lastRows - 1) * (lastCardHeight + gap) + lastCardHeight
+      : lastGridStartY;
+    const contactPanelHeight = 130;
+    const contactPanelTopLimit = lastProductsBottom + 14;
+    const contactPanelBottomLimit = pageHeight - 38;
+    let contactPageIndex = lastPageIndex;
+    let contactPanelY;
+    if (contactPanelBottomLimit - contactPanelTopLimit >= contactPanelHeight) {
+      contactPanelY = contactPanelTopLimit + (contactPanelBottomLimit - contactPanelTopLimit - contactPanelHeight) / 2;
+      doc.switchToPage(contactPageIndex);
+    } else {
+      doc.addPage();
+      contactPageIndex = productPageCount;
+      doc.rect(0, 0, pageWidth, pageHeight).fill('#09090b');
+      doc.rect(0, 0, pageWidth, 5).fill('#bd1232');
+      contactPanelY = (pageHeight - contactPanelHeight) / 2;
+    }
 
-    const qrCardSize = 164;
-    const qrCardX = contactCenter - qrCardSize / 2;
-    const qrCardY = 170;
-    doc.roundedRect(qrCardX, qrCardY, qrCardSize, qrCardSize, 8).fill('#ffffff');
-    image(orderQrSource, qrCardX + 8, qrCardY + 8, qrCardSize - 16, qrCardSize - 16);
-
-    const contactCardX = margin + 58;
-    const contactCardWidth = pageWidth - contactCardX * 2;
-    const contactCardY = 354;
-    doc.roundedRect(contactCardX, contactCardY, contactCardWidth, 148, 8).fill('#171719').strokeColor('#4a4140').lineWidth(.8).stroke();
-    text('HOTLINE TƯ VẤN & ĐẶT HÀNG', contactCardX + 12, contactCardY + 16, contactCardWidth - 24, {bold:true, size:8, color:'#d7d2cf', align:'center', limit:50});
-    text('0327 747 337', contactCardX + 12, contactCardY + 38, contactCardWidth - 24, {bold:true, size:20, color:'#f5c644', align:'center', limit:30});
-    doc.moveTo(contactCardX + 25, contactCardY + 77).lineTo(contactCardX + contactCardWidth - 25, contactCardY + 77).lineWidth(.6).strokeColor('#4a4140').stroke();
-    text('XEM THÊM CÁC SẢN PHẨM KHÁC', contactCardX + 12, contactCardY + 94, contactCardWidth - 24, {bold:true, size:10, color:'#ffffff', align:'center', limit:60});
+    const contactPanelWidth = Math.min(440, pageWidth - margin * 2);
+    const contactPanelX = (pageWidth - contactPanelWidth) / 2;
+    const contactQrSize = 106;
+    const contactQrX = contactPanelX + 12;
+    const contactQrY = contactPanelY + (contactPanelHeight - contactQrSize) / 2;
+    const contactTextX = contactQrX + contactQrSize + 18;
+    const contactTextWidth = contactPanelWidth - (contactTextX - contactPanelX) - 12;
+    doc.roundedRect(contactPanelX, contactPanelY, contactPanelWidth, contactPanelHeight, 8).fill('#171719').strokeColor('#4a4140').lineWidth(.8).stroke();
+    doc.roundedRect(contactQrX - 3, contactQrY - 3, contactQrSize + 6, contactQrSize + 6, 5).fill('#ffffff');
+    image(orderQrSource, contactQrX, contactQrY, contactQrSize, contactQrSize);
+    text('ĐẶT HÀNG NGAY', contactTextX, contactPanelY + 16, contactTextWidth, {bold:true, size:14, color:'#f5c644', limit:40});
+    text('Quét mã QR để đặt hàng', contactTextX, contactPanelY + 38, contactTextWidth, {size:8, color:'#ffffff', limit:50});
+    text('HOTLINE TƯ VẤN', contactTextX, contactPanelY + 60, contactTextWidth, {bold:true, size:7, color:'#d7d2cf', limit:40});
+    text('0327 747 337', contactTextX, contactPanelY + 75, contactTextWidth, {bold:true, size:16, color:'#f5c644', limit:30});
     const siteUrl = 'aeonblackfriday.tinhgon.xyz';
-    doc.font(pdfBoldFont).fontSize(10).fillColor('#f5c644')
-      .text(siteUrl, contactCardX + 12, contactCardY + 116, contactCardWidth - 24, {align:'center', link:`https://${siteUrl}`});
-    doc.link(contactCardX + 12, contactCardY + 110, contactCardWidth - 24, 24, `https://${siteUrl}`);
+    text('Xem thêm sản phẩm:', contactTextX, contactPanelY + 100, contactTextWidth, {size:6.5, color:'#d7d2cf', limit:40});
+    doc.font(pdfBoldFont).fontSize(8).fillColor('#f5c644')
+      .text(siteUrl, contactTextX, contactPanelY + 112, {width:contactTextWidth, link:`https://${siteUrl}`});
+    doc.link(contactTextX, contactPanelY + 108, contactTextWidth, 22, `https://${siteUrl}`);
 
     const pageRange = doc.bufferedPageRange();
     for (let pageIndex = 0; pageIndex < pageRange.count; pageIndex += 1) {
@@ -1212,17 +1231,6 @@ async function productCatalogPdfBuffer(state) {
       doc.moveTo(margin, pageHeight - 22).lineTo(pageWidth - margin, pageHeight - 22).lineWidth(.5).strokeColor(lineColor).stroke();
       text('Hotline 0327 747 337 · Quét QR trang cuối · Xem thêm: aeonblackfriday.tinhgon.xyz', margin, pageHeight - 16, 450, {size:6, color:muted, limit:120});
       text(`${pageIndex + 1}/${pageRange.count}`, pageWidth - margin - 44, pageHeight - 16, 44, {size:6, color:muted, align:'right', limit:20});
-      const cornerQrSize = 22;
-      const cornerQrPositions = [
-        [0, 0],
-        [pageWidth - cornerQrSize, 0],
-        [0, pageHeight - cornerQrSize],
-        [pageWidth - cornerQrSize, pageHeight - cornerQrSize]
-      ];
-      cornerQrPositions.forEach(([qrX, qrY]) => {
-        doc.rect(qrX, qrY, cornerQrSize, cornerQrSize).fill('#ffffff');
-        image(orderQrSource, qrX + 1, qrY + 1, cornerQrSize - 2, cornerQrSize - 2);
-      });
     }
     doc.end();
   });
