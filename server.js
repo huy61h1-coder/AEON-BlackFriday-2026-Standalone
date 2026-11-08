@@ -60,7 +60,7 @@ const types = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charse
 // Bump this whenever the storefront shell changes. It fingerprints every
 // local CSS/JS URL emitted by the Node deployment, so a CDN cannot revive an
 // obsolete interface after a new release.
-const storefrontBuild = '20261108-catalog-xlsx-download-v48';
+const storefrontBuild = '20261108-catalog-pdf-download-v49';
 const productImageFitCss = '\n/* Server-enforced product commerce lock. */\n.product-media{position:relative!important;overflow:hidden!important;background:#fff!important}.product-media:has(.product-image-placeholder:not([hidden])),.product-media:has(.product-image-placeholder:not([hidden])):before,.product-media .product-image-placeholder:not([hidden]){background:#fff!important}.product-media img.product-official-image{display:block!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;margin:0!important;padding:0!important;object-fit:contain!important;object-position:center center!important}.product-price-stack .price,.product-price-stack .regular-price,.product-discount-badge{visibility:visible!important;opacity:1!important}\n';
 const noCacheHeaders = {
   'Cache-Control':'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0',
@@ -910,6 +910,214 @@ async function orderPdfBuffer(state, requestedCode) {
   });
 }
 
+async function productCatalogPdfBuffer(state) {
+  const products = Array.isArray(state['aeon-products']) ? state['aeon-products'] : [];
+  const ui = state['aeon-ui'] && typeof state['aeon-ui'] === 'object' ? state['aeon-ui'] : {};
+  const layout = state['aeon-layout'] && typeof state['aeon-layout'] === 'object' ? state['aeon-layout'] : {};
+  const accent = /^#[0-9a-f]{6}$/i.test(layout.accentColor || '') ? layout.accentColor : '#e3183c';
+  const dark = /^#[0-9a-f]{6}$/i.test(layout.accentDarkColor || '') ? layout.accentDarkColor : '#a80f2a';
+  const giftBackground = String(ui.giftRibbonBackgroundImage || '').trim();
+  const productImages = products.map(product => {
+    const images = Array.isArray(product?.images) ? product.images : [];
+    const main = String(images.find(Boolean) || product?.image || '').trim();
+    const gifts = String(product?.promotionProductImage || product?.promoImage || '')
+      .split(',').map(value => value.trim()).filter(Boolean).slice(0, 2);
+    return {main, gifts};
+  });
+  const imageSources = [...new Set([
+    ...productImages.flatMap(item => [item.main, ...item.gifts]),
+    giftBackground,
+    String(ui.logoImage || '').trim()
+  ].filter(Boolean))];
+  const imageBuffers = new Map();
+  let imageIndex = 0;
+  const imageWorkers = Array.from({length:Math.min(10, imageSources.length)}, async () => {
+    while (imageIndex < imageSources.length) {
+      const source = imageSources[imageIndex++];
+      imageBuffers.set(source, await catalogImageBuffer(source));
+    }
+  });
+  await Promise.all(imageWorkers);
+
+  return new Promise((resolve, reject) => {
+    const pageWidth = 595.28;
+    const pageHeight = 841.89;
+    const margin = 28;
+    const gap = 12;
+    const cardWidth = (pageWidth - margin * 2 - gap) / 2;
+    const cardHeight = 344;
+    const imageHeight = 178;
+    const startY = 82;
+    const cardsPerPage = 4;
+    const pageCount = Math.max(1, Math.ceil(products.length / cardsPerPage));
+    const lineColor = '#dedbd5';
+    const ink = '#242224';
+    const muted = '#6d6966';
+    const doc = new PDFDocument({
+      size:'A4',
+      margins:{top:0, right:0, bottom:0, left:0},
+      bufferPages:true,
+      info:{
+        Title:'Catalog sản phẩm AEON Black Friday 2026',
+        Author:'AEON BlackFriday 2026',
+        Subject:`Danh mục ${products.length} sản phẩm`
+      }
+    });
+    const chunks = [];
+    doc.on('data', chunk => chunks.push(chunk));
+    doc.on('end', () => resolve(Buffer.concat(chunks)));
+    doc.on('error', reject);
+
+    const setFont = (bold, size, color = ink) => {
+      doc.font(bold ? pdfBoldFont : pdfRegularFont).fontSize(size).fillColor(color);
+    };
+    const text = (value, x, y, width, options = {}) => {
+      setFont(Boolean(options.bold), options.size || 8, options.color || ink);
+      doc.text(cleanPdfText(value, options.limit || 400), x, y, {
+        width,
+        height:options.height,
+        align:options.align || 'left',
+        ellipsis:Boolean(options.ellipsis),
+        lineGap:options.lineGap || 0
+      });
+    };
+    const image = (source, x, y, width, height) => {
+      const buffer = imageBuffers.get(source);
+      if (!buffer || !imageDimensions(buffer)) return false;
+      try {
+        doc.image(buffer, x, y, {fit:[width, height], align:'center', valign:'center'});
+        return true;
+      } catch {
+        return false;
+      }
+    };
+    const drawHeader = pageNumber => {
+      doc.rect(0, 0, pageWidth, pageHeight).fill('#f6f4f0');
+      doc.rect(0, 0, pageWidth, 65).fill('#111113');
+      doc.rect(0, 62, pageWidth, 3).fill(accent);
+      const logo = String(ui.logoImage || '').trim();
+      if (!image(logo, margin, 13, 92, 38)) {
+        text(ui.logoText || 'AEON', margin, 16, 92, {bold:true, size:23, color:'#ffffff', limit:32});
+      }
+      text('BLACK FRIDAY 2026', 136, 17, 240, {bold:true, size:10, color:accent, limit:60});
+      text('CATALOG SẢN PHẨM', 136, 33, 310, {bold:true, size:16, color:'#ffffff', limit:60});
+      text(`${products.length} sản phẩm · Trang ${pageNumber}/${pageCount}`, pageWidth - margin - 170, 25, 170, {
+        size:7.5, color:'#e8e4df', align:'right', limit:100
+      });
+    };
+    const drawGiftRibbon = (product, itemImages, x, y, width, height) => {
+      const name = cleanPdfText(product?.promotionProductName || product?.promoName || '', 160);
+      const value = cleanPdfText(product?.promotionProductValue || product?.promoValue || '', 120);
+      const giftSources = itemImages.gifts.filter(source => imageBuffers.get(source)).slice(0, 2);
+      if (!name && !value && !giftSources.length) return;
+
+      doc.roundedRect(x, y, width, height, 4).fill(dark);
+      const ribbonImage = imageBuffers.get(giftBackground);
+      if (ribbonImage && imageDimensions(ribbonImage)) {
+        try { doc.image(ribbonImage, x, y, {width, height}); } catch { /* Keep the red fallback ribbon. */ }
+      }
+      const photoArea = giftSources.length ? 58 : 4;
+      const copyWidth = width - photoArea - 12;
+      const giftTitle = name ? `TẶNG ${name}` : (value ? `TRỊ GIÁ ${value}` : '');
+      if (value && name) {
+        const nameSize = giftTitle.length > 36 ? 6.2 : giftTitle.length > 25 ? 7 : 8;
+        text(giftTitle, x + 8, y + 7, copyWidth, {bold:true, size:nameSize, color:'#ffffff', height:11, ellipsis:true, limit:190});
+        text(`TRỊ GIÁ ${value}`, x + 8, y + 20, copyWidth, {bold:true, size:6.8, color:'#ffe66d', height:10, ellipsis:true, limit:140});
+      } else if (giftTitle) {
+        const titleSize = giftTitle.length > 39 ? 6 : giftTitle.length > 27 ? 7 : 8;
+        text(giftTitle, x + 8, y + 12, copyWidth, {bold:true, size:titleSize, color:'#ffffff', height:12, ellipsis:true, limit:190});
+      }
+      if (giftSources.length === 1) {
+        image(giftSources[0], x + width - 48, y + 2, 44, height - 4);
+      } else if (giftSources.length === 2) {
+        image(giftSources[0], x + width - 56, y + 2, 26, height - 4);
+        image(giftSources[1], x + width - 29, y + 2, 26, height - 4);
+      }
+    };
+    const drawProduct = (product, itemImages, x, y) => {
+      const cardBottom = y + cardHeight;
+      doc.roundedRect(x, y, cardWidth, cardHeight, 7).fill('#171719').strokeColor('#36363a').lineWidth(.7).stroke();
+      const mediaX = x + 7;
+      const mediaY = y + 7;
+      const mediaWidth = cardWidth - 14;
+      doc.roundedRect(mediaX, mediaY, mediaWidth, imageHeight, 4).fill('#ffffff');
+      if (!image(itemImages.main, mediaX + 4, mediaY + 4, mediaWidth - 8, imageHeight - 8)) {
+        text('Hình ảnh đang cập nhật', mediaX + 10, mediaY + 80, mediaWidth - 20, {size:8, color:'#777777', align:'center', limit:80});
+      }
+
+      const salePrice = productCatalogPrice(product);
+      const regularPrice = Math.max(0, Number(product?.originalPrice || product?.regularPrice) || 0);
+      const discount = salePrice > 0 && regularPrice > salePrice ? Math.round((1 - salePrice / regularPrice) * 100) : 0;
+      if (discount) {
+        const badgeWidth = 47;
+        doc.roundedRect(mediaX + mediaWidth - badgeWidth - 6, mediaY + 6, badgeWidth, 21, 3).fill(accent);
+        text(`-${discount}%`, mediaX + mediaWidth - badgeWidth - 6, mediaY + 10, badgeWidth, {bold:true, size:9, color:'#ffffff', align:'center', limit:10});
+      }
+      if (product?.label) {
+        doc.roundedRect(mediaX + 6, mediaY + 6, 82, 18, 3).fill('#222228');
+        text(product.label, mediaX + 10, mediaY + 11, 74, {bold:true, size:6.5, color:'#ffffff', ellipsis:true, limit:40});
+      }
+
+      const hasGift = Boolean(cleanPdfText(product?.promotionProductName || product?.promoName || '', 160)
+        || cleanPdfText(product?.promotionProductValue || product?.promoValue || '', 120)
+        || itemImages.gifts.some(source => imageBuffers.get(source)));
+      if (hasGift) drawGiftRibbon(product, itemImages, mediaX + 5, mediaY + imageHeight - 41, mediaWidth - 10, 35);
+
+      const bodyY = y + imageHeight + 14;
+      const brand = cleanPdfText(product?.brand || '', 60);
+      if (brand) text(brand.toLocaleUpperCase('vi-VN'), x + 11, bodyY, cardWidth - 22, {bold:true, size:7.5, color:accent, ellipsis:true, limit:70});
+      const titleY = bodyY + (brand ? 13 : 1);
+      text(product?.name || 'Sản phẩm chưa có tên', x + 11, titleY, cardWidth - 22, {
+        bold:true, size:10.2, color:'#ffffff', height:31, ellipsis:true, lineGap:1, limit:180
+      });
+      const priceY = titleY + 36;
+      text(salePrice ? formatPdfMoney(salePrice) : 'Liên hệ', x + 11, priceY, cardWidth - 22, {bold:true, size:14.5, color:'#f5c644', height:20, ellipsis:true, limit:60});
+      if (regularPrice > salePrice && salePrice > 0) {
+        text(formatPdfMoney(regularPrice), x + 11, priceY + 21, cardWidth - 22, {size:7.5, color:'#bab7b4', height:12, limit:60});
+      }
+      const sku = cleanPdfText(product?.sku || '', 60);
+      const group = cleanPdfText(product?.productGroup || '', 60);
+      if (sku) text(`Mã sản phẩm: ${sku}`, x + 11, priceY + 39, cardWidth - 22, {size:6.5, color:'#d0ccca', height:10, ellipsis:true, limit:85});
+      if (group) text(`Nhóm hàng: ${group}`, x + 11, priceY + 51, cardWidth - 22, {size:6.5, color:'#d0ccca', height:10, ellipsis:true, limit:85});
+
+      const booked = Math.max(0, Math.min(9999, Math.floor(Number(product?.dealSlotsRemaining) || 0)));
+      const total = Math.max(1, Math.min(9999, Math.floor(Number(product?.dealSlotsTotal) || 20)));
+      const quotaY = cardBottom - 26;
+      const quotaX = x + 10;
+      const quotaWidth = cardWidth - 20;
+      doc.roundedRect(quotaX, quotaY, quotaWidth, 16, 8).fill('#dedbd5');
+      const quotaFill = Math.max(8, quotaWidth * Math.min(1, booked / total));
+      doc.roundedRect(quotaX, quotaY, quotaFill, 16, 8).fill(booked / total >= .75 ? '#e05c31' : booked / total >= .4 ? '#edae36' : '#f4c84d');
+      text(`${booked}/${total} suất đã đặt trước`, quotaX + 4, quotaY + 4, quotaWidth - 8, {bold:true, size:6.8, color:'#242224', align:'center', limit:50});
+    };
+
+    for (let pageIndex = 0; pageIndex < pageCount; pageIndex += 1) {
+      if (pageIndex > 0) doc.addPage();
+      drawHeader(pageIndex + 1);
+      const pageProducts = products.slice(pageIndex * cardsPerPage, (pageIndex + 1) * cardsPerPage);
+      pageProducts.forEach((product, itemIndex) => {
+        const column = itemIndex % 2;
+        const row = Math.floor(itemIndex / 2);
+        const x = margin + column * (cardWidth + gap);
+        const y = startY + row * (cardHeight + gap);
+        drawProduct(product, productImages[pageIndex * cardsPerPage + itemIndex], x, y);
+      });
+      if (!products.length) {
+        text('Danh mục sản phẩm đang được cập nhật.', margin, startY + 40, pageWidth - margin * 2, {size:12, color:muted, align:'center', limit:100});
+      }
+    }
+
+    const pageRange = doc.bufferedPageRange();
+    for (let pageIndex = 0; pageIndex < pageRange.count; pageIndex += 1) {
+      doc.switchToPage(pageRange.start + pageIndex);
+      doc.moveTo(margin, pageHeight - 32).lineTo(pageWidth - margin, pageHeight - 32).lineWidth(.5).strokeColor(lineColor).stroke();
+      text('AEON Black Friday 2026 · Catalog sản phẩm', margin, pageHeight - 24, 330, {size:6.5, color:muted, limit:100});
+      text(`${pageIndex + 1}/${pageRange.count}`, pageWidth - margin - 44, pageHeight - 24, 44, {size:6.5, color:muted, align:'right', limit:20});
+    }
+    doc.end();
+  });
+}
+
 const productWorkbookHeaders = [
   'ID hệ thống',
   'Tên sản phẩm',
@@ -1678,6 +1886,20 @@ http.createServer(async (request, response) => {
       return response.end(workbook);
     } catch (error) {
       return json(response, 500, {error: error.message || 'Không thể tạo danh sách sản phẩm Excel.'});
+    }
+  }
+  if (request.method === 'GET' && pathname === '/api/export/catalog.pdf') {
+    try {
+      const pdf = await productCatalogPdfBuffer(readState());
+      response.writeHead(200, {
+        'Content-Type':'application/pdf',
+        'Content-Disposition':"attachment; filename=\"black-friday-catalog.pdf\"; filename*=UTF-8''catalog-black-friday-2026.pdf",
+        'Content-Length':pdf.length,
+        'Cache-Control':'no-store'
+      });
+      return response.end(pdf);
+    } catch (error) {
+      return json(response, 500, {error:error.message || 'Không thể tạo catalog PDF.'});
     }
   }
   if (request.method === 'POST' && pathname === '/api/state') {
