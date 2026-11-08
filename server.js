@@ -60,7 +60,7 @@ const types = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charse
 // Bump this whenever the storefront shell changes. It fingerprints every
 // local CSS/JS URL emitted by the Node deployment, so a CDN cannot revive an
 // obsolete interface after a new release.
-const storefrontBuild = '20261108-catalog-right-side-qr-v77';
+const storefrontBuild = '20261108-catalog-ui-quota-fire-v78';
 const productImageFitCss = '\n/* Server-enforced product commerce lock. */\n.product-media{position:relative!important;overflow:hidden!important;background:#fff!important}.product-media:has(.product-image-placeholder:not([hidden])),.product-media:has(.product-image-placeholder:not([hidden])):before,.product-media .product-image-placeholder:not([hidden]){background:#fff!important}.product-media img.product-official-image{display:block!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;margin:0!important;padding:0!important;object-fit:contain!important;object-position:center center!important}.product-price-stack .price,.product-price-stack .regular-price,.product-discount-badge{visibility:visible!important;opacity:1!important}\n';
 const noCacheHeaders = {
   'Cache-Control':'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0',
@@ -1203,32 +1203,54 @@ async function productCatalogPdfBuffer(state) {
         doc.fillColor('#bab7b4').text(regularText, regularX, regularY, {
           width:regularWidth, height:regularTextHeight, align:'center', lineGap:0
         });
-        const strikeY = regularY + regularTextHeight / 2;
+        const strikeY = regularY + regularTextHeight / 2 + regularSize * .18;
         doc.moveTo(regularX, strikeY).lineTo(regularX + regularWidth, strikeY).lineWidth(.5).strokeColor('#bab7b4').stroke();
       }
 
       const booked = Math.max(0, Math.min(9999, Math.floor(Number(product?.dealSlotsRemaining) || 0)));
       const total = Math.max(1, Math.min(9999, Math.floor(Number(product?.dealSlotsTotal) || 20)));
+      const quotaRatio = booked / total;
+      const quotaLevel = booked >= total ? 'soldout' : quotaRatio >= .75 ? 'low' : quotaRatio >= .35 ? 'medium' : 'high';
+      const quotaPalette = {
+        high:{stops:[[0,'#fff3b6'],[.48,'#ffe071'],[1,'#ffb51b']], border:'#ffbe25', outer:'#f47a12', inner:'#ffcf35', text:'#263141'},
+        medium:{stops:[[0,'#ffe4a3'],[1,'#ffb13b']], border:'#ff9b24', outer:'#f47a12', inner:'#ffcf35', text:'#342515'},
+        low:{stops:[[0,'#f46b46'],[1,'#d9303c']], border:'#e43c36', outer:'#fff0cb', inner:'#ffc14d', text:'#ffffff'},
+        soldout:{stops:[[0,'#a6a6a6'],[1,'#686868']], border:'#777777', outer:'#e7e7e7', inner:'#bdbdbd', text:'#ffffff'}
+      }[quotaLevel];
       const quotaY = cardBottom - 14;
       const quotaX = x + 5;
       const quotaWidth = cardWidth - 10;
-      const quotaColor = booked / total >= .75 ? '#ed623e' : booked / total >= .4 ? '#f39a28' : '#f6c946';
-      doc.roundedRect(quotaX, quotaY, quotaWidth, 10, 5).fill(quotaColor);
-      doc.circle(quotaX + 8, quotaY + 5, 2.7).fill('#f06b1c');
-      doc.circle(quotaX + 8, quotaY + 5.5, 1.2).fill('#ffd64d');
+      const quotaHeight = 10;
+      const quotaGradient = doc.linearGradient(quotaX, quotaY, quotaX + quotaWidth, quotaY);
+      for (const [stop, color] of quotaPalette.stops) quotaGradient.stop(stop, color);
+      doc.roundedRect(quotaX, quotaY, quotaWidth, quotaHeight, quotaHeight / 2).fill(quotaGradient);
+      doc.roundedRect(quotaX, quotaY, quotaWidth, quotaHeight, quotaHeight / 2).lineWidth(.35).strokeColor(quotaPalette.border).stroke();
       const quotaLabel = `${booked}/${total} Suất đã đặt trước`;
       let quotaLabelSize = 4.5;
       doc.font(pdfBoldFont).fontSize(quotaLabelSize);
-      while (doc.widthOfString(quotaLabel) > quotaWidth - 14 && quotaLabelSize > 3.2) {
+      const quotaFlameSize = 7.2;
+      const quotaFlameGap = 3.2;
+      const maxQuotaLabelWidth = quotaWidth - quotaFlameSize - quotaFlameGap - 10;
+      while (doc.widthOfString(quotaLabel) > maxQuotaLabelWidth && quotaLabelSize > 3.2) {
         quotaLabelSize -= .2;
         doc.fontSize(quotaLabelSize);
       }
-      const quotaTextWidth = Math.min(quotaWidth, doc.widthOfString(quotaLabel));
-      const quotaTextX = quotaX + (quotaWidth - quotaTextWidth) / 2;
+      const quotaTextWidth = Math.min(maxQuotaLabelWidth, doc.widthOfString(quotaLabel));
+      const quotaGroupWidth = quotaFlameSize + quotaFlameGap + quotaTextWidth;
+      const quotaGroupX = quotaX + (quotaWidth - quotaGroupWidth) / 2;
+      const quotaFlameX = quotaGroupX;
+      const quotaFlameY = quotaY + (quotaHeight - quotaFlameSize) / 2;
+      doc.save();
+      doc.translate(quotaFlameX, quotaFlameY);
+      doc.scale(quotaFlameSize / 24, quotaFlameSize / 24);
+      doc.path('M13.3 1.5c.5 3.1-.8 4.7-2.3 6.1-.8-1.1-.9-2.3-.6-3.3C6.6 7.2 4.4 10.1 4.4 14a7.6 7.6 0 0 0 15.2 0c0-4.4-2.3-8.3-6.3-12.5Z').fill(quotaPalette.outer);
+      doc.path('M12 10.2c.1 1.7-1.9 2.8-1.9 4.8a2.1 2.1 0 1 0 4.2 0c0-1.8-1.1-3.2-2.3-4.8Z').fill(quotaPalette.inner);
+      doc.restore();
+      const quotaTextX = quotaGroupX + quotaFlameSize + quotaFlameGap;
       const quotaTextHeight = doc.heightOfString(quotaLabel, {width:quotaTextWidth, lineGap:0});
-      const quotaTextY = quotaY + (10 - quotaTextHeight) / 2;
+      const quotaTextY = quotaY + (quotaHeight - quotaTextHeight) / 2 - .45;
       text(quotaLabel, quotaTextX, quotaTextY, quotaTextWidth, {
-        bold:true, size:quotaLabelSize, color:booked / total >= .75 ? '#ffffff' : '#29221a', align:'center', limit:50
+        bold:true, size:quotaLabelSize, color:quotaPalette.text, limit:50
       });
     };
 
