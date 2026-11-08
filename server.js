@@ -60,7 +60,7 @@ const types = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charse
 // Bump this whenever the storefront shell changes. It fingerprints every
 // local CSS/JS URL emitted by the Node deployment, so a CDN cannot revive an
 // obsolete interface after a new release.
-const storefrontBuild = '20261108-catalog-portrait-v51';
+const storefrontBuild = '20261108-catalog-gift-text-fit-v52';
 const productImageFitCss = '\n/* Server-enforced product commerce lock. */\n.product-media{position:relative!important;overflow:hidden!important;background:#fff!important}.product-media:has(.product-image-placeholder:not([hidden])),.product-media:has(.product-image-placeholder:not([hidden])):before,.product-media .product-image-placeholder:not([hidden]){background:#fff!important}.product-media img.product-official-image{display:block!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;margin:0!important;padding:0!important;object-fit:contain!important;object-position:center center!important}.product-price-stack .price,.product-price-stack .regular-price,.product-discount-badge{visibility:visible!important;opacity:1!important}\n';
 const noCacheHeaders = {
   'Cache-Control':'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0',
@@ -1020,33 +1020,58 @@ async function productCatalogPdfBuffer(state) {
       });
       return 54;
     };
-    const drawGiftRibbon = (product, itemImages, x, y, width, height) => {
-      const name = cleanPdfText(product?.promotionProductName || product?.promoName || '', 160);
-      const value = cleanPdfText(product?.promotionProductValue || product?.promoValue || '', 120);
+    const drawGiftRibbon = (product, itemImages, x, ribbonBottom, width, minimumHeight) => {
+      const rawName = cleanPdfText(product?.promotionProductName || product?.promoName || '', 160);
+      const name = rawName.replace(/^tặng\s*/i, '').trim();
+      const rawValue = cleanPdfText(product?.promotionProductValue || product?.promoValue || '', 120);
+      const value = rawValue.replace(/^trị\s*giá\s*/i, '').trim();
       const giftSources = itemImages.gifts.filter(source => imageBuffers.get(source)).slice(0, 2);
       if (!name && !value && !giftSources.length) return;
 
+      const giftTitle = name ? `TẶNG ${name}` : '';
+      const giftValue = value ? `TRỊ GIÁ ${value}` : '';
+      const photoArea = giftSources.length === 2 ? 30 : giftSources.length ? 23 : 4;
+      const copyWidth = Math.max(20, width - photoArea - 9);
+      let titleSize = giftTitle.length > 90 ? 3.6 : giftTitle.length > 58 ? 4 : giftTitle.length > 34 ? 4.5 : 5;
+      let valueSize = 4.2;
+      const measureText = (content, size) => {
+        if (!content) return 0;
+        doc.font(pdfBoldFont).fontSize(size);
+        return doc.heightOfString(content, {width:copyWidth, lineGap:0});
+      };
+      const maximumHeight = Math.min(imageHeight - 8, 68);
+      let titleHeight = measureText(giftTitle, titleSize);
+      let valueHeight = measureText(giftValue, valueSize);
+      let textHeight = titleHeight + (giftTitle && giftValue ? 2 : 0) + valueHeight;
+      while (textHeight + 8 > maximumHeight && (titleSize > 3.1 || valueSize > 3.1)) {
+        titleSize = Math.max(3.1, titleSize - .2);
+        valueSize = Math.max(3.1, valueSize - .15);
+        titleHeight = measureText(giftTitle, titleSize);
+        valueHeight = measureText(giftValue, valueSize);
+        textHeight = titleHeight + (giftTitle && giftValue ? 2 : 0) + valueHeight;
+      }
+      const height = Math.max(minimumHeight, Math.min(maximumHeight, Math.ceil(textHeight + 8)));
+      const y = ribbonBottom - height;
       doc.roundedRect(x, y, width, height, 4).fill(dark);
       const ribbonImage = imageBuffers.get(giftBackground);
       if (ribbonImage && imageDimensions(ribbonImage)) {
         try { doc.image(ribbonImage, x, y, {width, height}); } catch { /* Keep the red fallback ribbon. */ }
       }
-      const photoArea = giftSources.length === 2 ? 38 : giftSources.length ? 29 : 4;
-      const copyWidth = width - photoArea - 10;
-      const giftTitle = name ? `TẶNG ${name}` : (value ? `TRỊ GIÁ ${value}` : '');
-      if (value && name) {
-        const nameSize = giftTitle.length > 36 ? 3.9 : giftTitle.length > 25 ? 4.4 : 4.9;
-        text(giftTitle, x + 4, y + 4, copyWidth, {bold:true, size:nameSize, color:'#ffffff', height:7, ellipsis:true, limit:190});
-        text(`TRỊ GIÁ ${value}`, x + 4, y + 13, copyWidth, {bold:true, size:4.2, color:'#ffe66d', height:7, ellipsis:true, limit:140});
-      } else if (giftTitle) {
-        const titleSize = giftTitle.length > 39 ? 4.2 : giftTitle.length > 27 ? 4.7 : 5.2;
-        text(giftTitle, x + 4, y + 8, copyWidth, {bold:true, size:titleSize, color:'#ffffff', height:8, ellipsis:true, limit:190});
+      let copyY = y + 4;
+      if (giftTitle) {
+        setFont(true, titleSize, '#ffffff');
+        doc.text(giftTitle, x + 4, copyY, {width:copyWidth, height:titleHeight + 1, lineGap:0});
+        copyY += titleHeight + (giftValue ? 2 : 0);
+      }
+      if (giftValue) {
+        setFont(true, valueSize, '#ffe66d');
+        doc.text(giftValue, x + 4, copyY, {width:copyWidth, height:valueHeight + 1, lineGap:0});
       }
       if (giftSources.length === 1) {
-        image(giftSources[0], x + width - 26, y + 1, 22, height - 2);
+        image(giftSources[0], x + width - 21, y + 2, 17, height - 4);
       } else if (giftSources.length === 2) {
-        image(giftSources[0], x + width - 35, y + 1, 16, height - 2);
-        image(giftSources[1], x + width - 18, y + 1, 14, height - 2);
+        image(giftSources[0], x + width - 32, y + 2, 14, height - 4);
+        image(giftSources[1], x + width - 17, y + 2, 13, height - 4);
       }
     };
     const drawProduct = (product, itemImages, x, y) => {
@@ -1076,7 +1101,7 @@ async function productCatalogPdfBuffer(state) {
       const hasGift = Boolean(cleanPdfText(product?.promotionProductName || product?.promoName || '', 160)
         || cleanPdfText(product?.promotionProductValue || product?.promoValue || '', 120)
         || itemImages.gifts.some(source => imageBuffers.get(source)));
-      if (hasGift) drawGiftRibbon(product, itemImages, mediaX + 3, mediaY + imageHeight - 28, mediaWidth - 6, 24);
+      if (hasGift) drawGiftRibbon(product, itemImages, mediaX + 3, mediaY + imageHeight - 3, mediaWidth - 6, 24);
 
       const bodyY = y + imageHeight + 11;
       const brand = cleanPdfText(product?.brand || '', 60);
