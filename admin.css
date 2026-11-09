@@ -6,11 +6,9 @@
 .catalog-pdf-options label{display:grid;gap:5px;font-size:11px;font-weight:700}
 .catalog-pdf-options input,.catalog-pdf-options select{width:100%;min-height:38px;padding:8px 10px;border:1px solid #bcb3aa;border-radius:7px;background:#fff;color:#242124;font:500 12px 'Be Vietnam Pro',sans-serif}
 .catalog-pdf-options small{font-size:10px;font-weight:400;color:#665e59;line-height:1.45}
-.catalog-poster-options{display:flex;flex-wrap:wrap;gap:10px 20px;padding:12px 0 16px;border-bottom:1px solid #ded8d1}
-.catalog-poster-options label{display:flex;align-items:center;gap:8px;margin:0;font-size:11px;font-weight:600;color:#292326}
-.catalog-poster-options input[type=checkbox],.catalog-product-option input[type=checkbox]{width:16px;height:16px;margin:0;accent-color:#bd1232}
+.catalog-product-option input[type=checkbox]{width:16px;height:16px;margin:0;accent-color:#bd1232}
 .catalog-product-picker-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:15px 0 9px;font-size:12px;color:#282326}
-.catalog-product-picker-head span{font-size:10px;color:#6d625d;text-align:right}
+.catalog-product-picker-head span{max-width:78%;font-size:10px;line-height:1.5;color:#6d625d;text-align:right}
 .catalog-product-picker-tools{display:flex;align-items:center;gap:8px;margin-bottom:9px}
 .catalog-product-picker-tools input{flex:1;min-width:150px;min-height:36px;padding:7px 10px;border:1px solid #bcb3aa;border-radius:7px;background:#fff;color:#242124;font:500 11px 'Be Vietnam Pro',sans-serif}
 .catalog-product-picker-tools button{min-height:34px;padding:6px 10px;font-size:10px;white-space:nowrap}

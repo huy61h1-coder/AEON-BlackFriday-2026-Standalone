@@ -1,4 +1,4 @@
-document.head.append(Object.assign(document.createElement('link'), {rel: 'stylesheet', href: 'admin.css?v=20261109-catalog-configurable-products-v80'}));
+document.head.append(Object.assign(document.createElement('link'), {rel: 'stylesheet', href: 'admin.css?v=20261109-catalog-poster-qr-capacity-v81'}));
 document.head.append(Object.assign(document.createElement('link'), {rel: 'stylesheet', href: 'admin-layout-controls.css'}));
 document.head.append(Object.assign(document.createElement('link'), {rel: 'stylesheet', href: 'admin-import.css'}));
 document.head.append(Object.assign(document.createElement('link'), {rel: 'stylesheet', href: 'admin-quick-products.css'}));
@@ -1498,24 +1498,16 @@ function interfacePanel(panel) {
           <label>Đường dẫn poster bìa catalog<input name="catalogBannerImage" required value="${escapeHtml(ui.catalogBannerImage || '/assets/catalog/black-friday-catalog-banner.jpg')}" placeholder="https://... hoặc /assets/uploads/poster.png"><small>Ảnh ngang dùng làm poster mở đầu catalog.</small></label>
           <div class="upload-field"><label for="catalogBannerImageFile">Tải poster bìa PNG/JPG từ máy</label><input id="catalogBannerImageFile" type="file" accept="image/png,image/jpeg"><button class="secondary-button" id="uploadCatalogBannerImage" type="button">Tải và lưu poster bìa</button></div>
           <div class="asset-preview" id="catalogBannerImagePreview" aria-live="polite"></div>
-          <label>Đường dẫn ảnh mã QR<input name="catalogOrderQrImage" required value="${escapeHtml(ui.catalogOrderQrImage || '/assets/catalog/order-qr.png')}" placeholder="https://... hoặc /assets/uploads/ma-qr.png"><small>Ảnh PNG/JPG sẽ được dùng trong banner catalog.</small></label>
+          <label>Đường dẫn ảnh mã QR<input name="catalogOrderQrImage" required value="${escapeHtml(ui.catalogOrderQrImage || '/assets/catalog/order-qr.png')}" placeholder="https://... hoặc /assets/uploads/ma-qr.png"><small>QR luôn hiển thị trên poster bìa và khu vực liên hệ cuối.</small></label>
           <div class="upload-field"><label for="catalogOrderQrFile">Tải ảnh mã QR PNG/JPG từ máy</label><input id="catalogOrderQrFile" type="file" accept="image/png,image/jpeg"><button class="secondary-button" id="uploadCatalogOrderQr" type="button">Tải và lưu mã QR</button></div>
           <div class="asset-preview" id="catalogOrderQrPreview" aria-live="polite"></div>
-          <label>Đường dẫn ảnh ở trang cuối catalog<input name="catalogClosingImage" required value="${escapeHtml(ui.catalogClosingImage || '/assets/catalog/black-friday-catalog-ending.png')}" placeholder="https://... hoặc /assets/uploads/anh-trang-cuoi.png"><small>Ảnh này sẽ phủ khoảng trống ở trang cuối catalog. Nên dùng ảnh ngang PNG/JPG.</small></label>
-          <div class="upload-field"><label for="catalogClosingImageFile">Tải ảnh trang cuối PNG/JPG từ máy</label><input id="catalogClosingImageFile" type="file" accept="image/png,image/jpeg"><button class="secondary-button" id="uploadCatalogClosingImage" type="button">Tải và lưu ảnh trang cuối</button></div>
-          <div class="asset-preview" id="catalogClosingImagePreview" aria-live="polite"></div>
         </div>
         <fieldset class="catalog-pdf-settings">
           <legend>THIẾT LẬP CATALOG PDF</legend>
-          <p>Chọn sản phẩm, số cột và các hình ảnh cần xuất. Danh sách sản phẩm vẫn giữ thứ tự đã tải lên từ Excel.</p>
+          <p>Poster bìa và QR luôn hiển thị. Poster trang cuối đã bỏ; sức chứa mỗi trang được tính theo số cột. Danh sách sản phẩm giữ thứ tự Excel.</p>
           <div class="catalog-pdf-options">
             <label>Số cột sản phẩm<select name="catalogColumns"><option value="3"${catalogColumns === 3 ? ' selected' : ''}>3 cột</option><option value="4"${catalogColumns === 4 ? ' selected' : ''}>4 cột</option><option value="5"${catalogColumns === 5 ? ' selected' : ''}>5 cột</option></select></label>
             <label>Số sản phẩm tối đa<input name="catalogProductLimit" type="number" min="1" max="9999" step="1" value="${catalogProductLimit}"><small>Catalog lấy tối đa số sản phẩm đã chọn, theo thứ tự Excel.</small></label>
-          </div>
-          <div class="catalog-poster-options">
-            <label><input type="checkbox" name="catalogShowCoverPoster"${ui.catalogShowCoverPoster !== false ? ' checked' : ''}><span>Hiện poster đầu catalog</span></label>
-            <label><input type="checkbox" name="catalogShowClosingPoster"${ui.catalogShowClosingPoster !== false ? ' checked' : ''}><span>Hiện poster trang cuối</span></label>
-            <label><input type="checkbox" name="catalogShowQr"${ui.catalogShowQr !== false ? ' checked' : ''}><span>Hiện mã QR đặt hàng</span></label>
           </div>
           <div class="catalog-product-picker-head"><strong>Sản phẩm đưa vào catalog</strong><span id="catalogProductSelectionCount" aria-live="polite"></span></div>
           <div class="catalog-product-picker-tools"><input type="search" id="catalogProductSearch" placeholder="Tìm tên hoặc thương hiệu..." aria-label="Tìm sản phẩm trong danh sách catalog"><button type="button" class="secondary-button" id="selectAllCatalogProducts">Chọn tất cả</button><button type="button" class="secondary-button" id="clearCatalogProducts">Bỏ chọn tất cả</button></div>
@@ -1534,20 +1526,25 @@ function interfacePanel(panel) {
   const form = $('#uiForm');
   const catalogBannerInput = form.elements.catalogBannerImage;
   const qrInput = form.elements.catalogOrderQrImage;
-  const closingImageInput = form.elements.catalogClosingImage;
   const catalogProductLimitInput = form.elements.catalogProductLimit;
+  const catalogColumnsInput = form.elements.catalogColumns;
   const catalogProductChecks = [...panel.querySelectorAll('[data-catalog-product]')];
   setPreview($('#catalogBannerImagePreview'), catalogBannerInput.value, 'Chưa chọn poster bìa catalog');
   setPreview($('#catalogOrderQrPreview'), qrInput.value, 'Chưa chọn mã QR đặt hàng');
-  setPreview($('#catalogClosingImagePreview'), closingImageInput.value, 'Chưa chọn ảnh trang cuối catalog');
   const updateCatalogProductCount = () => {
     const selectedCount = catalogProductChecks.filter(input => input.checked).length;
     const maxCount = Math.max(1, Math.floor(Number(catalogProductLimitInput.value) || catalogProducts.length || 1));
     const exportedCount = Math.min(selectedCount, maxCount);
-    $('#catalogProductSelectionCount').textContent = `${selectedCount} sản phẩm đã chọn · xuất tối đa ${exportedCount}`;
+    const notExportedCount = Math.max(0, selectedCount - exportedCount);
+    const columns = Number(catalogColumnsInput.value);
+    const capacity = {3:{cover:6,later:9},4:{cover:12,later:16},5:{cover:20,later:25}}[columns] || {cover:20,later:25};
+    const productPages = exportedCount <= capacity.cover ? 1 : 1 + Math.ceil((exportedCount - capacity.cover) / capacity.later);
+    const coverRemaining = Math.max(0, capacity.cover - Math.min(exportedCount, capacity.cover));
+    $('#catalogProductSelectionCount').textContent = `${selectedCount} đã chọn · xuất ${exportedCount} sản phẩm / ${productPages} trang sản phẩm · còn ${notExportedCount} sản phẩm ngoài giới hạn · trang bìa còn ${coverRemaining} chỗ (tối đa ${capacity.cover}); trang sau tối đa ${capacity.later}`;
   };
   catalogProductChecks.forEach(input => input.addEventListener('change', updateCatalogProductCount));
   catalogProductLimitInput.addEventListener('input', updateCatalogProductCount);
+  catalogColumnsInput.addEventListener('change', updateCatalogProductCount);
   $('#catalogProductSearch').addEventListener('input', event => {
     const query = String(event.currentTarget.value || '').trim().toLocaleLowerCase('vi');
     panel.querySelectorAll('.catalog-product-option').forEach(option => {
@@ -1559,7 +1556,6 @@ function interfacePanel(panel) {
   updateCatalogProductCount();
   catalogBannerInput.addEventListener('input', () => setPreview($('#catalogBannerImagePreview'), catalogBannerInput.value, 'Chưa chọn poster bìa catalog'));
   qrInput.addEventListener('input', () => setPreview($('#catalogOrderQrPreview'), qrInput.value, 'Chưa chọn mã QR đặt hàng'));
-  closingImageInput.addEventListener('input', () => setPreview($('#catalogClosingImagePreview'), closingImageInput.value, 'Chưa chọn ảnh trang cuối catalog'));
   $('#uploadCatalogBannerImage').onclick = async () => {
     const button = $('#uploadCatalogBannerImage');
     const file = $('#catalogBannerImageFile').files[0];
@@ -1592,22 +1588,6 @@ function interfacePanel(panel) {
       setBusy(button, false, 'Đang tải ảnh QR...', 'Tải và lưu mã QR');
     }
   };
-  $('#uploadCatalogClosingImage').onclick = async () => {
-    const button = $('#uploadCatalogClosingImage');
-    const file = $('#catalogClosingImageFile').files[0];
-    try {
-      if (!file) throw new Error('Hãy chọn ảnh trang cuối PNG hoặc JPG trước.');
-      if (!['image/png', 'image/jpeg'].includes(file.type)) throw new Error('Ảnh trang cuối cần là PNG hoặc JPG để xuất PDF rõ nét.');
-      setBusy(button, true, 'Đang tải ảnh...', 'Tải và lưu ảnh trang cuối');
-      closingImageInput.value = await uploadOfficialImage(file);
-      setPreview($('#catalogClosingImagePreview'), closingImageInput.value, 'Chưa chọn ảnh trang cuối catalog');
-      form.requestSubmit();
-    } catch (error) {
-      toastAdmin(error.message);
-    } finally {
-      setBusy(button, false, 'Đang tải ảnh...', 'Tải và lưu ảnh trang cuối');
-    }
-  };
   $('#uiForm').onsubmit = async event => {
     event.preventDefault();
     const form = event.currentTarget;
@@ -1627,9 +1607,6 @@ function interfacePanel(panel) {
       const rawCatalogQrImage = String(values.catalogOrderQrImage || '').trim();
       const catalogOrderQrImage = normaliseImageUrl(rawCatalogQrImage);
       if (!catalogOrderQrImage) throw new Error('Hãy nhập đường dẫn ảnh mã QR hợp lệ hoặc tải ảnh PNG/JPG lên.');
-      const rawCatalogClosingImage = String(values.catalogClosingImage || '').trim();
-      const catalogClosingImage = normaliseImageUrl(rawCatalogClosingImage);
-      if (!catalogClosingImage) throw new Error('Hãy nhập đường dẫn ảnh trang cuối hợp lệ hoặc tải ảnh PNG/JPG lên.');
       const selectedCatalogProductIds = catalogProductChecks.filter(input => input.checked).map(input => input.value);
       if (catalogProducts.length && !selectedCatalogProductIds.length) throw new Error('Hãy chọn ít nhất một sản phẩm để xuất catalog.');
       const catalogProductIds = catalogProducts.length && selectedCatalogProductIds.length < catalogProducts.length
@@ -1657,13 +1634,13 @@ function interfacePanel(panel) {
         catalogMoreProductsUrl,
         catalogBannerImage,
         catalogOrderQrImage,
-        catalogClosingImage,
+        catalogClosingImage: '',
         catalogProductIds,
         catalogProductLimit,
         catalogColumns,
-        catalogShowCoverPoster: form.elements.catalogShowCoverPoster.checked,
-        catalogShowClosingPoster: form.elements.catalogShowClosingPoster.checked,
-        catalogShowQr: form.elements.catalogShowQr.checked,
+        catalogShowCoverPoster: true,
+        catalogShowClosingPoster: false,
+        catalogShowQr: true,
         promotionText: window.AEONPromotionRichText?.clean(values.promotionText, 6000) || String(values.promotionText || '').replace(/\r\n?/g, '\n').trim().slice(0, 6000)
       };
       await saveShared('aeon-ui', nextUi);

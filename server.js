@@ -60,7 +60,7 @@ const types = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charse
 // Bump this whenever the storefront shell changes. It fingerprints every
 // local CSS/JS URL emitted by the Node deployment, so a CDN cannot revive an
 // obsolete interface after a new release.
-const storefrontBuild = '20261109-catalog-configurable-products-v80';
+const storefrontBuild = '20261109-catalog-poster-qr-capacity-v81';
 const productImageFitCss = '\n/* Server-enforced product commerce lock. */\n.product-media{position:relative!important;overflow:hidden!important;background:#fff!important}.product-media:has(.product-image-placeholder:not([hidden])),.product-media:has(.product-image-placeholder:not([hidden])):before,.product-media .product-image-placeholder:not([hidden]){background:#fff!important}.product-media img.product-official-image{display:block!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;margin:0!important;padding:0!important;object-fit:contain!important;object-position:center center!important}.product-price-stack .price,.product-price-stack .regular-price,.product-discount-badge{visibility:visible!important;opacity:1!important}\n';
 const noCacheHeaders = {
   'Cache-Control':'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0',
@@ -926,9 +926,7 @@ async function productCatalogPdfBuffer(state) {
   const accent = /^#[0-9a-f]{6}$/i.test(layout.accentColor || '') ? layout.accentColor : '#e3183c';
   const dark = /^#[0-9a-f]{6}$/i.test(layout.accentDarkColor || '') ? layout.accentDarkColor : '#a80f2a';
   const giftBackground = String(ui.giftRibbonBackgroundImage || '').trim();
-  const showCoverPoster = ui.catalogShowCoverPoster !== false;
-  const showClosingPoster = ui.catalogShowClosingPoster !== false;
-  const showQr = ui.catalogShowQr !== false;
+  const showQr = true;
   const selectedProductIds = Array.isArray(ui.catalogProductIds) ? new Set(ui.catalogProductIds.map(String)) : null;
   const requestedProductLimit = Number(ui.catalogProductLimit);
   const productLimit = Number.isInteger(requestedProductLimit) && requestedProductLimit >= 1
@@ -943,10 +941,11 @@ async function productCatalogPdfBuffer(state) {
     4:{firstRows:3, laterRows:4, firstCardHeight:170, laterCardHeight:180, firstImageHeight:76, laterImageHeight:86, firstTitleHeight:23, laterTitleHeight:24},
     5:{firstRows:4, laterRows:5, firstCardHeight:143, laterCardHeight:155, firstImageHeight:60, laterImageHeight:68, firstTitleHeight:18, laterTitleHeight:20}
   }[columns];
-  const bannerSource = showCoverPoster ? String(ui.catalogBannerImage || '/assets/catalog/black-friday-catalog-banner.jpg').trim() : '';
+  const defaultBannerSource = '/assets/catalog/black-friday-catalog-banner.jpg';
+  const bannerSource = String(ui.catalogBannerImage || defaultBannerSource).trim();
   const bannerLogoSource = '/assets/catalog/aeon-binh-duong-newcity.png';
-  const orderQrSource = showQr ? String(ui.catalogOrderQrImage || '/assets/catalog/order-qr.png').trim() : '';
-  const closingImageSource = showClosingPoster ? String(ui.catalogClosingImage || '/assets/catalog/black-friday-catalog-ending.png').trim() : '';
+  const defaultOrderQrSource = '/assets/catalog/order-qr.png';
+  const orderQrSource = String(ui.catalogOrderQrImage || defaultOrderQrSource).trim();
   const catalogHotline = cleanPdfText(ui.catalogHotline ?? '0327 747 337', 50);
   const catalogOrderPrompt = cleanPdfText(ui.catalogOrderPrompt || 'Quét mã đặt hàng & xem thêm sản phẩm', 120);
   const catalogMoreProductsUrl = (() => {
@@ -976,9 +975,10 @@ async function productCatalogPdfBuffer(state) {
     ...productImages.flatMap(item => [item.main, ...item.gifts]),
     giftBackground,
     bannerSource,
+    defaultBannerSource,
     bannerLogoSource,
     orderQrSource,
-    closingImageSource,
+    defaultOrderQrSource,
     String(ui.logoImage || '').trim()
   ].filter(Boolean))];
   const imageBuffers = new Map();
@@ -997,11 +997,11 @@ async function productCatalogPdfBuffer(state) {
     const margin = 18;
     const gap = 5;
     const cardWidth = (pageWidth - margin * 2 - gap * (columns - 1)) / columns;
-    const bannerBuffer = imageBuffers.get(bannerSource);
+    const renderedBannerSource = imageBuffers.get(bannerSource) ? bannerSource : defaultBannerSource;
+    const renderedQrSource = imageBuffers.get(orderQrSource) ? orderQrSource : defaultOrderQrSource;
+    const bannerBuffer = imageBuffers.get(renderedBannerSource);
     const bannerInfo = bannerBuffer && imageDimensions(bannerBuffer);
     const hasBanner = Boolean(bannerInfo);
-    const closingBannerBuffer = imageBuffers.get(closingImageSource);
-    const closingBannerInfo = closingBannerBuffer && imageDimensions(closingBannerBuffer);
     const firstPageRows = hasBanner ? gridProfile.firstRows : gridProfile.laterRows;
     const firstPageCapacity = columns * firstPageRows;
     const laterPageCapacity = columns * gridProfile.laterRows;
@@ -1056,9 +1056,9 @@ async function productCatalogPdfBuffer(state) {
         const bannerWidth = pageWidth - margin * 2;
         const bannerHeight = bannerWidth * bannerInfo.height / bannerInfo.width;
         const bannerY = 12;
-        image(bannerSource, margin, bannerY, bannerWidth, bannerHeight);
+        image(renderedBannerSource, margin, bannerY, bannerWidth, bannerHeight);
         image(bannerLogoSource, margin + bannerWidth * 0.009, bannerY + bannerHeight * 0.02, bannerWidth * 0.085, bannerHeight * 0.12);
-        if (showQr && orderQrSource) {
+        if (showQr && renderedQrSource) {
           const qrPanelWidth = Math.min(290, bannerWidth - 18);
           const qrPanelHeight = 52;
           const qrPanelX = margin + bannerWidth - qrPanelWidth - 8;
@@ -1081,7 +1081,7 @@ async function productCatalogPdfBuffer(state) {
               width:promptWidth, height:promptHeight, align:'right', lineGap:0, fill:true
             });
           doc.roundedRect(qrX - 1, qrY - 1, qrSize + 2, qrSize + 2, 2).fill('#ffffff');
-          image(orderQrSource, qrX, qrY, qrSize, qrSize);
+          image(renderedQrSource, qrX, qrY, qrSize, qrSize);
           doc.link(qrX, qrY, qrSize, qrSize, catalogMoreProductsUrl);
         }
         return 12 + bannerHeight + 7;
@@ -1307,26 +1307,11 @@ async function productCatalogPdfBuffer(state) {
       ? lastGridStartY + (lastRows - 1) * (lastCardHeight + gap) + lastCardHeight
       : lastGridStartY;
     const contactPanelHeight = 82;
-    const closingBannerMaxWidth = pageWidth - margin * 2;
-    const closingBannerMaxHeight = closingBannerInfo
-      ? Math.min(280, closingBannerMaxWidth * closingBannerInfo.height / closingBannerInfo.width)
-      : 0;
-    const closingSectionGap = closingBannerMaxHeight ? 8 : 0;
     const closingSectionTopLimit = lastProductsBottom + 14;
     const closingSectionBottomLimit = pageHeight - 38;
     const availableClosingHeight = Math.max(0, closingSectionBottomLimit - closingSectionTopLimit);
-    const minimumBannerHeight = closingBannerMaxHeight ? Math.min(100, closingBannerMaxHeight) : 0;
-    const canFitClosingSection = availableClosingHeight >= contactPanelHeight + closingSectionGap + minimumBannerHeight;
-    let closingBannerWidth = closingBannerMaxWidth;
-    let closingBannerHeight = closingBannerMaxHeight;
-    if (canFitClosingSection && closingBannerInfo) {
-      const maxBannerHeightHere = availableClosingHeight - contactPanelHeight - closingSectionGap;
-      if (closingBannerHeight > maxBannerHeightHere) {
-        closingBannerHeight = maxBannerHeightHere;
-        closingBannerWidth = Math.min(closingBannerMaxWidth, closingBannerHeight * closingBannerInfo.width / closingBannerInfo.height);
-      }
-    }
-    const closingSectionHeight = closingBannerHeight + (closingBannerHeight ? closingSectionGap : 0) + contactPanelHeight;
+    const canFitClosingSection = availableClosingHeight >= contactPanelHeight;
+    const closingSectionHeight = contactPanelHeight;
     let contactPageIndex = lastPageIndex;
     let closingSectionY;
     if (canFitClosingSection) {
@@ -1337,16 +1322,13 @@ async function productCatalogPdfBuffer(state) {
       contactPageIndex = productPageCount;
       doc.rect(0, 0, pageWidth, pageHeight).fill('#09090b');
       doc.rect(0, 0, pageWidth, 5).fill('#bd1232');
-      closingBannerWidth = closingBannerMaxWidth;
-      closingBannerHeight = closingBannerMaxHeight;
       closingSectionY = (pageHeight - closingSectionHeight) / 2;
     }
 
-    if (closingBannerHeight) image(closingImageSource, margin + (closingBannerMaxWidth - closingBannerWidth) / 2, closingSectionY, closingBannerWidth, closingBannerHeight);
-    const contactPanelY = closingSectionY + closingBannerHeight + closingSectionGap;
+    const contactPanelY = closingSectionY;
     const contactPanelWidth = pageWidth - margin * 2;
     const contactPanelX = (pageWidth - contactPanelWidth) / 2;
-    const contactQrSize = showQr && orderQrSource ? 64 : 0;
+    const contactQrSize = showQr && renderedQrSource ? 64 : 0;
     const contactQrX = contactPanelX + contactPanelWidth - 14 - contactQrSize;
     const contactTextX = contactPanelX + 14;
     const contactTextWidth = contactQrSize ? contactQrX - contactTextX - 18 : contactPanelWidth - 28;
@@ -1354,7 +1336,7 @@ async function productCatalogPdfBuffer(state) {
     if (contactQrSize) {
       const contactQrY = contactPanelY + (contactPanelHeight - contactQrSize) / 2;
       doc.roundedRect(contactQrX - 3, contactQrY - 3, contactQrSize + 6, contactQrSize + 6, 4).fill('#ffffff');
-      image(orderQrSource, contactQrX, contactQrY, contactQrSize, contactQrSize);
+      image(renderedQrSource, contactQrX, contactQrY, contactQrSize, contactQrSize);
       doc.link(contactQrX, contactQrY, contactQrSize, contactQrSize, catalogMoreProductsUrl);
     }
     const hotlineContactLine = `HOTLINE TƯ VẤN & ĐẶT HÀNG: ${catalogHotline || 'liên hệ tư vấn'}`;
