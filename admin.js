@@ -1,4 +1,4 @@
-document.head.append(Object.assign(document.createElement('link'), {rel: 'stylesheet', href: 'admin.css'}));
+document.head.append(Object.assign(document.createElement('link'), {rel: 'stylesheet', href: 'admin.css?v=20261109-catalog-configurable-products-v80'}));
 document.head.append(Object.assign(document.createElement('link'), {rel: 'stylesheet', href: 'admin-layout-controls.css'}));
 document.head.append(Object.assign(document.createElement('link'), {rel: 'stylesheet', href: 'admin-import.css'}));
 document.head.append(Object.assign(document.createElement('link'), {rel: 'stylesheet', href: 'admin-quick-products.css'}));
@@ -1462,6 +1462,12 @@ function giftRibbonBackgroundPanel(panel) {
 }
 function interfacePanel(panel) {
   const ui = aeonStore.ui();
+  const catalogProducts = aeonStore.products();
+  const savedCatalogProductIds = Array.isArray(ui.catalogProductIds)
+    ? new Set(ui.catalogProductIds.map(String))
+    : null;
+  const catalogProductLimit = Math.max(1, Math.min(9999, Math.floor(Number(ui.catalogProductLimit) || catalogProducts.length || 1)));
+  const catalogColumns = [3, 4, 5].includes(Number(ui.catalogColumns)) ? Number(ui.catalogColumns) : 5;
   const catalogMoreProductsUrl = (() => {
     try {
       const url = new URL(ui.catalogMoreProductsUrl || 'https://blackfriday.tinhgon.xyz');
@@ -1489,6 +1495,9 @@ function interfacePanel(panel) {
           <label>Hotline<input name="catalogHotline" maxlength="50" value="${escapeHtml(ui.catalogHotline ?? '0327 747 337')}" placeholder="Ví dụ: 0327 747 337"></label>
           <label>Nội dung cạnh mã QR<input name="catalogOrderPrompt" maxlength="120" required value="${escapeHtml(ui.catalogOrderPrompt || 'Quét mã đặt hàng & xem thêm sản phẩm')}"></label>
           <label>Đường dẫn xem thêm sản phẩm<input name="catalogMoreProductsUrl" type="url" maxlength="500" required value="${escapeHtml(catalogMoreProductsUrl)}" placeholder="https://..."></label>
+          <label>Đường dẫn poster bìa catalog<input name="catalogBannerImage" required value="${escapeHtml(ui.catalogBannerImage || '/assets/catalog/black-friday-catalog-banner.jpg')}" placeholder="https://... hoặc /assets/uploads/poster.png"><small>Ảnh ngang dùng làm poster mở đầu catalog.</small></label>
+          <div class="upload-field"><label for="catalogBannerImageFile">Tải poster bìa PNG/JPG từ máy</label><input id="catalogBannerImageFile" type="file" accept="image/png,image/jpeg"><button class="secondary-button" id="uploadCatalogBannerImage" type="button">Tải và lưu poster bìa</button></div>
+          <div class="asset-preview" id="catalogBannerImagePreview" aria-live="polite"></div>
           <label>Đường dẫn ảnh mã QR<input name="catalogOrderQrImage" required value="${escapeHtml(ui.catalogOrderQrImage || '/assets/catalog/order-qr.png')}" placeholder="https://... hoặc /assets/uploads/ma-qr.png"><small>Ảnh PNG/JPG sẽ được dùng trong banner catalog.</small></label>
           <div class="upload-field"><label for="catalogOrderQrFile">Tải ảnh mã QR PNG/JPG từ máy</label><input id="catalogOrderQrFile" type="file" accept="image/png,image/jpeg"><button class="secondary-button" id="uploadCatalogOrderQr" type="button">Tải và lưu mã QR</button></div>
           <div class="asset-preview" id="catalogOrderQrPreview" aria-live="polite"></div>
@@ -1496,17 +1505,77 @@ function interfacePanel(panel) {
           <div class="upload-field"><label for="catalogClosingImageFile">Tải ảnh trang cuối PNG/JPG từ máy</label><input id="catalogClosingImageFile" type="file" accept="image/png,image/jpeg"><button class="secondary-button" id="uploadCatalogClosingImage" type="button">Tải và lưu ảnh trang cuối</button></div>
           <div class="asset-preview" id="catalogClosingImagePreview" aria-live="polite"></div>
         </div>
+        <fieldset class="catalog-pdf-settings">
+          <legend>THIẾT LẬP CATALOG PDF</legend>
+          <p>Chọn sản phẩm, số cột và các hình ảnh cần xuất. Danh sách sản phẩm vẫn giữ thứ tự đã tải lên từ Excel.</p>
+          <div class="catalog-pdf-options">
+            <label>Số cột sản phẩm<select name="catalogColumns"><option value="3"${catalogColumns === 3 ? ' selected' : ''}>3 cột</option><option value="4"${catalogColumns === 4 ? ' selected' : ''}>4 cột</option><option value="5"${catalogColumns === 5 ? ' selected' : ''}>5 cột</option></select></label>
+            <label>Số sản phẩm tối đa<input name="catalogProductLimit" type="number" min="1" max="9999" step="1" value="${catalogProductLimit}"><small>Catalog lấy tối đa số sản phẩm đã chọn, theo thứ tự Excel.</small></label>
+          </div>
+          <div class="catalog-poster-options">
+            <label><input type="checkbox" name="catalogShowCoverPoster"${ui.catalogShowCoverPoster !== false ? ' checked' : ''}><span>Hiện poster đầu catalog</span></label>
+            <label><input type="checkbox" name="catalogShowClosingPoster"${ui.catalogShowClosingPoster !== false ? ' checked' : ''}><span>Hiện poster trang cuối</span></label>
+            <label><input type="checkbox" name="catalogShowQr"${ui.catalogShowQr !== false ? ' checked' : ''}><span>Hiện mã QR đặt hàng</span></label>
+          </div>
+          <div class="catalog-product-picker-head"><strong>Sản phẩm đưa vào catalog</strong><span id="catalogProductSelectionCount" aria-live="polite"></span></div>
+          <div class="catalog-product-picker-tools"><input type="search" id="catalogProductSearch" placeholder="Tìm tên hoặc thương hiệu..." aria-label="Tìm sản phẩm trong danh sách catalog"><button type="button" class="secondary-button" id="selectAllCatalogProducts">Chọn tất cả</button><button type="button" class="secondary-button" id="clearCatalogProducts">Bỏ chọn tất cả</button></div>
+          <div class="catalog-product-picker" id="catalogProductPicker">
+            ${catalogProducts.length ? catalogProducts.map(product => {
+              const productId = String(product.id ?? '');
+              const checked = savedCatalogProductIds ? savedCatalogProductIds.has(productId) : true;
+              return `<label class="catalog-product-option"><input type="checkbox" data-catalog-product value="${escapeHtml(productId)}"${checked ? ' checked' : ''}><span><b>${escapeHtml(product.name || 'Sản phẩm chưa có tên')}</b><small>${escapeHtml(normaliseAeonBrand(product.brand) || 'Chưa chọn thương hiệu')} · ${escapeHtml(product.sku || product.id || '')}</small></span></label>`;
+            }).join('') : '<p class="catalog-product-empty">Chưa có sản phẩm. Hãy tải danh sách sản phẩm lên trước.</p>'}
+          </div>
+        </fieldset>
         <button class="button primary" type="submit">Lưu giao diện</button>
       </form>
     </section>`;
   window.AEONPromotionRichText?.bindAll(panel);
   const form = $('#uiForm');
+  const catalogBannerInput = form.elements.catalogBannerImage;
   const qrInput = form.elements.catalogOrderQrImage;
   const closingImageInput = form.elements.catalogClosingImage;
+  const catalogProductLimitInput = form.elements.catalogProductLimit;
+  const catalogProductChecks = [...panel.querySelectorAll('[data-catalog-product]')];
+  setPreview($('#catalogBannerImagePreview'), catalogBannerInput.value, 'Chưa chọn poster bìa catalog');
   setPreview($('#catalogOrderQrPreview'), qrInput.value, 'Chưa chọn mã QR đặt hàng');
   setPreview($('#catalogClosingImagePreview'), closingImageInput.value, 'Chưa chọn ảnh trang cuối catalog');
+  const updateCatalogProductCount = () => {
+    const selectedCount = catalogProductChecks.filter(input => input.checked).length;
+    const maxCount = Math.max(1, Math.floor(Number(catalogProductLimitInput.value) || catalogProducts.length || 1));
+    const exportedCount = Math.min(selectedCount, maxCount);
+    $('#catalogProductSelectionCount').textContent = `${selectedCount} sản phẩm đã chọn · xuất tối đa ${exportedCount}`;
+  };
+  catalogProductChecks.forEach(input => input.addEventListener('change', updateCatalogProductCount));
+  catalogProductLimitInput.addEventListener('input', updateCatalogProductCount);
+  $('#catalogProductSearch').addEventListener('input', event => {
+    const query = String(event.currentTarget.value || '').trim().toLocaleLowerCase('vi');
+    panel.querySelectorAll('.catalog-product-option').forEach(option => {
+      option.hidden = Boolean(query) && !option.textContent.toLocaleLowerCase('vi').includes(query);
+    });
+  });
+  $('#selectAllCatalogProducts').onclick = () => { catalogProductChecks.forEach(input => { input.checked = true; }); updateCatalogProductCount(); };
+  $('#clearCatalogProducts').onclick = () => { catalogProductChecks.forEach(input => { input.checked = false; }); updateCatalogProductCount(); };
+  updateCatalogProductCount();
+  catalogBannerInput.addEventListener('input', () => setPreview($('#catalogBannerImagePreview'), catalogBannerInput.value, 'Chưa chọn poster bìa catalog'));
   qrInput.addEventListener('input', () => setPreview($('#catalogOrderQrPreview'), qrInput.value, 'Chưa chọn mã QR đặt hàng'));
   closingImageInput.addEventListener('input', () => setPreview($('#catalogClosingImagePreview'), closingImageInput.value, 'Chưa chọn ảnh trang cuối catalog'));
+  $('#uploadCatalogBannerImage').onclick = async () => {
+    const button = $('#uploadCatalogBannerImage');
+    const file = $('#catalogBannerImageFile').files[0];
+    try {
+      if (!file) throw new Error('Hãy chọn poster bìa PNG hoặc JPG trước.');
+      if (!['image/png', 'image/jpeg'].includes(file.type)) throw new Error('Poster bìa cần là PNG hoặc JPG để xuất PDF rõ nét.');
+      setBusy(button, true, 'Đang tải poster...', 'Tải và lưu poster bìa');
+      catalogBannerInput.value = await uploadOfficialImage(file);
+      setPreview($('#catalogBannerImagePreview'), catalogBannerInput.value, 'Chưa chọn poster bìa catalog');
+      form.requestSubmit();
+    } catch (error) {
+      toastAdmin(error.message);
+    } finally {
+      setBusy(button, false, 'Đang tải poster...', 'Tải và lưu poster bìa');
+    }
+  };
   $('#uploadCatalogOrderQr').onclick = async () => {
     const button = $('#uploadCatalogOrderQr');
     const file = $('#catalogOrderQrFile').files[0];
@@ -1552,12 +1621,24 @@ function interfacePanel(panel) {
       }
       const catalogHotline = String(values.catalogHotline || '').trim().slice(0, 50);
       const catalogOrderPrompt = String(values.catalogOrderPrompt || '').trim().slice(0, 120);
+      const rawCatalogBannerImage = String(values.catalogBannerImage || '').trim();
+      const catalogBannerImage = normaliseImageUrl(rawCatalogBannerImage);
+      if (!catalogBannerImage) throw new Error('Hãy nhập đường dẫn poster bìa hợp lệ hoặc tải ảnh PNG/JPG lên.');
       const rawCatalogQrImage = String(values.catalogOrderQrImage || '').trim();
       const catalogOrderQrImage = normaliseImageUrl(rawCatalogQrImage);
       if (!catalogOrderQrImage) throw new Error('Hãy nhập đường dẫn ảnh mã QR hợp lệ hoặc tải ảnh PNG/JPG lên.');
       const rawCatalogClosingImage = String(values.catalogClosingImage || '').trim();
       const catalogClosingImage = normaliseImageUrl(rawCatalogClosingImage);
       if (!catalogClosingImage) throw new Error('Hãy nhập đường dẫn ảnh trang cuối hợp lệ hoặc tải ảnh PNG/JPG lên.');
+      const selectedCatalogProductIds = catalogProductChecks.filter(input => input.checked).map(input => input.value);
+      if (catalogProducts.length && !selectedCatalogProductIds.length) throw new Error('Hãy chọn ít nhất một sản phẩm để xuất catalog.');
+      const catalogProductIds = catalogProducts.length && selectedCatalogProductIds.length < catalogProducts.length
+        ? selectedCatalogProductIds
+        : null;
+      const catalogProductLimit = Number(values.catalogProductLimit);
+      if (!Number.isInteger(catalogProductLimit) || catalogProductLimit < 1 || catalogProductLimit > 9999) throw new Error('Số sản phẩm tối đa cần nằm trong khoảng 1 đến 9.999.');
+      const catalogColumns = Number(values.catalogColumns);
+      if (![3, 4, 5].includes(catalogColumns)) throw new Error('Catalog chỉ hỗ trợ bố cục 3, 4 hoặc 5 cột.');
       let catalogMoreProductsUrl = '';
       try {
         const link = new URL(String(values.catalogMoreProductsUrl || '').trim());
@@ -1574,8 +1655,15 @@ function interfacePanel(panel) {
         catalogHotline,
         catalogOrderPrompt,
         catalogMoreProductsUrl,
+        catalogBannerImage,
         catalogOrderQrImage,
         catalogClosingImage,
+        catalogProductIds,
+        catalogProductLimit,
+        catalogColumns,
+        catalogShowCoverPoster: form.elements.catalogShowCoverPoster.checked,
+        catalogShowClosingPoster: form.elements.catalogShowClosingPoster.checked,
+        catalogShowQr: form.elements.catalogShowQr.checked,
         promotionText: window.AEONPromotionRichText?.clean(values.promotionText, 6000) || String(values.promotionText || '').replace(/\r\n?/g, '\n').trim().slice(0, 6000)
       };
       await saveShared('aeon-ui', nextUi);

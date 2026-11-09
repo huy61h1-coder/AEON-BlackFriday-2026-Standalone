@@ -60,7 +60,7 @@ const types = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charse
 // Bump this whenever the storefront shell changes. It fingerprints every
 // local CSS/JS URL emitted by the Node deployment, so a CDN cannot revive an
 // obsolete interface after a new release.
-const storefrontBuild = '20261108-catalog-qr-caption-close-v79';
+const storefrontBuild = '20261109-catalog-configurable-products-v80';
 const productImageFitCss = '\n/* Server-enforced product commerce lock. */\n.product-media{position:relative!important;overflow:hidden!important;background:#fff!important}.product-media:has(.product-image-placeholder:not([hidden])),.product-media:has(.product-image-placeholder:not([hidden])):before,.product-media .product-image-placeholder:not([hidden]){background:#fff!important}.product-media img.product-official-image{display:block!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;margin:0!important;padding:0!important;object-fit:contain!important;object-position:center center!important}.product-price-stack .price,.product-price-stack .regular-price,.product-discount-badge{visibility:visible!important;opacity:1!important}\n';
 const noCacheHeaders = {
   'Cache-Control':'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0',
@@ -920,16 +920,33 @@ async function orderPdfBuffer(state, requestedCode) {
 }
 
 async function productCatalogPdfBuffer(state) {
-  const products = Array.isArray(state['aeon-products']) ? state['aeon-products'] : [];
+  const allProducts = Array.isArray(state['aeon-products']) ? state['aeon-products'] : [];
   const ui = state['aeon-ui'] && typeof state['aeon-ui'] === 'object' ? state['aeon-ui'] : {};
   const layout = state['aeon-layout'] && typeof state['aeon-layout'] === 'object' ? state['aeon-layout'] : {};
   const accent = /^#[0-9a-f]{6}$/i.test(layout.accentColor || '') ? layout.accentColor : '#e3183c';
   const dark = /^#[0-9a-f]{6}$/i.test(layout.accentDarkColor || '') ? layout.accentDarkColor : '#a80f2a';
   const giftBackground = String(ui.giftRibbonBackgroundImage || '').trim();
-  const bannerSource = String(ui.catalogBannerImage || '/assets/catalog/black-friday-catalog-banner.jpg').trim();
+  const showCoverPoster = ui.catalogShowCoverPoster !== false;
+  const showClosingPoster = ui.catalogShowClosingPoster !== false;
+  const showQr = ui.catalogShowQr !== false;
+  const selectedProductIds = Array.isArray(ui.catalogProductIds) ? new Set(ui.catalogProductIds.map(String)) : null;
+  const requestedProductLimit = Number(ui.catalogProductLimit);
+  const productLimit = Number.isInteger(requestedProductLimit) && requestedProductLimit >= 1
+    ? Math.min(9999, requestedProductLimit)
+    : Math.max(1, allProducts.length);
+  const products = allProducts
+    .filter(product => !selectedProductIds || selectedProductIds.has(String(product?.id ?? '')))
+    .slice(0, productLimit);
+  const columns = [3, 4, 5].includes(Number(ui.catalogColumns)) ? Number(ui.catalogColumns) : 5;
+  const gridProfile = {
+    3:{firstRows:2, laterRows:3, firstCardHeight:210, laterCardHeight:245, firstImageHeight:106, laterImageHeight:140, firstTitleHeight:30, laterTitleHeight:34},
+    4:{firstRows:3, laterRows:4, firstCardHeight:170, laterCardHeight:180, firstImageHeight:76, laterImageHeight:86, firstTitleHeight:23, laterTitleHeight:24},
+    5:{firstRows:4, laterRows:5, firstCardHeight:143, laterCardHeight:155, firstImageHeight:60, laterImageHeight:68, firstTitleHeight:18, laterTitleHeight:20}
+  }[columns];
+  const bannerSource = showCoverPoster ? String(ui.catalogBannerImage || '/assets/catalog/black-friday-catalog-banner.jpg').trim() : '';
   const bannerLogoSource = '/assets/catalog/aeon-binh-duong-newcity.png';
-  const orderQrSource = String(ui.catalogOrderQrImage || '/assets/catalog/order-qr.png').trim();
-  const closingImageSource = String(ui.catalogClosingImage || '/assets/catalog/black-friday-catalog-ending.png').trim();
+  const orderQrSource = showQr ? String(ui.catalogOrderQrImage || '/assets/catalog/order-qr.png').trim() : '';
+  const closingImageSource = showClosingPoster ? String(ui.catalogClosingImage || '/assets/catalog/black-friday-catalog-ending.png').trim() : '';
   const catalogHotline = cleanPdfText(ui.catalogHotline ?? '0327 747 337', 50);
   const catalogOrderPrompt = cleanPdfText(ui.catalogOrderPrompt || 'Quét mã đặt hàng & xem thêm sản phẩm', 120);
   const catalogMoreProductsUrl = (() => {
@@ -979,15 +996,15 @@ async function productCatalogPdfBuffer(state) {
     const pageHeight = 841.89;
     const margin = 18;
     const gap = 5;
-    const columns = 5;
     const cardWidth = (pageWidth - margin * 2 - gap * (columns - 1)) / columns;
     const bannerBuffer = imageBuffers.get(bannerSource);
     const bannerInfo = bannerBuffer && imageDimensions(bannerBuffer);
     const hasBanner = Boolean(bannerInfo);
     const closingBannerBuffer = imageBuffers.get(closingImageSource);
     const closingBannerInfo = closingBannerBuffer && imageDimensions(closingBannerBuffer);
-    const firstPageCapacity = hasBanner ? columns * 4 : columns * 5;
-    const laterPageCapacity = columns * 5;
+    const firstPageRows = hasBanner ? gridProfile.firstRows : gridProfile.laterRows;
+    const firstPageCapacity = columns * firstPageRows;
+    const laterPageCapacity = columns * gridProfile.laterRows;
     const productPageCount = Math.max(1, products.length <= firstPageCapacity
       ? 1
       : 1 + Math.ceil((products.length - firstPageCapacity) / laterPageCapacity));
@@ -1041,30 +1058,32 @@ async function productCatalogPdfBuffer(state) {
         const bannerY = 12;
         image(bannerSource, margin, bannerY, bannerWidth, bannerHeight);
         image(bannerLogoSource, margin + bannerWidth * 0.009, bannerY + bannerHeight * 0.02, bannerWidth * 0.085, bannerHeight * 0.12);
-        const qrPanelWidth = Math.min(290, bannerWidth - 18);
-        const qrPanelHeight = 52;
-        const qrPanelX = margin + bannerWidth - qrPanelWidth - 8;
-        const qrPanelY = bannerY + bannerHeight - qrPanelHeight - 7;
-        const qrSize = 42;
-        const qrX = qrPanelX + qrPanelWidth - qrSize - 3;
-        const qrY = qrPanelY + (qrPanelHeight - qrSize) / 2;
-        const promptWidth = qrPanelWidth - qrSize - 18;
-        let promptSize = 9.5;
-        doc.font(pdfBoldFont).fontSize(promptSize);
-        while (doc.widthOfString(catalogOrderPrompt) > promptWidth && promptSize > 7) {
-          promptSize -= .25;
-          doc.fontSize(promptSize);
+        if (showQr && orderQrSource) {
+          const qrPanelWidth = Math.min(290, bannerWidth - 18);
+          const qrPanelHeight = 52;
+          const qrPanelX = margin + bannerWidth - qrPanelWidth - 8;
+          const qrPanelY = bannerY + bannerHeight - qrPanelHeight - 7;
+          const qrSize = 42;
+          const qrX = qrPanelX + qrPanelWidth - qrSize - 3;
+          const qrY = qrPanelY + (qrPanelHeight - qrSize) / 2;
+          const promptWidth = qrPanelWidth - qrSize - 18;
+          let promptSize = 9.5;
+          doc.font(pdfBoldFont).fontSize(promptSize);
+          while (doc.widthOfString(catalogOrderPrompt) > promptWidth && promptSize > 7) {
+            promptSize -= .25;
+            doc.fontSize(promptSize);
+          }
+          const promptNeedsWrap = doc.widthOfString(catalogOrderPrompt) > promptWidth;
+          const promptHeight = promptNeedsWrap ? 24 : 12;
+          const promptY = qrY + qrSize - promptHeight;
+          doc.font(pdfBoldFont).fontSize(promptSize).fillColor('#f5c644')
+            .text(catalogOrderPrompt, qrPanelX + 8, promptY, {
+              width:promptWidth, height:promptHeight, align:'right', lineGap:0, fill:true
+            });
+          doc.roundedRect(qrX - 1, qrY - 1, qrSize + 2, qrSize + 2, 2).fill('#ffffff');
+          image(orderQrSource, qrX, qrY, qrSize, qrSize);
+          doc.link(qrX, qrY, qrSize, qrSize, catalogMoreProductsUrl);
         }
-        const promptNeedsWrap = doc.widthOfString(catalogOrderPrompt) > promptWidth;
-        const promptHeight = promptNeedsWrap ? 24 : 12;
-        const promptY = qrY + qrSize - promptHeight;
-        doc.font(pdfBoldFont).fontSize(promptSize).fillColor('#f5c644')
-          .text(catalogOrderPrompt, qrPanelX + 8, promptY, {
-            width:promptWidth, height:promptHeight, align:'right', lineGap:0, fill:true
-          });
-        doc.roundedRect(qrX - 1, qrY - 1, qrSize + 2, qrSize + 2, 2).fill('#ffffff');
-        image(orderQrSource, qrX, qrY, qrSize, qrSize);
-        doc.link(qrX, qrY, qrSize, qrSize, catalogMoreProductsUrl);
         return 12 + bannerHeight + 7;
       }
       doc.rect(0, 0, pageWidth, 3).fill('#bd1232');
@@ -1258,9 +1277,9 @@ async function productCatalogPdfBuffer(state) {
       if (pageIndex > 0) doc.addPage();
       const gridStartY = drawHeader(pageIndex + 1);
       const compactBannerPage = pageIndex === 0 && hasBanner;
-      const cardHeight = compactBannerPage ? 143 : 155;
-      const imageHeight = compactBannerPage ? 60 : 68;
-      const titleBlockHeight = compactBannerPage ? 18 : 20;
+      const cardHeight = compactBannerPage ? gridProfile.firstCardHeight : gridProfile.laterCardHeight;
+      const imageHeight = compactBannerPage ? gridProfile.firstImageHeight : gridProfile.laterImageHeight;
+      const titleBlockHeight = compactBannerPage ? gridProfile.firstTitleHeight : gridProfile.laterTitleHeight;
       const productOffset = pageIndex === 0 ? 0 : firstPageCapacity + (pageIndex - 1) * laterPageCapacity;
       const pageCapacity = pageIndex === 0 ? firstPageCapacity : laterPageCapacity;
       const pageProducts = products.slice(productOffset, productOffset + pageCapacity);
@@ -1282,7 +1301,7 @@ async function productCatalogPdfBuffer(state) {
     const lastGridStartY = lastPageIndex === 0
       ? Math.max(hasBanner ? 12 + (pageWidth - margin * 2) * bannerInfo.height / bannerInfo.width + 7 : 16, 16)
       : 16;
-    const lastCardHeight = lastPageIndex === 0 && hasBanner ? 143 : 155;
+    const lastCardHeight = lastPageIndex === 0 && hasBanner ? gridProfile.firstCardHeight : gridProfile.laterCardHeight;
     const lastRows = Math.ceil(lastPageProducts.length / columns);
     const lastProductsBottom = lastRows
       ? lastGridStartY + (lastRows - 1) * (lastCardHeight + gap) + lastCardHeight
@@ -1327,15 +1346,17 @@ async function productCatalogPdfBuffer(state) {
     const contactPanelY = closingSectionY + closingBannerHeight + closingSectionGap;
     const contactPanelWidth = pageWidth - margin * 2;
     const contactPanelX = (pageWidth - contactPanelWidth) / 2;
-    const contactQrSize = 64;
+    const contactQrSize = showQr && orderQrSource ? 64 : 0;
     const contactQrX = contactPanelX + contactPanelWidth - 14 - contactQrSize;
-    const contactQrY = contactPanelY + (contactPanelHeight - contactQrSize) / 2;
     const contactTextX = contactPanelX + 14;
-    const contactTextWidth = contactQrX - contactTextX - 18;
+    const contactTextWidth = contactQrSize ? contactQrX - contactTextX - 18 : contactPanelWidth - 28;
     doc.roundedRect(contactPanelX, contactPanelY, contactPanelWidth, contactPanelHeight, 8).fill('#171719').strokeColor('#4a4140').lineWidth(.8).stroke();
-    doc.roundedRect(contactQrX - 3, contactQrY - 3, contactQrSize + 6, contactQrSize + 6, 4).fill('#ffffff');
-    image(orderQrSource, contactQrX, contactQrY, contactQrSize, contactQrSize);
-    doc.link(contactQrX, contactQrY, contactQrSize, contactQrSize, catalogMoreProductsUrl);
+    if (contactQrSize) {
+      const contactQrY = contactPanelY + (contactPanelHeight - contactQrSize) / 2;
+      doc.roundedRect(contactQrX - 3, contactQrY - 3, contactQrSize + 6, contactQrSize + 6, 4).fill('#ffffff');
+      image(orderQrSource, contactQrX, contactQrY, contactQrSize, contactQrSize);
+      doc.link(contactQrX, contactQrY, contactQrSize, contactQrSize, catalogMoreProductsUrl);
+    }
     const hotlineContactLine = `HOTLINE TƯ VẤN & ĐẶT HÀNG: ${catalogHotline || 'liên hệ tư vấn'}`;
     let hotlineContactSize = 13;
     doc.font(pdfBoldFont).fontSize(hotlineContactSize);
@@ -1345,7 +1366,7 @@ async function productCatalogPdfBuffer(state) {
     }
     text(hotlineContactLine, contactTextX, contactPanelY + 19, contactTextWidth, {bold:true, size:hotlineContactSize, color:'#f5c644', align:'center', limit:100});
 
-    const orderContactLine = `${catalogOrderPrompt} · ${catalogMoreProductsHost}`;
+    const orderContactLine = showQr ? `${catalogOrderPrompt} · ${catalogMoreProductsHost}` : catalogMoreProductsHost;
     let orderContactSize = 10;
     doc.font(pdfBoldFont).fontSize(orderContactSize);
     while (doc.widthOfString(orderContactLine) > contactTextWidth && orderContactSize > 7) {
@@ -1360,7 +1381,7 @@ async function productCatalogPdfBuffer(state) {
     for (let pageIndex = 0; pageIndex < pageRange.count; pageIndex += 1) {
       doc.switchToPage(pageRange.start + pageIndex);
       doc.moveTo(margin, pageHeight - 22).lineTo(pageWidth - margin, pageHeight - 22).lineWidth(.5).strokeColor(lineColor).stroke();
-      text(`Hotline ${catalogHotline || 'liên hệ tư vấn'} · Quét mã QR đặt hàng · Xem thêm: ${catalogMoreProductsHost}`, margin, pageHeight - 16, 450, {size:6, color:muted, limit:140});
+      text(`Hotline ${catalogHotline || 'liên hệ tư vấn'} · ${showQr ? 'Quét mã QR đặt hàng · ' : ''}Xem thêm: ${catalogMoreProductsHost}`, margin, pageHeight - 16, 450, {size:6, color:muted, limit:140});
       text(`${pageIndex + 1}/${pageRange.count}`, pageWidth - margin - 44, pageHeight - 16, 44, {size:6, color:muted, align:'right', limit:20});
     }
     doc.end();
