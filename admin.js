@@ -1,4 +1,4 @@
-document.head.append(Object.assign(document.createElement('link'), {rel: 'stylesheet', href: 'admin.css?v=20261110-admin-interface-state-hydration-v82'}));
+document.head.append(Object.assign(document.createElement('link'), {rel: 'stylesheet', href: 'admin.css?v=20261110-admin-interface-state-persistence-v83'}));
 document.head.append(Object.assign(document.createElement('link'), {rel: 'stylesheet', href: 'admin-layout-controls.css'}));
 document.head.append(Object.assign(document.createElement('link'), {rel: 'stylesheet', href: 'admin-import.css'}));
 document.head.append(Object.assign(document.createElement('link'), {rel: 'stylesheet', href: 'admin-quick-products.css'}));
@@ -70,7 +70,7 @@ async function hydrateAdminState() {
   // saved UI from the server so admin settings survive reloads and re-entry.
   // aeonStore.pull still rejects legacy UI revisions that could restore the
   // retired storefront.
-  await aeonStore.pull();
+  return aeonStore.pull();
 }
 
 function safeAdminThemeColor(value, fallback) {
@@ -368,12 +368,7 @@ async function uploadQuoteFile(file, expectedKind) {
 }
 
 async function saveQuoteFiles(patch = {}) {
-  let latestUi = {};
-  try {
-    latestUi = (await remoteState())['aeon-ui'] || {};
-  } catch {
-    latestUi = aeonStore.ui();
-  }
+  const latestUi = (await remoteState())['aeon-ui'] || {};
   // Keep a quote-only account from unintentionally writing default interface
   // fields that are absent from an older saved configuration.
   const combined = {...latestUi, ...patch};
@@ -438,12 +433,7 @@ async function verifyProductImage(productId, expectedImage) {
 
 async function saveHeroImage(value) {
   const heroImage = normaliseImageUrl(value);
-  let latestUi = {};
-  try {
-    latestUi = (await remoteState())['aeon-ui'] || {};
-  } catch {
-    latestUi = aeonStore.ui();
-  }
+  const latestUi = (await remoteState())['aeon-ui'] || {};
   // A new value is generated on every save so social crawlers re-fetch the
   // preview even when an external service replaces the image at the same URL.
   const heroPreviewVersion = `hero-${Date.now().toString(36)}`;
@@ -459,12 +449,7 @@ async function saveGiftRibbonBackground(value) {
   const rawImage = String(value ?? '').trim();
   const image = normaliseImageUrl(rawImage);
   if (rawImage && !image) throw new Error('Hãy nhập đường dẫn ảnh HTTP/HTTPS hợp lệ hoặc tải ảnh lên.');
-  let latestUi = {};
-  try {
-    latestUi = (await remoteState())['aeon-ui'] || {};
-  } catch {
-    latestUi = aeonStore.ui();
-  }
+  const latestUi = (await remoteState())['aeon-ui'] || {};
   await saveShared('aeon-ui', {...aeonStore.ui(), ...latestUi, giftRibbonBackgroundImage:image});
   const confirmedUi = (await remoteState())['aeon-ui'] || {};
   if (!sameImage(confirmedUi.giftRibbonBackgroundImage, image)) {
@@ -495,12 +480,7 @@ function normaliseHeroDisplayMode(value) {
 }
 
 async function saveLogoSettings(patch = {}) {
-  let latestUi = {};
-  try {
-    latestUi = (await remoteState())['aeon-ui'] || {};
-  } catch {
-    latestUi = aeonStore.ui();
-  }
+  const latestUi = (await remoteState())['aeon-ui'] || {};
 
   const combined = {...aeonStore.ui(), ...latestUi, ...patch};
   const nextUi = {
@@ -579,8 +559,9 @@ $('#loginForm').addEventListener('submit', async event => {
     if (!response.ok) throw new Error(result.error || 'Không thể đăng nhập.');
     adminSession = {authenticated:true, user:result.user || null};
     aeonStore.setAdminSession(true);
-    await hydrateAdminState();
+    const stateLoaded = await hydrateAdminState();
     showApp();
+    if (!stateLoaded) toastAdmin('Không tải được cài đặt đã lưu từ máy chủ. Hãy kiểm tra kết nối và tải lại trước khi chỉnh sửa.');
   } catch (loginError) {
     adminSession = {authenticated:false, user:null};
     aeonStore.setAdminSession(false);
@@ -1591,12 +1572,7 @@ function interfacePanel(panel) {
     const form = event.currentTarget;
     const values = Object.fromEntries(new FormData(form));
     try {
-      let latestUi = {};
-      try {
-        latestUi = (await remoteState())['aeon-ui'] || {};
-      } catch {
-        latestUi = aeonStore.ui();
-      }
+      const latestUi = (await remoteState())['aeon-ui'] || {};
       const catalogHotline = String(values.catalogHotline || '').trim().slice(0, 50);
       const catalogOrderPrompt = String(values.catalogOrderPrompt || '').trim().slice(0, 120);
       const rawCatalogBannerImage = String(values.catalogBannerImage || '').trim();
@@ -1642,7 +1618,21 @@ function interfacePanel(panel) {
         promotionText: window.AEONPromotionRichText?.clean(values.promotionText, 6000) || String(values.promotionText || '').replace(/\r\n?/g, '\n').trim().slice(0, 6000)
       };
       await saveShared('aeon-ui', nextUi);
-      renderAeonBrandLogos(nextUi);
+      const confirmedUi = (await remoteState())['aeon-ui'] || {};
+      const fieldsToConfirm = [...new Set([
+        ...Object.keys(values),
+        'catalogBannerImage', 'catalogOrderQrImage', 'catalogClosingImage',
+        'catalogProductIds', 'catalogProductLimit', 'catalogColumns',
+        'catalogShowCoverPoster', 'catalogShowClosingPoster', 'catalogShowQr'
+      ])];
+      const missedField = fieldsToConfirm.find(key => JSON.stringify(confirmedUi[key]) !== JSON.stringify(nextUi[key]));
+      if (missedField) {
+        await aeonStore.pull();
+        throw new Error('Máy chủ chưa xác nhận đủ cài đặt giao diện. Hãy tải lại mục Giao diện và thử lưu lại.');
+      }
+      localStorage.setItem('aeon-ui', JSON.stringify(confirmedUi));
+      renderAeonBrandLogos(confirmedUi);
+      window.dispatchEvent(new Event('aeon-store-sync'));
       toastAdmin('Đã lưu nội dung giao diện và đồng bộ website.');
     } catch (error) {
       toastAdmin(error.message);
@@ -2258,8 +2248,9 @@ async function initialiseAdminSession() {
     if (response.ok && result.authenticated) {
       adminSession = {authenticated:true, user:result.user || null};
       aeonStore.setAdminSession(true);
-      await hydrateAdminState();
+      const stateLoaded = await hydrateAdminState();
       showApp();
+      if (!stateLoaded) toastAdmin('Không tải được cài đặt đã lưu từ máy chủ. Hãy kiểm tra kết nối và tải lại trước khi chỉnh sửa.');
       return;
     }
     showLogin(result.configured === false ? 'Máy chủ chưa cấu hình ADMIN_USERNAME và ADMIN_PASSWORD.' : '');
