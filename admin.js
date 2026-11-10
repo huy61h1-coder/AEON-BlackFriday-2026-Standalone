@@ -1,4 +1,5 @@
-document.head.append(Object.assign(document.createElement('link'), {rel: 'stylesheet', href: 'admin.css?v=20261110-admin-interface-state-persistence-v83'}));
+document.head.append(Object.assign(document.createElement('link'), {rel: 'stylesheet', href: 'admin.css?v=20261110-outlook-order-confirmation-v84'}));
+document.head.append(Object.assign(document.createElement('link'), {rel: 'stylesheet', href: 'admin-order-email.css?v=20261110-outlook-order-confirmation-v84'}));
 document.head.append(Object.assign(document.createElement('link'), {rel: 'stylesheet', href: 'admin-layout-controls.css'}));
 document.head.append(Object.assign(document.createElement('link'), {rel: 'stylesheet', href: 'admin-import.css'}));
 document.head.append(Object.assign(document.createElement('link'), {rel: 'stylesheet', href: 'admin-quick-products.css'}));
@@ -28,6 +29,7 @@ const ADMIN_PERMISSION_LABELS = {
   customers: 'Khách hàng & đơn hàng'
 };
 let adminSession = {authenticated:false, user:null};
+let refreshOutlookMailStatus = null;
 
 function hasAdminPermission(permission) {
   const user = adminSession?.user;
@@ -2193,13 +2195,20 @@ function customersPanel(panel) {
       const moreProducts = Math.max(0, (Array.isArray(order.items) ? order.items.length : 0) - 2);
       const syncStatus = order.googleSheetSync?.status || 'pending';
       const syncLabel = syncStatus === 'synced' ? 'Đã đồng bộ' : syncStatus === 'failed' ? 'Lỗi đồng bộ' : 'Đang chờ';
+      const emailStatus = order.emailConfirmation?.status || 'pending';
+      const emailLabels = {pending:'Chưa xác nhận', sending:'Đang gửi email…', sent:'Đã gửi email xác nhận', failed:'Gửi email thất bại', uncertain:'Chưa rõ email đã gửi'};
+      const emailActionLabel = emailStatus === 'sent' ? 'Gửi lại email' : emailStatus === 'failed' ? 'Thử gửi lại' : emailStatus === 'uncertain' ? 'Kiểm tra / gửi lại' : emailStatus === 'sending' ? 'Đang gửi…' : 'Xác nhận & gửi email';
       return `<div class="customer-order-card">
         <div class="customer-order-main">
           <div class="customer-order-code"><span>MÃ ĐƠN HÀNG</span><b>${escapeHtml(order.code)}</b><small>${escapeHtml(order.createdAt || '')}</small></div>
           <div class="customer-order-products"><span>${itemCount} sản phẩm</span><p>${productNames || 'Chưa có thông tin sản phẩm'}${moreProducts ? ` · +${moreProducts} sản phẩm khác` : ''}</p></div>
           <div class="customer-order-total"><span>TỔNG THANH TOÁN</span><strong>${money(order.total)}</strong><small class="order-sync-status ${escapeHtml(syncStatus)}">${syncLabel}</small></div>
         </div>
-        <a class="order-pdf-button" href="/api/orders/${encodeURIComponent(order.code)}.pdf" download="don-hang-${escapeHtml(order.code)}.pdf" title="Tải PDF đơn hàng ${escapeHtml(order.code)}"><span>PDF</span>Tải đơn hàng <b>↓</b></a>
+        <div class="customer-order-actions">
+          <span class="order-email-status ${escapeHtml(emailStatus)}">${escapeHtml(emailLabels[emailStatus] || 'Chưa xác nhận')}${order.emailConfirmation?.recipient ? ` · ${escapeHtml(order.emailConfirmation.recipient)}` : ''}</span>
+          ${customer.email ? `<button type="button" class="order-confirm-email-button" data-confirm-order-email="${escapeHtml(order.code)}" data-email-status="${escapeHtml(emailStatus)}" disabled>${emailActionLabel}</button>` : '<span class="order-email-missing">Thiếu email khách hàng</span>'}
+          <a class="order-pdf-button" href="/api/orders/${encodeURIComponent(order.code)}.pdf" download="don-hang-${escapeHtml(order.code)}.pdf" title="Tải PDF đơn hàng ${escapeHtml(order.code)}"><span>PDF</span>Tải đơn hàng <b>↓</b></a>
+        </div>
       </div>`;
     }).join('') : '<p class="customer-no-order">Khách hàng này chưa có đơn hàng.</p>';
     return `<article class="customer-record">
@@ -2218,12 +2227,122 @@ function customersPanel(panel) {
   heading.replaceWith(action);
   action.querySelector('#downloadCustomerExcel').onclick = () => downloadCustomerExcel(action.querySelector('#downloadCustomerExcel'));
   panel.insertAdjacentHTML('afterbegin', `
+    <section class="admin-card outlook-mail-settings" id="outlookMailSettings" aria-labelledby="outlookMailTitle">
+      <div class="panel-action"><div><p class="eyebrow">EMAIL XÁC NHẬN ĐƠN</p><h2 id="outlookMailTitle">Kết nối hộp thư Outlook</h2><p id="outlookMailDescription">Sau khi kết nối, quản trị viên có thể xác nhận đơn và gửi email xác nhận cho khách.</p></div><span class="outlook-mail-state" id="outlookMailState">Đang kiểm tra kết nối…</span></div>
+      <div class="outlook-mail-actions"><button class="secondary-button" id="connectOutlookMailbox" type="button">Kết nối Outlook</button><button class="danger-button" id="disconnectOutlookMailbox" type="button" hidden>Ngắt kết nối</button></div>
+      <p class="outlook-mail-help" id="outlookMailHelp">Thông tin đăng nhập được kết nối bằng Microsoft OAuth và lưu mã hóa trên máy chủ.</p>
+    </section>`);
+  bindOutlookMailSettings(panel);
+  panel.querySelectorAll('[data-confirm-order-email]').forEach(button => {
+    button.onclick = async () => {
+      const status = button.dataset.emailStatus || 'pending';
+      const resend = ['sent', 'uncertain'].includes(status);
+      if (resend && !confirm(status === 'uncertain'
+        ? 'Chưa rõ Outlook đã gửi email hay chưa. Hãy kiểm tra Sent Items; gửi lại có thể khiến khách nhận thư trùng. Bạn vẫn muốn gửi lại?'
+        : 'Email xác nhận đã được gửi trước đó. Bạn muốn gửi thêm một bản nữa?')) return;
+      button.disabled = true;
+      button.textContent = 'Đang xử lý…';
+      try {
+        const response = await fetch(`/api/admin/orders/${encodeURIComponent(button.dataset.confirmOrderEmail)}/confirm-email`, {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({resend})
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(result.error || 'Không thể xác nhận đơn và gửi email.');
+        await aeonStore.pull();
+        render();
+        toastAdmin(`Đã xác nhận đơn ${result.orderCode} và gửi email cho ${result.recipient}.`);
+      } catch (error) {
+        await aeonStore.pull();
+        render();
+        toastAdmin(error.message || 'Không thể xác nhận đơn và gửi email.');
+      }
+    };
+  });
+  panel.insertAdjacentHTML('beforeend', `
     <section class="admin-card sheet-sync-card">
       <div class="panel-action"><div><p class="eyebrow">GOOGLE SHEET</p><h2>Đồng bộ đơn đặt hàng</h2><p>Đơn vẫn được lưu nội bộ trước, sau đó mới gửi bản sao sang Apps Script.</p></div><a class="secondary-button" href="/google-apps-script-order-sync.gs" download>Tải mã Apps Script</a></div>
       <div class="sheet-sync-stats"><span><b>${syncedOrders}</b> Đã đồng bộ</span><span><b>${pendingOrders}</b> Đang chờ</span><span class="${failedOrders ? 'has-error' : ''}"><b>${failedOrders}</b> Lỗi đồng bộ</span></div>
       <p class="sheet-sync-help">Endpoint được cấu hình bằng biến môi trường <code>GOOGLE_SHEET_WEB_APP_URL</code> trên máy chủ. Deployment phải có hàm <code>doPost</code>, chạy dưới tài khoản của bạn và cho phép truy cập <b>Anyone</b>.</p>
     </section>`);
 }
+
+function bindOutlookMailSettings(panel) {
+  const card = panel.querySelector('#outlookMailSettings');
+  if (!card) return;
+  const stateLabel = card.querySelector('#outlookMailState');
+  const help = card.querySelector('#outlookMailHelp');
+  const connect = card.querySelector('#connectOutlookMailbox');
+  const disconnect = card.querySelector('#disconnectOutlookMailbox');
+  const owner = isOwnerAccount();
+
+  refreshOutlookMailStatus = async () => {
+    try {
+      const response = await fetch('/api/admin/outlook/status', {cache:'no-store'});
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'Không kiểm tra được kết nối Outlook.');
+      if (result.connected) {
+        stateLabel.textContent = `Đã kết nối${result.email ? ` · ${result.email}` : ''}`;
+        stateLabel.className = 'outlook-mail-state is-connected';
+        help.textContent = 'Email sẽ được gửi từ hộp thư Outlook đã kết nối và lưu trong Sent Items.';
+      } else if (result.connectionError) {
+        stateLabel.textContent = 'Cần kết nối lại';
+        stateLabel.className = 'outlook-mail-state has-error';
+        help.textContent = result.connectionError;
+      } else if (!result.configured) {
+        stateLabel.textContent = 'Chưa cấu hình trên máy chủ';
+        stateLabel.className = 'outlook-mail-state has-error';
+        help.textContent = `Cần cài biến môi trường máy chủ: ${(result.missing || []).join(', ')}. Không nhập client secret vào giao diện web.`;
+      } else {
+        stateLabel.textContent = 'Chưa kết nối';
+        stateLabel.className = 'outlook-mail-state';
+        help.textContent = 'Tài khoản quản trị chính chọn Kết nối Outlook và đăng nhập hộp thư muốn dùng để gửi.';
+      }
+      panel.querySelectorAll('[data-confirm-order-email]').forEach(button => {
+        button.disabled = !result.connected || button.dataset.emailStatus === 'sending';
+      });
+      connect.disabled = !result.configured || !owner;
+      disconnect.hidden = !result.connected || !owner;
+    } catch (error) {
+      stateLabel.textContent = 'Không kiểm tra được';
+      stateLabel.className = 'outlook-mail-state has-error';
+      help.textContent = error.message || 'Hãy tải lại trang quản trị để kiểm tra kết nối.';
+      connect.disabled = true;
+      disconnect.hidden = true;
+      panel.querySelectorAll('[data-confirm-order-email]').forEach(button => { button.disabled = true; });
+    }
+  };
+  connect.disabled = !owner;
+  connect.onclick = () => {
+    if (!owner) return;
+    const popup = window.open('/api/admin/outlook/connect', 'aeon-outlook-connect', 'popup,width=560,height=760');
+    if (!popup) toastAdmin('Trình duyệt đã chặn cửa sổ đăng nhập. Hãy cho phép cửa sổ bật lên rồi thử lại.');
+  };
+  disconnect.onclick = async () => {
+    if (!owner || !confirm('Ngắt kết nối Outlook trên website này? Bạn có thể kết nối lại sau.')) return;
+    disconnect.disabled = true;
+    try {
+      const response = await fetch('/api/admin/outlook/disconnect', {method:'POST'});
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'Không thể ngắt kết nối Outlook.');
+      await refreshOutlookMailStatus();
+      toastAdmin('Đã ngắt kết nối Outlook trên website.');
+    } catch (error) {
+      toastAdmin(error.message || 'Không thể ngắt kết nối Outlook.');
+    } finally {
+      disconnect.disabled = false;
+    }
+  };
+  refreshOutlookMailStatus();
+}
+
+window.addEventListener('message', event => {
+  if (event.origin !== window.location.origin || event.data?.type !== 'aeon-outlook-oauth') return;
+  if (event.data.ok) toastAdmin(event.data.message || 'Đã kết nối Outlook.');
+  else toastAdmin(event.data.message || 'Không thể kết nối Outlook.');
+  refreshOutlookMailStatus?.();
+});
 
 function toastAdmin(message) {
   const notice = document.createElement('p');

@@ -1,0 +1,24 @@
+.outlook-mail-settings{margin:0 0 22px;border:1px solid #e5ded6;border-radius:12px}
+.outlook-mail-settings .panel-action{margin-bottom:12px}
+.outlook-mail-settings .panel-action h2{margin:4px 0 6px}
+.outlook-mail-settings .panel-action p:not(.eyebrow){max-width:680px;line-height:1.6}
+.outlook-mail-state{display:inline-flex;align-items:center;min-height:34px;padding:7px 12px;border-radius:999px;background:#f1eee9;color:#665c55;font-size:11px;font-weight:700;white-space:nowrap}
+.outlook-mail-state.is-connected{background:#e8f3e8;color:#28623a}
+.outlook-mail-state.has-error{background:#fff0e8;color:#9b3c20}
+.outlook-mail-actions{display:flex;flex-wrap:wrap;align-items:center;gap:9px}
+.outlook-mail-help{margin:11px 0 0;color:#6c625b;font-size:11px;line-height:1.6}
+.outlook-mail-help code{overflow-wrap:anywhere}
+.outlook-mail-actions button:disabled{opacity:.55;cursor:not-allowed}
+.customer-order-actions{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:9px;margin-top:12px;padding-top:12px;border-top:1px solid #ece6df}
+.order-email-status{margin-right:auto;color:#706960;font-size:10px;font-weight:700}
+.order-email-status.sent{color:#28623a}
+.order-email-status.failed,.order-email-status.uncertain{color:#a34227}
+.order-email-status.sending{color:#805b11}
+.order-confirm-email-button{min-height:36px;padding:8px 12px;border:0;border-radius:6px;background:#bd1232;color:#fff;font:700 11px 'Be Vietnam Pro',sans-serif;cursor:pointer}
+.order-confirm-email-button:hover{background:#99102b}
+.order-confirm-email-button:disabled{opacity:.55;cursor:not-allowed}
+.order-email-missing{color:#a34227;font-size:10px;font-weight:700}
+.customer-order-actions .order-pdf-button{margin:0}
+.danger-button{min-height:36px;padding:8px 12px;border:1px solid #e2c6c6;border-radius:6px;background:#fff;color:#a3273b;font:700 11px 'Be Vietnam Pro',sans-serif;cursor:pointer}
+.danger-button:hover{background:#fff3f4}
+@media(max-width:760px){.outlook-mail-settings .panel-action{gap:10px}.outlook-mail-state{white-space:normal}.customer-order-actions{align-items:stretch;justify-content:flex-start}.order-email-status{flex-basis:100%;margin:0}.customer-order-actions .order-confirm-email-button,.customer-order-actions .order-pdf-button{flex:1;justify-content:center}}

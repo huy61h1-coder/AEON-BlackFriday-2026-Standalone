@@ -10,6 +10,7 @@
 - Nhập sản phẩm từ Excel/PDF và tải file báo giá Excel/PDF.
 - Quản lý khách hàng, đơn hàng và xuất Excel tổng hợp.
 - Tạo PDF A4 riêng cho từng đơn hàng.
+- Kết nối Outlook bằng Microsoft OAuth để quản trị viên xác nhận đơn và gửi email chi tiết cho khách.
 - Đồng bộ đơn hàng sang Google Sheet qua Apps Script.
 - Tài khoản quản trị chính có thể tạo tài khoản con, tạm khóa và cấp quyền theo từng chức năng.
 
@@ -44,6 +45,12 @@ Máy chủ hỗ trợ các biến môi trường:
 - `AEON_LOCK_STOREFRONT`: đặt `true` trên máy chủ production để giao diện public dùng `storefront-state.js` khi cấu hình lưu/cloud mang phiên bản cũ. Banner, logo, nội dung và bố cục được quản trị viên lưu bằng bản mới sẽ tiếp tục hiển thị; danh sách sản phẩm không bị khóa.
 - `GOOGLE_SHEET_WEB_APP_URL`: URL Web App của Google Apps Script, bắt buộc
   nếu dùng chức năng đồng bộ đơn hàng.
+- `MICROSOFT_CLIENT_ID`: ID ứng dụng Microsoft Entra đăng ký cho web.
+- `MICROSOFT_CLIENT_SECRET`: giá trị secret của ứng dụng; chỉ đặt ở môi trường máy chủ.
+- `MICROSOFT_TENANT_ID`: tenant Microsoft 365; mặc định `common` để cho phép chọn tài khoản Microsoft.
+- `MICROSOFT_REDIRECT_URI`: URL callback đã đăng ký trong Entra, ví dụ
+  `https://blackfriday.tinhgon.xyz/api/admin/outlook/callback`.
+- `AEON_OUTLOOK_TOKEN_KEY`: khóa ngẫu nhiên dài tối thiểu 32 ký tự để mã hóa token Outlook đã cấp.
 
 Ví dụ trên PowerShell:
 
@@ -52,8 +59,31 @@ $env:ADMIN_USERNAME='ten-quan-tri'
 $env:ADMIN_PASSWORD='mat-khau-manh'
 $env:AEON_LOCK_STOREFRONT='true'
 $env:GOOGLE_SHEET_WEB_APP_URL='https://script.google.com/macros/s/DEPLOYMENT_ID/exec'
+# Chỉ cấu hình các giá trị OAuth này ở môi trường máy chủ, không ghi vào mã nguồn.
+$env:MICROSOFT_CLIENT_ID='APPLICATION_CLIENT_ID'
+$env:MICROSOFT_CLIENT_SECRET='APPLICATION_CLIENT_SECRET_VALUE'
+$env:MICROSOFT_TENANT_ID='common'
+$env:MICROSOFT_REDIRECT_URI='https://blackfriday.tinhgon.xyz/api/admin/outlook/callback'
+$env:AEON_OUTLOOK_TOKEN_KEY='REPLACE_WITH_A_RANDOM_SECRET_AT_LEAST_32_CHARACTERS'
 npm start
 ```
+
+Để bật email Outlook, tạo ứng dụng Microsoft Entra với loại tài khoản phù hợp,
+thêm nền tảng **Web** và URI chuyển hướng đúng như `MICROSOFT_REDIRECT_URI`.
+Cấp quyền ủy quyền Microsoft Graph `User.Read` và `Mail.Send`; luồng đăng nhập
+cũng yêu cầu `offline_access` để gửi tự động sau lần kết nối đầu tiên. Dùng
+secret ứng dụng ở biến môi trường máy chủ, không đưa secret vào giao diện web.
+Tạo `AEON_OUTLOOK_TOKEN_KEY` ngẫu nhiên (ví dụ `node -e
+"console.log(require('node:crypto').randomBytes(32).toString('base64url'))"`)
+và giữ nguyên khóa này khi cập nhật để máy chủ tiếp tục giải mã kết nối. Máy
+chủ cần giữ bền vững tệp mã hóa `.aeon-outlook.json` cùng với `.aeon-store.json`.
+
+Sau khi cấu hình và triển khai lại, đăng nhập bằng tài khoản quản trị chính,
+mở **Khách hàng** rồi chọn **Kết nối Outlook**. Trong từng đơn, **Xác nhận &
+gửi email** xác nhận đơn và gửi danh sách sản phẩm, số lượng, giá và tổng tiền
+cho địa chỉ email khách hàng. Website ghi trạng thái gửi để tránh gửi trùng;
+nếu kết nối bị ngắt giữa lúc gửi, hãy kiểm tra thư mục Sent Items trước khi gửi
+lại.
 
 Không ghi các giá trị thật vào mã nguồn hoặc commit tệp `.env`. Sau khi thay
 đổi tài khoản/mật khẩu, hãy khởi động lại máy chủ để áp dụng.

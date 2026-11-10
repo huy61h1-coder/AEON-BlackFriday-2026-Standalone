@@ -31,6 +31,8 @@ build/
 .env.local
 .aeon-store.json
 .aeon-store.json.tmp
+.aeon-outlook.json
+.aeon-outlook.json.tmp
 .codex-sheet/
 
 # Runtime uploads and generated artifacts

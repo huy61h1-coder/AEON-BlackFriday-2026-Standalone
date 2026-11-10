@@ -25,6 +25,12 @@ const adminPassword = String(process.env.ADMIN_PASSWORD || '');
 // from this release carry the current revision and remain editable/public.
 const lockPublicStorefront = /^(?:1|true|yes|on)$/i.test(String(process.env.AEON_LOCK_STOREFRONT || '').trim());
 const googleSheetWebAppUrl = String(process.env.GOOGLE_SHEET_WEB_APP_URL || '').trim();
+const microsoftClientId = String(process.env.MICROSOFT_CLIENT_ID || '').trim();
+const microsoftClientSecret = String(process.env.MICROSOFT_CLIENT_SECRET || '').trim();
+const microsoftTenantId = String(process.env.MICROSOFT_TENANT_ID || 'common').trim() || 'common';
+const microsoftRedirectUri = String(process.env.MICROSOFT_REDIRECT_URI || '').trim();
+const outlookTokenEncryptionSecret = String(process.env.AEON_OUTLOOK_TOKEN_KEY || '');
+const outlookTokenPath = path.join(root, '.aeon-outlook.json');
 function publicSupabaseConfig() {
   try {
     const source = fs.readFileSync(path.join(root, 'supabase-config.js'), 'utf8');
@@ -47,6 +53,9 @@ const cloudStateKeys = ['aeon-products', productTombstoneStateKey, 'aeon-ui', 'a
 const adminSessionCookie = 'aeon_admin_session';
 const adminSessionTtlSeconds = 12 * 60 * 60;
 const adminSessions = new Map();
+const outlookOAuthAttempts = new Map();
+const outlookOrderSends = new Set();
+let outlookRefreshInFlight = null;
 const adminAccountsStateKey = 'aeon-admin-users';
 const adminPermissionDefinitions = [
   {id:'products', label:'Sản phẩm & giá'},
@@ -60,7 +69,7 @@ const types = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charse
 // Bump this whenever the storefront shell changes. It fingerprints every
 // local CSS/JS URL emitted by the Node deployment, so a CDN cannot revive an
 // obsolete interface after a new release.
-const storefrontBuild = '20261110-admin-interface-state-persistence-v83';
+const storefrontBuild = '20261110-outlook-order-confirmation-v84';
 const productImageFitCss = '\n/* Server-enforced product commerce lock. */\n.product-media{position:relative!important;overflow:hidden!important;background:#fff!important}.product-media:has(.product-image-placeholder:not([hidden])),.product-media:has(.product-image-placeholder:not([hidden])):before,.product-media .product-image-placeholder:not([hidden]){background:#fff!important}.product-media img.product-official-image{display:block!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;margin:0!important;padding:0!important;object-fit:contain!important;object-position:center center!important}.product-price-stack .price,.product-price-stack .regular-price,.product-discount-badge{visibility:visible!important;opacity:1!important}\n';
 const noCacheHeaders = {
   'Cache-Control':'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0',
@@ -1927,6 +1936,280 @@ async function sendOrderToGoogleSheet(payload) {
   }
 }
 
+function outlookConfigurationStatus() {
+  const missing = [];
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(microsoftClientId)) missing.push('MICROSOFT_CLIENT_ID');
+  if (microsoftClientSecret.length < 8) missing.push('MICROSOFT_CLIENT_SECRET');
+  if (!/^(common|organizations|consumers|[a-z0-9.-]+)$/i.test(microsoftTenantId)) missing.push('MICROSOFT_TENANT_ID (không hợp lệ)');
+  if (!microsoftRedirectUri) missing.push('MICROSOFT_REDIRECT_URI');
+  if (outlookTokenEncryptionSecret.length < 32) missing.push('AEON_OUTLOOK_TOKEN_KEY');
+  if (microsoftRedirectUri) {
+    try {
+      const redirect = new URL(microsoftRedirectUri);
+      const localHost = ['localhost', '127.0.0.1', '[::1]'].includes(redirect.hostname);
+      if (redirect.protocol !== 'https:' && !(localHost && redirect.protocol === 'http:')) missing.push('MICROSOFT_REDIRECT_URI (cần HTTPS)');
+    } catch {
+      missing.push('MICROSOFT_REDIRECT_URI (không hợp lệ)');
+    }
+  }
+  return {configured:missing.length === 0, missing};
+}
+
+function outlookTokenKey() {
+  if (outlookTokenEncryptionSecret.length < 32) throw new Error('Máy chủ chưa cấu hình khóa mã hóa token Outlook (AEON_OUTLOOK_TOKEN_KEY).');
+  return crypto.createHash('sha256').update(outlookTokenEncryptionSecret, 'utf8').digest();
+}
+
+function readOutlookTokens() {
+  if (!fs.existsSync(outlookTokenPath)) return null;
+  const record = JSON.parse(fs.readFileSync(outlookTokenPath, 'utf8'));
+  if (record?.version !== 1 || !record.iv || !record.tag || !record.data) throw new Error('Không đọc được thông tin kết nối Outlook đã lưu.');
+  const decipher = crypto.createDecipheriv('aes-256-gcm', outlookTokenKey(), Buffer.from(record.iv, 'base64url'));
+  decipher.setAuthTag(Buffer.from(record.tag, 'base64url'));
+  const plaintext = Buffer.concat([
+    decipher.update(Buffer.from(record.data, 'base64url')),
+    decipher.final()
+  ]).toString('utf8');
+  return JSON.parse(plaintext);
+}
+
+function writeOutlookTokens(tokens) {
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv('aes-256-gcm', outlookTokenKey(), iv);
+  const encrypted = Buffer.concat([
+    cipher.update(JSON.stringify(tokens), 'utf8'),
+    cipher.final()
+  ]);
+  const record = JSON.stringify({
+    version:1,
+    iv:iv.toString('base64url'),
+    tag:cipher.getAuthTag().toString('base64url'),
+    data:encrypted.toString('base64url')
+  });
+  const temporary = `${outlookTokenPath}.tmp`;
+  fs.writeFileSync(temporary, record, {mode:0o600});
+  fs.renameSync(temporary, outlookTokenPath);
+  try { fs.chmodSync(outlookTokenPath, 0o600); } catch {}
+}
+
+function microsoftEndpoint(pathname) {
+  const tenant = encodeURIComponent(microsoftTenantId);
+  return `https://login.microsoftonline.com/${tenant}/oauth2/v2.0/${pathname}`;
+}
+
+async function microsoftTokenRequest(form) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 20000);
+  try {
+    const response = await fetch(microsoftEndpoint('token'), {
+      method:'POST',
+      headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body:new URLSearchParams(form),
+      signal:controller.signal
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const detail = String(result.error_description || result.error || '').replace(/\s+/g, ' ').trim().slice(0, 260);
+      throw new Error(detail ? `Microsoft không chấp nhận kết nối: ${detail}` : `Microsoft phản hồi HTTP ${response.status} khi kết nối Outlook.`);
+    }
+    return result;
+  } catch (error) {
+    if (error?.name === 'AbortError') throw new Error('Microsoft đăng nhập phản hồi quá chậm. Hãy thử kết nối lại.');
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function microsoftProfile(accessToken) {
+  const response = await fetch('https://graph.microsoft.com/v1.0/me?$select=displayName,mail,userPrincipalName', {
+    headers:{Authorization:`Bearer ${accessToken}`, Accept:'application/json'},
+    signal:AbortSignal.timeout(15000)
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result?.error?.message || `Không đọc được hộp thư Microsoft (HTTP ${response.status}).`);
+  return {
+    displayName:String(result.displayName || '').slice(0, 160),
+    email:String(result.mail || result.userPrincipalName || '').slice(0, 254)
+  };
+}
+
+async function getOutlookAccessToken() {
+  if (outlookRefreshInFlight) return outlookRefreshInFlight;
+  outlookRefreshInFlight = (async () => {
+    const saved = readOutlookTokens();
+    if (!saved?.refreshToken) throw new Error('Chưa kết nối hộp thư Outlook. Hãy kết nối Outlook trước khi gửi email.');
+    if (Number(saved.expiresAt) > Date.now() + 120000 && saved.accessToken) return saved.accessToken;
+    const refreshed = await microsoftTokenRequest({
+      client_id:microsoftClientId,
+      client_secret:microsoftClientSecret,
+      grant_type:'refresh_token',
+      refresh_token:saved.refreshToken,
+      scope:'offline_access User.Read Mail.Send'
+    });
+    const next = {
+      ...saved,
+      accessToken:String(refreshed.access_token || ''),
+      refreshToken:String(refreshed.refresh_token || saved.refreshToken),
+      expiresAt:Date.now() + Math.max(60, Number(refreshed.expires_in) || 3600) * 1000
+    };
+    if (!next.accessToken) throw new Error('Microsoft không cấp access token mới. Hãy kết nối lại Outlook.');
+    writeOutlookTokens(next);
+    return next.accessToken;
+  })();
+  try {
+    return await outlookRefreshInFlight;
+  } catch (error) {
+    if (/invalid_grant|interaction_required|expired/i.test(String(error.message || ''))) {
+      throw new Error('Phiên kết nối Outlook đã hết hạn. Hãy kết nối lại hộp thư.');
+    }
+    throw error;
+  } finally {
+    outlookRefreshInFlight = null;
+  }
+}
+
+function escapeEmailHtml(value) {
+  return String(value ?? '').replace(/[&<>'"]/g, character => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[character]));
+}
+
+function formatEmailMoney(value) {
+  const amount = Math.max(0, Number(value) || 0);
+  return `${new Intl.NumberFormat('vi-VN').format(amount)} ₫`;
+}
+
+function orderConfirmationHtml(customer, order) {
+  const items = (Array.isArray(order.items) ? order.items : []).slice(0, 80);
+  const rows = items.map(item => {
+    const quantity = Math.max(1, Math.min(9999, Number(item?.qty ?? item?.quantity) || 1));
+    const unitPrice = Math.max(0, Number(item?.price ?? item?.unitPrice) || 0);
+    const lineTotal = Math.max(0, Number(item?.lineTotal) || unitPrice * quantity);
+    return `<tr><td style="padding:12px 8px;border-bottom:1px solid #e9e3db">${escapeEmailHtml(item?.name || 'Sản phẩm')}${item?.variantLabel ? `<br><span style="color:#766f68;font-size:13px">${escapeEmailHtml(item.variantLabel)}</span>` : ''}</td><td style="padding:12px 8px;border-bottom:1px solid #e9e3db;text-align:center">${quantity}</td><td style="padding:12px 8px;border-bottom:1px solid #e9e3db;text-align:right">${formatEmailMoney(lineTotal)}</td></tr>`;
+  }).join('');
+  const discount = Math.max(0, Number(order.discount) || 0);
+  const subtotal = Math.max(0, Number(order.subtotal) || 0);
+  const promotion = order.promotion ? `<p style="margin:5px 0;color:#706a64">Ưu đãi: ${escapeEmailHtml(order.promotion)}</p>` : '';
+  return `<!doctype html><html><body style="margin:0;background:#f4f0e8;color:#242224;font-family:Arial,Helvetica,sans-serif"><div style="max-width:680px;margin:24px auto;padding:0 14px"><div style="background:#bd1232;color:#fff;padding:24px;border-radius:14px 14px 0 0"><div style="font-size:13px;letter-spacing:2px;font-weight:bold">AEON · BLACK FRIDAY</div><h1 style="margin:12px 0 4px;font-size:25px">Đơn hàng đã được xác nhận</h1><div style="font-size:15px">Mã đơn: <b>${escapeEmailHtml(order.code)}</b></div></div><div style="background:#fff;padding:24px;border:1px solid #e7e0d6;border-top:0"><p>Xin chào <b>${escapeEmailHtml(customer.name || 'Quý khách')}</b>,</p><p>Đơn hàng của bạn đã được xác nhận. AEON sẽ liên hệ để cập nhật quá trình giao hàng nếu cần.</p><table role="presentation" style="width:100%;border-collapse:collapse;margin:18px 0"><thead><tr><th style="text-align:left;padding:10px 8px;border-bottom:2px solid #bd1232">Sản phẩm</th><th style="padding:10px 8px;border-bottom:2px solid #bd1232">SL</th><th style="text-align:right;padding:10px 8px;border-bottom:2px solid #bd1232">Thành tiền</th></tr></thead><tbody>${rows}</tbody></table><div style="text-align:right;line-height:1.8"><div>Tạm tính: ${formatEmailMoney(subtotal)}</div>${discount ? `<div>Giảm giá: −${formatEmailMoney(discount)}</div>` : ''}${promotion}<div style="font-size:20px;font-weight:bold;color:#bd1232">Tổng thanh toán: ${formatEmailMoney(order.total)}</div></div><div style="margin-top:22px;padding-top:16px;border-top:1px solid #e9e3db;color:#706a64;font-size:13px"><div>Điện thoại: ${escapeEmailHtml(customer.phone || '—')}</div><div>Địa chỉ: ${escapeEmailHtml(customer.address || '—')}</div><div>Thời gian đặt: ${escapeEmailHtml(order.createdAt || customer.createdAt || '—')}</div></div></div><div style="padding:18px;text-align:center;color:#706a64;font-size:12px">Cảm ơn bạn đã mua sắm cùng AEON Black Friday.</div></div></body></html>`;
+}
+
+async function sendOrderConfirmationFromOutlook(customer, order) {
+  const accessToken = await getOutlookAccessToken();
+  const message = {
+    subject:`AEON Black Friday · Xác nhận đơn ${String(order.code || '').slice(0, 60)}`,
+    body:{contentType:'HTML', content:orderConfirmationHtml(customer, order)},
+    toRecipients:[{emailAddress:{address:String(customer.email || '').trim()}}],
+    importance:'normal'
+  };
+  let response;
+  try {
+    response = await fetch('https://graph.microsoft.com/v1.0/me/sendMail', {
+      method:'POST',
+      headers:{Authorization:`Bearer ${accessToken}`, 'Content-Type':'application/json', Accept:'application/json'},
+      body:JSON.stringify({message, saveToSentItems:true}),
+      signal:AbortSignal.timeout(20000)
+    });
+  } catch (error) {
+    const uncertain = new Error(error?.name === 'TimeoutError'
+      ? 'Không nhận được phản hồi từ Outlook; hãy kiểm tra mục Sent Items trước khi gửi lại.'
+      : 'Mất kết nối khi gửi email; hãy kiểm tra mục Sent Items trước khi gửi lại.');
+    uncertain.deliveryUnknown = true;
+    throw uncertain;
+  }
+  if (!response.ok) {
+    const result = await response.json().catch(() => ({}));
+    throw new Error(String(result?.error?.message || `Outlook từ chối gửi email (HTTP ${response.status}).`).slice(0, 300));
+  }
+  return {acceptedAt:new Date().toISOString(), statusCode:response.status};
+}
+
+function outlookCallbackPage(ok, message) {
+  const safeMessage = escapeHtmlAttribute(message);
+  const result = JSON.stringify({type:'aeon-outlook-oauth', ok:Boolean(ok), message:String(message || '')}).replace(/</g, '\\u003c');
+  return `<!doctype html><html lang="vi"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Kết nối Outlook</title><body style="margin:0;min-height:100vh;display:grid;place-items:center;background:#f4f0e8;font-family:Arial,sans-serif;color:#242224"><main style="max-width:460px;margin:24px;padding:28px;border-radius:14px;background:#fff;box-shadow:0 12px 40px #2d182015"><h1 style="font-size:22px">${ok ? 'Đã kết nối Outlook' : 'Chưa kết nối được Outlook'}</h1><p>${safeMessage}</p><button onclick="window.close()" style="padding:10px 16px;border:0;border-radius:6px;background:#bd1232;color:#fff;font-weight:bold;cursor:pointer">Đóng cửa sổ</button></main><script>try{window.opener?.postMessage(${result},window.location.origin)}catch{} if(window.opener&&${Boolean(ok)})setTimeout(()=>window.close(),900)</script></body></html>`;
+}
+
+function sendOutlookCallbackPage(response, ok, message, statusCode = 200) {
+  response.writeHead(statusCode, {'Content-Type':'text/html; charset=utf-8', ...noCacheHeaders});
+  response.end(outlookCallbackPage(ok, message));
+}
+
+async function handleOutlookOrderConfirmation(request, response, orderCode) {
+  if (!requirePermission(request, response, 'customers')) return;
+  if (outlookOrderSends.has(orderCode)) return json(response, 409, {error:'Email cho đơn này đang được xử lý.'});
+  outlookOrderSends.add(orderCode);
+  try {
+    const payload = JSON.parse((await readBody(request, 24 * 1024)).toString('utf8') || '{}');
+    const resend = payload?.resend === true;
+    const state = readState();
+    const orders = Array.isArray(state['aeon-orders']) ? state['aeon-orders'].map(order => ({...order})) : [];
+    const orderIndex = orders.findIndex(order => String(order?.code || '') === orderCode);
+    if (orderIndex < 0) return json(response, 404, {error:'Không tìm thấy đơn hàng.'});
+    const order = orders[orderIndex];
+    const customer = (Array.isArray(state['aeon-customers']) ? state['aeon-customers'] : [])
+      .find(item => String(item?.id ?? '') === String(order.customerId ?? ''));
+    const email = String(customer?.email || '').trim();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json(response, 400, {error:'Đơn hàng chưa có địa chỉ email hợp lệ của khách hàng.'});
+    const emailState = order.emailConfirmation || {};
+    if (emailState.status === 'sending') return json(response, 409, {error:'Email của đơn này đang ở trạng thái xử lý. Hãy tải lại trước khi thao tác tiếp.'});
+    if (emailState.status === 'sent' && !resend) return json(response, 409, {error:'Email đã được gửi. Chọn gửi lại nếu khách cần nhận thêm một bản.'});
+    if (emailState.status === 'uncertain' && !resend) return json(response, 409, {error:'Chưa rõ Outlook đã nhận email hay chưa. Hãy kiểm tra Sent Items trước khi chọn gửi lại.'});
+    const outlookConfig = outlookConfigurationStatus();
+    if (!outlookConfig.configured) return json(response, 503, {error:`Máy chủ chưa cấu hình Outlook: ${outlookConfig.missing.join(', ')}.`});
+    const connected = readOutlookTokens();
+    if (!connected?.refreshToken) return json(response, 503, {error:'Chưa kết nối hộp thư Outlook. Hãy kết nối trong mục Khách hàng & đơn hàng.'});
+
+    const principal = adminPrincipal(request);
+    const now = new Date().toISOString();
+    order.status = 'confirmed';
+    order.confirmedAt ||= now;
+    order.confirmedBy ||= principal?.username || 'admin';
+    order.emailConfirmation = {
+      status:'sending',
+      startedAt:now,
+      recipient:email,
+      sentBy:principal?.username || 'admin',
+      resendCount:Math.max(0, Number(emailState.resendCount) || 0) + (emailState.status === 'sent' ? 1 : 0)
+    };
+    orders[orderIndex] = order;
+    state['aeon-orders'] = orders;
+    await writeState(state, ['aeon-orders']);
+
+    let graphAccepted = false;
+    try {
+      const sent = await sendOrderConfirmationFromOutlook(customer, order);
+      graphAccepted = true;
+      order.emailConfirmation = {
+        ...order.emailConfirmation,
+        status:'sent',
+        sentAt:sent.acceptedAt,
+        outlookResponse:sent.statusCode
+      };
+      orders[orderIndex] = order;
+      state['aeon-orders'] = orders;
+      await writeState(state, ['aeon-orders']);
+      return json(response, 200, {ok:true, status:'sent', orderCode, recipient:email, sentAt:sent.acceptedAt});
+    } catch (error) {
+      const deliveryUnknown = Boolean(error.deliveryUnknown || graphAccepted);
+      order.emailConfirmation = {
+        ...order.emailConfirmation,
+        status:deliveryUnknown ? 'uncertain' : 'failed',
+        failedAt:new Date().toISOString(),
+        error:String(graphAccepted
+          ? 'Outlook đã nhận email nhưng chưa lưu được trạng thái đơn. Hãy kiểm tra Sent Items trước khi gửi lại.'
+          : error.message || 'Không gửi được email xác nhận.').slice(0, 300)
+      };
+      orders[orderIndex] = order;
+      state['aeon-orders'] = orders;
+      try { await writeState(state, ['aeon-orders']); } catch {}
+      return json(response, 502, {error:order.emailConfirmation.error, status:order.emailConfirmation.status});
+    }
+  } catch (error) {
+    return json(response, 500, {error:error.message || 'Không thể xác nhận và gửi email đơn hàng.'});
+  } finally {
+    outlookOrderSends.delete(orderCode);
+  }
+}
+
 http.createServer(async (request, response) => {
   let pathname;
   try { pathname = decodeURIComponent(new URL(request.url, `http://${request.headers.host}`).pathname); }
@@ -1977,12 +2260,114 @@ http.createServer(async (request, response) => {
   if (request.method === 'POST' && pathname === '/api/admin/logout') {
     const token = adminSessionToken(request);
     if (token) adminSessions.delete(token);
+    if (token) {
+      for (const [state, attempt] of outlookOAuthAttempts.entries()) {
+        if (attempt.sessionToken === token) outlookOAuthAttempts.delete(state);
+      }
+    }
     response.writeHead(200, {
       'Content-Type':'application/json; charset=utf-8',
       'Cache-Control':'no-store',
       'Set-Cookie':adminCookie(request, '', 0)
     });
     return response.end(JSON.stringify({ok:true}));
+  }
+
+  if (request.method === 'GET' && pathname === '/api/admin/outlook/status') {
+    if (!requirePermission(request, response, 'customers')) return;
+    const config = outlookConfigurationStatus();
+    let connection = null;
+    let connectionError = '';
+    try { connection = readOutlookTokens(); }
+    catch (error) { connectionError = String(error.message || 'Không đọc được thông tin kết nối Outlook.').slice(0, 220); }
+    return json(response, 200, {
+      configured:config.configured,
+      missing:config.missing,
+      connected:Boolean(connection?.refreshToken && !connectionError),
+      email:connectionError ? '' : String(connection?.email || ''),
+      displayName:connectionError ? '' : String(connection?.displayName || ''),
+      connectionError
+    });
+  }
+  if (request.method === 'GET' && pathname === '/api/admin/outlook/connect') {
+    if (!requireOwner(request, response)) return;
+    const config = outlookConfigurationStatus();
+    if (!config.configured) return sendOutlookCallbackPage(response, false, `Máy chủ còn thiếu cấu hình: ${config.missing.join(', ')}.`, 503);
+    const sessionToken = adminSessionToken(request);
+    if (!sessionToken) return sendOutlookCallbackPage(response, false, 'Phiên quản trị đã hết hạn. Hãy đăng nhập lại rồi kết nối Outlook.', 401);
+    const now = Date.now();
+    for (const [state, attempt] of outlookOAuthAttempts.entries()) {
+      if (attempt.expiresAt <= now) outlookOAuthAttempts.delete(state);
+    }
+    const oauthState = crypto.randomBytes(32).toString('base64url');
+    outlookOAuthAttempts.set(oauthState, {sessionToken, expiresAt:now + 10 * 60 * 1000});
+    const authorizeUrl = new URL(microsoftEndpoint('authorize'));
+    authorizeUrl.search = new URLSearchParams({
+      client_id:microsoftClientId,
+      response_type:'code',
+      redirect_uri:microsoftRedirectUri,
+      response_mode:'query',
+      scope:'openid profile email offline_access User.Read Mail.Send',
+      state:oauthState,
+      prompt:'select_account'
+    }).toString();
+    response.writeHead(302, {'Location':authorizeUrl.href, ...noCacheHeaders});
+    return response.end();
+  }
+  if (request.method === 'GET' && pathname === '/api/admin/outlook/callback') {
+    const callbackUrl = new URL(request.url, 'http://localhost');
+    const oauthState = String(callbackUrl.searchParams.get('state') || '');
+    const attempt = outlookOAuthAttempts.get(oauthState);
+    outlookOAuthAttempts.delete(oauthState);
+    const session = attempt ? adminSessions.get(attempt.sessionToken) : null;
+    if (!attempt || attempt.expiresAt <= Date.now() || !session || session.expiresAt <= Date.now() || !session.isOwner) {
+      return sendOutlookCallbackPage(response, false, 'Yêu cầu kết nối không còn hợp lệ. Hãy đóng cửa sổ, đăng nhập lại và thử kết nối Outlook lần nữa.', 400);
+    }
+    const oauthError = String(callbackUrl.searchParams.get('error_description') || callbackUrl.searchParams.get('error') || '').replace(/[\r\n]+/g, ' ').slice(0, 260);
+    if (oauthError) return sendOutlookCallbackPage(response, false, `Microsoft chưa cấp quyền: ${oauthError}`, 400);
+    const code = String(callbackUrl.searchParams.get('code') || '');
+    if (!code) return sendOutlookCallbackPage(response, false, 'Microsoft không trả mã đăng nhập. Hãy thử kết nối lại.', 400);
+    try {
+      const tokens = await microsoftTokenRequest({
+        client_id:microsoftClientId,
+        client_secret:microsoftClientSecret,
+        grant_type:'authorization_code',
+        code,
+        redirect_uri:microsoftRedirectUri,
+        scope:'openid profile email offline_access User.Read Mail.Send'
+      });
+      if (!tokens.access_token || !tokens.refresh_token) throw new Error('Microsoft chưa cấp quyền gửi mail lâu dài. Hãy kiểm tra quyền offline_access và Mail.Send trong ứng dụng Microsoft.');
+      const profile = await microsoftProfile(tokens.access_token);
+      writeOutlookTokens({
+        accessToken:String(tokens.access_token),
+        refreshToken:String(tokens.refresh_token),
+        expiresAt:Date.now() + Math.max(60, Number(tokens.expires_in) || 3600) * 1000,
+        email:profile.email,
+        displayName:profile.displayName,
+        connectedAt:new Date().toISOString(),
+        tenantId:microsoftTenantId
+      });
+      session.expiresAt = Date.now() + adminSessionTtlSeconds * 1000;
+      return sendOutlookCallbackPage(response, true, `Đã kết nối hộp thư ${profile.email || 'Outlook'}.`);
+    } catch (error) {
+      return sendOutlookCallbackPage(response, false, error.message || 'Không thể lưu kết nối Outlook.', 400);
+    }
+  }
+  if (request.method === 'POST' && pathname === '/api/admin/outlook/disconnect') {
+    if (!requireOwner(request, response)) return;
+    try {
+      fs.rmSync(outlookTokenPath, {force:true});
+      fs.rmSync(`${outlookTokenPath}.tmp`, {force:true});
+      return json(response, 200, {ok:true});
+    } catch (error) {
+      return json(response, 500, {error:error.message || 'Không thể ngắt kết nối Outlook.'});
+    }
+  }
+  const outlookOrderConfirmationMatch = request.method === 'POST'
+    ? /^\/api\/admin\/orders\/([^/]+)\/confirm-email$/.exec(pathname)
+    : null;
+  if (outlookOrderConfirmationMatch) {
+    return handleOutlookOrderConfirmation(request, response, outlookOrderConfirmationMatch[1]);
   }
 
   if (request.method === 'GET' && pathname === '/api/admin/accounts') {
@@ -2286,7 +2671,7 @@ http.createServer(async (request, response) => {
   }
 
   const requested = pathname === '/' ? '/index.html' : pathname;
-  if (requested === '/.aeon-store.json' || requested.startsWith('/.aeon-store.json.')) { response.writeHead(403); return response.end('Forbidden'); }
+  if (['/.aeon-store.json','/.aeon-outlook.json'].some(hiddenFile => requested === hiddenFile || requested.startsWith(`${hiddenFile}.`))) { response.writeHead(403); return response.end('Forbidden'); }
   const filePath = path.resolve(root, `.${requested}`);
   if (filePath !== root && !filePath.startsWith(`${root}${path.sep}`)) { response.writeHead(403); return response.end('Forbidden'); }
   if (request.method === 'GET' && requested === '/index.html') {
