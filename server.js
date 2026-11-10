@@ -48,6 +48,8 @@ function publicSupabaseConfig() {
 const bundledSupabaseConfig = publicSupabaseConfig();
 const supabaseUrl = String(process.env.SUPABASE_URL || bundledSupabaseConfig.url).replace(/\/+$/, '');
 const supabaseAnonKey = String(process.env.SUPABASE_ANON_KEY || bundledSupabaseConfig.key).trim();
+const supabaseServiceRoleKey = String(process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
+const outlookStorage = String(process.env.AEON_OUTLOOK_STORAGE || (supabaseUrl || process.env.NODE_ENV === 'production' ? 'supabase' : 'file')).trim().toLowerCase();
 const productTombstoneStateKey = 'aeon-product-tombstones';
 const cloudStateKeys = ['aeon-products', productTombstoneStateKey, 'aeon-ui', 'aeon-layout', 'aeon-brands', 'aeon-customers', 'aeon-orders'];
 const adminSessionCookie = 'aeon_admin_session';
@@ -69,7 +71,7 @@ const types = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charse
 // Bump this whenever the storefront shell changes. It fingerprints every
 // local CSS/JS URL emitted by the Node deployment, so a CDN cannot revive an
 // obsolete interface after a new release.
-const storefrontBuild = '20261110-outlook-order-confirmation-v84';
+const storefrontBuild = '20261110-outlook-persistent-connection-v85';
 const productImageFitCss = '\n/* Server-enforced product commerce lock. */\n.product-media{position:relative!important;overflow:hidden!important;background:#fff!important}.product-media:has(.product-image-placeholder:not([hidden])),.product-media:has(.product-image-placeholder:not([hidden])):before,.product-media .product-image-placeholder:not([hidden]){background:#fff!important}.product-media img.product-official-image{display:block!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;margin:0!important;padding:0!important;object-fit:contain!important;object-position:center center!important}.product-price-stack .price,.product-price-stack .regular-price,.product-discount-badge{visibility:visible!important;opacity:1!important}\n';
 const noCacheHeaders = {
   'Cache-Control':'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0',
@@ -1943,6 +1945,9 @@ function outlookConfigurationStatus() {
   if (!/^(common|organizations|consumers|[a-z0-9.-]+)$/i.test(microsoftTenantId)) missing.push('MICROSOFT_TENANT_ID (không hợp lệ)');
   if (!microsoftRedirectUri) missing.push('MICROSOFT_REDIRECT_URI');
   if (outlookTokenEncryptionSecret.length < 32) missing.push('AEON_OUTLOOK_TOKEN_KEY');
+  if (!['file', 'supabase'].includes(outlookStorage)) missing.push('AEON_OUTLOOK_STORAGE (không hợp lệ)');
+  if (outlookStorage === 'supabase' && !supabaseUrl) missing.push('SUPABASE_URL');
+  if (outlookStorage === 'supabase' && !supabaseServiceRoleKey) missing.push('SUPABASE_SERVICE_ROLE_KEY');
   if (microsoftRedirectUri) {
     try {
       const redirect = new URL(microsoftRedirectUri);
@@ -1960,9 +1965,7 @@ function outlookTokenKey() {
   return crypto.createHash('sha256').update(outlookTokenEncryptionSecret, 'utf8').digest();
 }
 
-function readOutlookTokens() {
-  if (!fs.existsSync(outlookTokenPath)) return null;
-  const record = JSON.parse(fs.readFileSync(outlookTokenPath, 'utf8'));
+function decryptOutlookTokens(record) {
   if (record?.version !== 1 || !record.iv || !record.tag || !record.data) throw new Error('Không đọc được thông tin kết nối Outlook đã lưu.');
   const decipher = crypto.createDecipheriv('aes-256-gcm', outlookTokenKey(), Buffer.from(record.iv, 'base64url'));
   decipher.setAuthTag(Buffer.from(record.tag, 'base64url'));
@@ -1973,23 +1976,80 @@ function readOutlookTokens() {
   return JSON.parse(plaintext);
 }
 
-function writeOutlookTokens(tokens) {
+function encryptOutlookTokens(tokens) {
   const iv = crypto.randomBytes(12);
   const cipher = crypto.createCipheriv('aes-256-gcm', outlookTokenKey(), iv);
   const encrypted = Buffer.concat([
     cipher.update(JSON.stringify(tokens), 'utf8'),
     cipher.final()
   ]);
-  const record = JSON.stringify({
+  return {
     version:1,
     iv:iv.toString('base64url'),
     tag:cipher.getAuthTag().toString('base64url'),
     data:encrypted.toString('base64url')
+  };
+}
+
+function outlookCloudHeaders(prefer = '') {
+  return {
+    apikey:supabaseServiceRoleKey,
+    Authorization:`Bearer ${supabaseServiceRoleKey}`,
+    ...(prefer ? {Prefer:prefer} : {})
+  };
+}
+
+async function outlookCloudRequest(url, options = {}) {
+  const {prefer, headers, ...requestOptions} = options;
+  const response = await fetch(`${supabaseUrl}/rest/v1/aeon_outlook_credentials${url}`, {
+    ...requestOptions,
+    headers:{...outlookCloudHeaders(prefer), ...(headers || {})},
+    signal:AbortSignal.timeout(15000)
   });
+  if (!response.ok) throw new Error(`Không thể truy cập kho kết nối Outlook trên Supabase (HTTP ${response.status}). Kiểm tra bảng riêng và khóa service role.`);
+  return response;
+}
+
+async function readOutlookTokens() {
+  if (outlookStorage === 'supabase') {
+    if (!supabaseUrl || !supabaseServiceRoleKey) throw new Error('Máy chủ chưa cấu hình kho kết nối Outlook trên Supabase.');
+    const response = await outlookCloudRequest('?id=eq.primary&select=payload');
+    const rows = await response.json();
+    if (rows?.length) return decryptOutlookTokens(rows[0].payload);
+    // Preserve an existing connection when moving from a persistent local disk.
+    if (!fs.existsSync(outlookTokenPath)) return null;
+    const tokens = decryptOutlookTokens(JSON.parse(fs.readFileSync(outlookTokenPath, 'utf8')));
+    await writeOutlookTokens(tokens);
+    fs.rmSync(outlookTokenPath, {force:true});
+    return tokens;
+  }
+  if (!fs.existsSync(outlookTokenPath)) return null;
+  return decryptOutlookTokens(JSON.parse(fs.readFileSync(outlookTokenPath, 'utf8')));
+}
+
+async function writeOutlookTokens(tokens) {
+  const record = encryptOutlookTokens(tokens);
+  if (outlookStorage === 'supabase') {
+    await outlookCloudRequest('?on_conflict=id', {
+      method:'POST',
+      prefer:'resolution=merge-duplicates,return=minimal',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify([{id:'primary', payload:record, updated_at:new Date().toISOString()}])
+    });
+    return;
+  }
   const temporary = `${outlookTokenPath}.tmp`;
-  fs.writeFileSync(temporary, record, {mode:0o600});
+  fs.writeFileSync(temporary, JSON.stringify(record), {mode:0o600});
   fs.renameSync(temporary, outlookTokenPath);
   try { fs.chmodSync(outlookTokenPath, 0o600); } catch {}
+}
+
+async function deleteOutlookTokens() {
+  if (outlookStorage === 'supabase') {
+    await outlookCloudRequest('?id=eq.primary', {method:'DELETE'});
+  }
+  fs.rmSync(outlookTokenPath, {force:true});
+  fs.rmSync(`${outlookTokenPath}.tmp`, {force:true});
 }
 
 function microsoftEndpoint(pathname) {
@@ -2037,7 +2097,7 @@ async function microsoftProfile(accessToken) {
 async function getOutlookAccessToken() {
   if (outlookRefreshInFlight) return outlookRefreshInFlight;
   outlookRefreshInFlight = (async () => {
-    const saved = readOutlookTokens();
+    const saved = await readOutlookTokens();
     if (!saved?.refreshToken) throw new Error('Chưa kết nối hộp thư Outlook. Hãy kết nối Outlook trước khi gửi email.');
     if (Number(saved.expiresAt) > Date.now() + 120000 && saved.accessToken) return saved.accessToken;
     const refreshed = await microsoftTokenRequest({
@@ -2054,7 +2114,7 @@ async function getOutlookAccessToken() {
       expiresAt:Date.now() + Math.max(60, Number(refreshed.expires_in) || 3600) * 1000
     };
     if (!next.accessToken) throw new Error('Microsoft không cấp access token mới. Hãy kết nối lại Outlook.');
-    writeOutlookTokens(next);
+    await writeOutlookTokens(next);
     return next.accessToken;
   })();
   try {
@@ -2155,7 +2215,7 @@ async function handleOutlookOrderConfirmation(request, response, orderCode) {
     if (emailState.status === 'uncertain' && !resend) return json(response, 409, {error:'Chưa rõ Outlook đã nhận email hay chưa. Hãy kiểm tra Sent Items trước khi chọn gửi lại.'});
     const outlookConfig = outlookConfigurationStatus();
     if (!outlookConfig.configured) return json(response, 503, {error:`Máy chủ chưa cấu hình Outlook: ${outlookConfig.missing.join(', ')}.`});
-    const connected = readOutlookTokens();
+    const connected = await readOutlookTokens();
     if (!connected?.refreshToken) return json(response, 503, {error:'Chưa kết nối hộp thư Outlook. Hãy kết nối trong mục Khách hàng & đơn hàng.'});
 
     const principal = adminPrincipal(request);
@@ -2278,11 +2338,12 @@ http.createServer(async (request, response) => {
     const config = outlookConfigurationStatus();
     let connection = null;
     let connectionError = '';
-    try { connection = readOutlookTokens(); }
+    try { connection = await readOutlookTokens(); }
     catch (error) { connectionError = String(error.message || 'Không đọc được thông tin kết nối Outlook.').slice(0, 220); }
     return json(response, 200, {
       configured:config.configured,
       missing:config.missing,
+      storage:outlookStorage,
       connected:Boolean(connection?.refreshToken && !connectionError),
       email:connectionError ? '' : String(connection?.email || ''),
       displayName:connectionError ? '' : String(connection?.displayName || ''),
@@ -2338,7 +2399,7 @@ http.createServer(async (request, response) => {
       });
       if (!tokens.access_token || !tokens.refresh_token) throw new Error('Microsoft chưa cấp quyền gửi mail lâu dài. Hãy kiểm tra quyền offline_access và Mail.Send trong ứng dụng Microsoft.');
       const profile = await microsoftProfile(tokens.access_token);
-      writeOutlookTokens({
+      await writeOutlookTokens({
         accessToken:String(tokens.access_token),
         refreshToken:String(tokens.refresh_token),
         expiresAt:Date.now() + Math.max(60, Number(tokens.expires_in) || 3600) * 1000,
@@ -2356,8 +2417,7 @@ http.createServer(async (request, response) => {
   if (request.method === 'POST' && pathname === '/api/admin/outlook/disconnect') {
     if (!requireOwner(request, response)) return;
     try {
-      fs.rmSync(outlookTokenPath, {force:true});
-      fs.rmSync(`${outlookTokenPath}.tmp`, {force:true});
+      await deleteOutlookTokens();
       return json(response, 200, {ok:true});
     } catch (error) {
       return json(response, 500, {error:error.message || 'Không thể ngắt kết nối Outlook.'});
@@ -2671,7 +2731,7 @@ http.createServer(async (request, response) => {
   }
 
   const requested = pathname === '/' ? '/index.html' : pathname;
-  if (['/.aeon-store.json','/.aeon-outlook.json'].some(hiddenFile => requested === hiddenFile || requested.startsWith(`${hiddenFile}.`))) { response.writeHead(403); return response.end('Forbidden'); }
+  if (['/.aeon-store.json','/.aeon-outlook.json','/.env'].some(hiddenFile => requested === hiddenFile || requested.startsWith(`${hiddenFile}.`))) { response.writeHead(403); return response.end('Forbidden'); }
   const filePath = path.resolve(root, `.${requested}`);
   if (filePath !== root && !filePath.startsWith(`${root}${path.sep}`)) { response.writeHead(403); return response.end('Forbidden'); }
   if (request.method === 'GET' && requested === '/index.html') {

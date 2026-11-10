@@ -51,6 +51,8 @@ Máy chủ hỗ trợ các biến môi trường:
 - `MICROSOFT_REDIRECT_URI`: URL callback đã đăng ký trong Entra, ví dụ
   `https://blackfriday.tinhgon.xyz/api/admin/outlook/callback`.
 - `AEON_OUTLOOK_TOKEN_KEY`: khóa ngẫu nhiên dài tối thiểu 32 ký tự để mã hóa token Outlook đã cấp.
+- `AEON_OUTLOOK_STORAGE`: đặt `supabase` trên bản deploy để giữ kết nối sau khi khởi động lại; đặt `file` khi chạy local hoặc có ổ đĩa bền vững.
+- `SUPABASE_SERVICE_ROLE_KEY`: khóa Supabase chỉ đặt trên máy chủ, cần khi `AEON_OUTLOOK_STORAGE=supabase`. Không dùng khóa `anon` và không đưa khóa này vào `supabase-config.js`.
 
 Ví dụ trên PowerShell:
 
@@ -65,6 +67,8 @@ $env:MICROSOFT_CLIENT_SECRET='APPLICATION_CLIENT_SECRET_VALUE'
 $env:MICROSOFT_TENANT_ID='common'
 $env:MICROSOFT_REDIRECT_URI='https://blackfriday.tinhgon.xyz/api/admin/outlook/callback'
 $env:AEON_OUTLOOK_TOKEN_KEY='REPLACE_WITH_A_RANDOM_SECRET_AT_LEAST_32_CHARACTERS'
+$env:AEON_OUTLOOK_STORAGE='supabase'
+$env:SUPABASE_SERVICE_ROLE_KEY='SUPABASE_SERVICE_ROLE_KEY_FROM_PROJECT_SETTINGS'
 npm start
 ```
 
@@ -75,8 +79,15 @@ cũng yêu cầu `offline_access` để gửi tự động sau lần kết nối
 secret ứng dụng ở biến môi trường máy chủ, không đưa secret vào giao diện web.
 Tạo `AEON_OUTLOOK_TOKEN_KEY` ngẫu nhiên (ví dụ `node -e
 "console.log(require('node:crypto').randomBytes(32).toString('base64url'))"`)
-và giữ nguyên khóa này khi cập nhật để máy chủ tiếp tục giải mã kết nối. Máy
-chủ cần giữ bền vững tệp mã hóa `.aeon-outlook.json` cùng với `.aeon-store.json`.
+và giữ nguyên khóa này khi cập nhật để máy chủ tiếp tục giải mã kết nối. Trước
+khi kết nối Outlook trên bản deploy, áp dụng migration
+`supabase/migrations/20261110000000_private_outlook_credentials.sql` trong
+Supabase và đặt `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
+`AEON_OUTLOOK_STORAGE=supabase` trong biến môi trường máy chủ. Token được mã hóa
+trước khi lưu vào bảng riêng; bảng này không cấp quyền đọc hoặc ghi cho trình
+duyệt. Nếu trước đây đã kết nối Outlook trên ổ đĩa bền vững, máy chủ tự chuyển
+tệp `.aeon-outlook.json` vào bảng khi đọc lần đầu. Khi dùng `file`, máy chủ vẫn
+cần giữ tệp này sau mỗi lần triển khai.
 
 Sau khi cấu hình và triển khai lại, đăng nhập bằng tài khoản quản trị chính,
 mở **Khách hàng** rồi chọn **Kết nối Outlook**. Trong từng đơn, **Xác nhận &

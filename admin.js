@@ -1,5 +1,5 @@
-document.head.append(Object.assign(document.createElement('link'), {rel: 'stylesheet', href: 'admin.css?v=20261110-outlook-order-confirmation-v84'}));
-document.head.append(Object.assign(document.createElement('link'), {rel: 'stylesheet', href: 'admin-order-email.css?v=20261110-outlook-order-confirmation-v84'}));
+document.head.append(Object.assign(document.createElement('link'), {rel: 'stylesheet', href: 'admin.css?v=20261110-outlook-persistent-connection-v85'}));
+document.head.append(Object.assign(document.createElement('link'), {rel: 'stylesheet', href: 'admin-order-email.css?v=20261110-outlook-persistent-connection-v85'}));
 document.head.append(Object.assign(document.createElement('link'), {rel: 'stylesheet', href: 'admin-layout-controls.css'}));
 document.head.append(Object.assign(document.createElement('link'), {rel: 'stylesheet', href: 'admin-import.css'}));
 document.head.append(Object.assign(document.createElement('link'), {rel: 'stylesheet', href: 'admin-quick-products.css'}));
@@ -2285,15 +2285,17 @@ function bindOutlookMailSettings(panel) {
       if (result.connected) {
         stateLabel.textContent = `Đã kết nối${result.email ? ` · ${result.email}` : ''}`;
         stateLabel.className = 'outlook-mail-state is-connected';
-        help.textContent = 'Email sẽ được gửi từ hộp thư Outlook đã kết nối và lưu trong Sent Items.';
-      } else if (result.connectionError) {
-        stateLabel.textContent = 'Cần kết nối lại';
-        stateLabel.className = 'outlook-mail-state has-error';
-        help.textContent = result.connectionError;
+        help.textContent = result.storage === 'supabase'
+          ? 'Kết nối được lưu trên máy chủ và duy trì sau khi triển khai lại. Email đã gửi nằm trong Sent Items.'
+          : 'Email sẽ được gửi từ hộp thư Outlook đã kết nối và lưu trong Sent Items.';
       } else if (!result.configured) {
         stateLabel.textContent = 'Chưa cấu hình trên máy chủ';
         stateLabel.className = 'outlook-mail-state has-error';
         help.textContent = `Cần cài biến môi trường máy chủ: ${(result.missing || []).join(', ')}. Không nhập client secret vào giao diện web.`;
+      } else if (result.connectionError) {
+        stateLabel.textContent = 'Cần kiểm tra kết nối';
+        stateLabel.className = 'outlook-mail-state has-error';
+        help.textContent = result.connectionError;
       } else {
         stateLabel.textContent = 'Chưa kết nối';
         stateLabel.className = 'outlook-mail-state';

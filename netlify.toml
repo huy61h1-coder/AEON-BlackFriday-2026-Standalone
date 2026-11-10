@@ -20,7 +20,7 @@
     CDN-Cache-Control = "no-store"
     Netlify-CDN-Cache-Control = "no-store"
     Pragma = "no-cache"
-    X-AEON-Build = "20261110-outlook-order-confirmation-v84"
+    X-AEON-Build = "20261110-outlook-persistent-connection-v85"
 
 [[headers]]
   for = "/index.html"
@@ -29,4 +29,4 @@
     CDN-Cache-Control = "no-store"
     Netlify-CDN-Cache-Control = "no-store"
     Pragma = "no-cache"
-    X-AEON-Build = "20261110-outlook-order-confirmation-v84"
+    X-AEON-Build = "20261110-outlook-persistent-connection-v85"
