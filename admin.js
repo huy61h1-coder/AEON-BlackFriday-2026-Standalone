@@ -1,4 +1,4 @@
-document.head.append(Object.assign(document.createElement('link'), {rel: 'stylesheet', href: 'admin.css?v=20261109-catalog-poster-qr-capacity-v81'}));
+document.head.append(Object.assign(document.createElement('link'), {rel: 'stylesheet', href: 'admin.css?v=20261110-admin-interface-state-hydration-v82'}));
 document.head.append(Object.assign(document.createElement('link'), {rel: 'stylesheet', href: 'admin-layout-controls.css'}));
 document.head.append(Object.assign(document.createElement('link'), {rel: 'stylesheet', href: 'admin-import.css'}));
 document.head.append(Object.assign(document.createElement('link'), {rel: 'stylesheet', href: 'admin-quick-products.css'}));
@@ -66,13 +66,11 @@ async function hydrateAdminState() {
     localStorage.removeItem('aeon-customers');
     localStorage.removeItem('aeon-orders');
   }
-  // Keep the deployed campaign UI, but pull the saved column counts together
-  // with products, orders and the remaining server-managed data.
-  const deployed = window.AEON_DEPLOYED_STOREFRONT_STATE;
-  const preserveLocalKeys = deployed && typeof deployed === 'object'
-    ? ['aeon-ui'].filter(key => Object.hasOwn(deployed, key))
-    : [];
-  await aeonStore.pull({preserveLocalKeys});
+  // The deployed UI is only the fallback. Always hydrate a current-revision
+  // saved UI from the server so admin settings survive reloads and re-entry.
+  // aeonStore.pull still rejects legacy UI revisions that could restore the
+  // retired storefront.
+  await aeonStore.pull();
 }
 
 function safeAdminThemeColor(value, fallback) {

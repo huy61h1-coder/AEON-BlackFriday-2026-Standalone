@@ -20,7 +20,7 @@
     CDN-Cache-Control = "no-store"
     Netlify-CDN-Cache-Control = "no-store"
     Pragma = "no-cache"
-    X-AEON-Build = "20261109-catalog-poster-qr-capacity-v81"
+    X-AEON-Build = "20261110-admin-interface-state-hydration-v82"
 
 [[headers]]
   for = "/index.html"
@@ -29,4 +29,4 @@
     CDN-Cache-Control = "no-store"
     Netlify-CDN-Cache-Control = "no-store"
     Pragma = "no-cache"
-    X-AEON-Build = "20261109-catalog-poster-qr-capacity-v81"
+    X-AEON-Build = "20261110-admin-interface-state-hydration-v82"
