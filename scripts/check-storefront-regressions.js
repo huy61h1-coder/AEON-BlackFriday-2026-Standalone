@@ -19,7 +19,7 @@ const checks = [
   ,['app.js', "grid.classList.remove('storefront-admin-grid')", 'Lưới sản phẩm công khai không được quay lại bố cục quản trị.']
   ,['storefront-public-lock.css', 'body:not(.admin-preview) .storefront-product-admin-actions', 'Thiếu lớp khóa nút sửa/xóa trên trang công khai.']
   ,['netlify.toml', 'Netlify-CDN-Cache-Control = "no-store"', 'Netlify phải tắt cache HTML để không trộn giao diện cũ và mới.']
-  ,['index.html', 'app.js?v=20261111-preserve-storefront-data-v87', 'App công khai phải dùng fingerprint giao diện mới.']
+  ,['index.html', 'app.js?v=20261111-preserve-storefront-data-v88', 'App công khai phải dùng fingerprint giao diện mới.']
   ,['index.html', 'id="public-storefront-critical-lock"', 'HTML phải có khóa giao diện công khai nội tuyến để chống tài nguyên cache cũ.']
   ,['admin.js', "assetPanel(panel, {logo: true, hero: false});", 'Logo phải được quản lý riêng cùng danh mục sản phẩm.']
   ,['admin.js', "await saveShared('aeon-layout', {...layout, ...values});", 'Lưu giao diện phải chỉ ghi khóa bố cục, không ghi danh mục sản phẩm.']

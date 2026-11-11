@@ -76,7 +76,7 @@ const types = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charse
 // Bump this whenever the storefront shell changes. It fingerprints every
 // local CSS/JS URL emitted by the Node deployment, so a CDN cannot revive an
 // obsolete interface after a new release.
-const storefrontBuild = '20261111-preserve-storefront-data-v87';
+const storefrontBuild = '20261111-preserve-storefront-data-v88';
 const productImageFitCss = '\n/* Server-enforced product commerce lock. */\n.product-media{position:relative!important;overflow:hidden!important;background:#fff!important}.product-media:has(.product-image-placeholder:not([hidden])),.product-media:has(.product-image-placeholder:not([hidden])):before,.product-media .product-image-placeholder:not([hidden]){background:#fff!important}.product-media img.product-official-image{display:block!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;margin:0!important;padding:0!important;object-fit:contain!important;object-position:center center!important}.product-price-stack .price,.product-price-stack .regular-price,.product-discount-badge{visibility:visible!important;opacity:1!important}\n';
 const noCacheHeaders = {
   'Cache-Control':'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0',
@@ -331,6 +331,17 @@ const bundledGiftDefaults = {
   value: '699.000đ',
   image: 'https://product.hstatic.net/200000274675/product/dfb-c16k1_ab7703a6eeb644249f75dd1b5170414a_1024x1024.png'
 };
+// The previous release bundled 73 products. A deploy could replace the live
+// 91-product catalogue with that exact default list. Migrate only that known
+// untouched list; an edited or intentionally reduced catalogue is left alone.
+const legacyDefaultProductDigest = '2bba0964de4b60bb8bfb3674ee3b705c4c1add45a660c78737f03d5572568aa1';
+function stableStateDigest(value) {
+  const sortKeys = item => Array.isArray(item) ? item.map(sortKeys)
+    : item && typeof item === 'object'
+      ? Object.fromEntries(Object.keys(item).sort().map(key => [key, sortKeys(item[key])]))
+      : item;
+  return crypto.createHash('sha256').update(JSON.stringify(sortKeys(value))).digest('hex');
+}
 function clearBundledGiftDefaults(state) {
   const products = Array.isArray(state?.['aeon-products']) ? state['aeon-products'] : [];
   let changed = false;
@@ -357,11 +368,25 @@ function clearBundledGiftDefaults(state) {
 const stateReady = readCloudState()
   .then(async cloudState => {
     const state = {...readState(), ...(cloudState || {})};
+    const products = state['aeon-products'];
+    const legacyDefaultProducts = Array.isArray(products)
+      && products.length === 73
+      && productTombstones(state).size === 0
+      && stableStateDigest(products) === legacyDefaultProductDigest;
+    if (legacyDefaultProducts) {
+      const seed = JSON.parse(fs.readFileSync(seedStatePath, 'utf8'));
+      if (Array.isArray(seed['aeon-products']) && seed['aeon-products'].length > products.length) {
+        state['aeon-products'] = seed['aeon-products'];
+      }
+    }
+    const productsMigrated = state['aeon-products'] !== products;
     const giftDefaultsCleared = clearBundledGiftDefaults(state);
     const missingCloudKeys = cloudStateKeys.filter(key =>
       Object.hasOwn(state, key) && !Object.hasOwn(cloudState || {}, key));
-    if (cloudState || giftDefaultsCleared || (supabaseUrl && supabaseStateKey)) writeLocalState(state);
-    if (missingCloudKeys.length) await writeCloudState(state, missingCloudKeys);
+    if (cloudState || productsMigrated || giftDefaultsCleared || (supabaseUrl && supabaseStateKey)) writeLocalState(state);
+    if (missingCloudKeys.length || productsMigrated) {
+      await writeCloudState(state, [...new Set([...missingCloudKeys, ...(productsMigrated ? ['aeon-products'] : [])])]);
+    }
     if (giftDefaultsCleared) await writeCloudState(state, ['aeon-products']);
   })
   .catch(error => console.warn(`AEON state initialization failed: ${error.message}`));

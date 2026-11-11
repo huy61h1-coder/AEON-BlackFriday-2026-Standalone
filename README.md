@@ -114,6 +114,8 @@ tạm khóa tài khoản và phân quyền; mật khẩu tài khoản con đư�
 
 Tệp `.aeon-store.seed.json` là bản sao công khai của 91 sản phẩm và cài đặt giao
 diện ngày 11/11/2026. Ứng dụng chỉ dùng tệp này khi chưa có dữ liệu đã lưu.
+Nếu còn đúng danh mục mẫu 73 sản phẩm của bản phát hành cũ và chưa có sản phẩm
+đã xóa riêng, máy chủ tự khôi phục danh mục 91 sản phẩm trong lần chạy đầu.
 Dữ liệu khách hàng, đơn hàng, tài khoản con và tệp tải lên không nằm trong Git.
 Để giữ các chỉnh sửa về sau, cần cấu hình `AEON_DATA_DIR` trên volume bền vững
 hoặc Supabase trước khi deploy. Với ảnh/file tải lên bằng ứng dụng, cần giữ

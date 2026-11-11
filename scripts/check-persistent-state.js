@@ -7,12 +7,15 @@ const {spawn} = require('node:child_process');
 const root = path.resolve(__dirname, '..');
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aeon-persistence-'));
 const seed = JSON.parse(fs.readFileSync(path.join(root, '.aeon-store.seed.json'), 'utf8'));
-seed['aeon-ui'].storefrontRevision = 'older-release';
-seed['aeon-ui'].campaignSchedule = 'SAVED_BEFORE_DEPLOY';
-seed['aeon-layout'].storefrontRevision = 'older-release';
-seed['aeon-layout'].accentColor = '#123456';
-seed['aeon-layout'].productColumns = 3;
-fs.writeFileSync(path.join(dataDir, '.aeon-store.json'), JSON.stringify(seed));
+const initial = process.env.AEON_LEGACY_SEED_PATH
+  ? JSON.parse(fs.readFileSync(process.env.AEON_LEGACY_SEED_PATH, 'utf8'))
+  : structuredClone(seed);
+initial['aeon-ui'].storefrontRevision = 'older-release';
+initial['aeon-ui'].campaignSchedule = 'SAVED_BEFORE_DEPLOY';
+initial['aeon-layout'].storefrontRevision = 'older-release';
+initial['aeon-layout'].accentColor = '#123456';
+initial['aeon-layout'].productColumns = 3;
+fs.writeFileSync(path.join(dataDir, '.aeon-store.json'), JSON.stringify(initial));
 
 const port = 18000 + Math.floor(Math.random() * 4000);
 const base = `http://127.0.0.1:${port}`;
