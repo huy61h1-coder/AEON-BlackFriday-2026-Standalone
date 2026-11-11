@@ -10,6 +10,7 @@ const seed = JSON.parse(fs.readFileSync(path.join(root, '.aeon-store.seed.json')
 const initial = process.env.AEON_LEGACY_SEED_PATH
   ? JSON.parse(fs.readFileSync(process.env.AEON_LEGACY_SEED_PATH, 'utf8'))
   : structuredClone(seed);
+const expectedProducts = initial['aeon-products'].length;
 initial['aeon-ui'].storefrontRevision = 'older-release';
 initial['aeon-ui'].campaignSchedule = 'SAVED_BEFORE_DEPLOY';
 initial['aeon-layout'].storefrontRevision = 'older-release';
@@ -54,7 +55,7 @@ async function run() {
     await start();
     let response = await fetch(`${base}/api/state`);
     let state = await response.json();
-    assert.equal(state['aeon-products'].length, seed['aeon-products'].length);
+    assert.equal(state['aeon-products'].length, expectedProducts);
     assert.equal(state['aeon-ui'].campaignSchedule, 'SAVED_BEFORE_DEPLOY');
     assert.equal(state['aeon-layout'].accentColor, '#123456');
     assert.equal(state['aeon-layout'].productColumns, 3);
@@ -74,7 +75,7 @@ async function run() {
     await start();
     response = await fetch(`${base}/api/state`);
     state = await response.json();
-    assert.equal(state['aeon-products'].length, seed['aeon-products'].length);
+    assert.equal(state['aeon-products'].length, expectedProducts);
     assert.equal(state['aeon-ui'].campaignSchedule, 'SAVED_AFTER_DEPLOY');
     assert.equal(state['aeon-layout'].accentColor, '#123456');
     response = await fetch(`${base}/assets/uploads/smoke.png`);

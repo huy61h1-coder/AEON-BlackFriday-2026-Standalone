@@ -54,6 +54,8 @@ const supabaseUrl = String(process.env.SUPABASE_URL || bundledSupabaseConfig.url
 const supabaseAnonKey = String(process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || bundledSupabaseConfig.key).trim();
 const supabaseServerKey = String(process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
 const supabaseStateKey = supabaseServerKey || supabaseAnonKey;
+const liveStateUrl = String(process.env.AEON_BOOTSTRAP_PUBLIC_URL || 'https://blackfriday.tinhgon.xyz/api/state').trim();
+const allowSampleData = /^(?:1|true|yes|on)$/i.test(String(process.env.AEON_ALLOW_SAMPLE_DATA || '').trim());
 const outlookStorage = String(process.env.AEON_OUTLOOK_STORAGE || (supabaseUrl || process.env.NODE_ENV === 'production' ? 'supabase' : 'file')).trim().toLowerCase();
 const productTombstoneStateKey = 'aeon-product-tombstones';
 const cloudStateKeys = ['aeon-products', productTombstoneStateKey, 'aeon-ui', 'aeon-layout', 'aeon-brands', 'aeon-customers', 'aeon-orders'];
@@ -76,7 +78,7 @@ const types = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charse
 // Bump this whenever the storefront shell changes. It fingerprints every
 // local CSS/JS URL emitted by the Node deployment, so a CDN cannot revive an
 // obsolete interface after a new release.
-const storefrontBuild = '20261111-preserve-storefront-data-v88';
+const storefrontBuild = '20261111-preserve-live-catalog-v89';
 const productImageFitCss = '\n/* Server-enforced product commerce lock. */\n.product-media{position:relative!important;overflow:hidden!important;background:#fff!important}.product-media:has(.product-image-placeholder:not([hidden])),.product-media:has(.product-image-placeholder:not([hidden])):before,.product-media .product-image-placeholder:not([hidden]){background:#fff!important}.product-media img.product-official-image{display:block!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;margin:0!important;padding:0!important;object-fit:contain!important;object-position:center center!important}.product-price-stack .price,.product-price-stack .regular-price,.product-discount-badge{visibility:visible!important;opacity:1!important}\n';
 const noCacheHeaders = {
   'Cache-Control':'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0',
@@ -273,11 +275,11 @@ function requireOwner(request, response) {
   }
   return principal;
 }
-function readState() {
+function readState({allowSeed = false} = {}) {
   // A corrupt runtime file must not be silently replaced with the seed.
   if (fs.existsSync(statePath)) return JSON.parse(fs.readFileSync(statePath, 'utf8'));
-  if (fs.existsSync(seedStatePath)) return JSON.parse(fs.readFileSync(seedStatePath, 'utf8'));
-  return {};
+  if (allowSeed && fs.existsSync(seedStatePath)) return JSON.parse(fs.readFileSync(seedStatePath, 'utf8'));
+  throw new Error('Danh mục hiện tại chưa sẵn sàng; không dùng danh mục mẫu trong bản deploy.');
 }
 function writeLocalState(state) {
   const temporary = `${statePath}.tmp`;
@@ -326,70 +328,50 @@ async function writeCloudState(state, changedKeys = cloudStateKeys) {
   if (!response.ok) throw new Error(`Không thể lưu dữ liệu cloud (HTTP ${response.status}).`);
 }
 
-const bundledGiftDefaults = {
-  name: 'nồi cơm mini',
-  value: '699.000đ',
-  image: 'https://product.hstatic.net/200000274675/product/dfb-c16k1_ab7703a6eeb644249f75dd1b5170414a_1024x1024.png'
-};
-// The previous release bundled 73 products. A deploy could replace the live
-// 91-product catalogue with that exact default list. Migrate only that known
-// untouched list; an edited or intentionally reduced catalogue is left alone.
-const legacyDefaultProductDigest = '2bba0964de4b60bb8bfb3674ee3b705c4c1add45a660c78737f03d5572568aa1';
-function stableStateDigest(value) {
-  const sortKeys = item => Array.isArray(item) ? item.map(sortKeys)
-    : item && typeof item === 'object'
-      ? Object.fromEntries(Object.keys(item).sort().map(key => [key, sortKeys(item[key])]))
-      : item;
-  return crypto.createHash('sha256').update(JSON.stringify(sortKeys(value))).digest('hex');
-}
-function clearBundledGiftDefaults(state) {
-  const products = Array.isArray(state?.['aeon-products']) ? state['aeon-products'] : [];
-  let changed = false;
-  const nextProducts = products.map(product => {
-    const isBundledExample = String(product?.id || '') === '09680425'
-      && String(product?.name || '') === 'NỒI LẨU NƯỚNG ĐA NĂNG BEAR 4L DHG-C40W2'
-      && String(product?.promotionProductName || '').trim().toLocaleLowerCase('vi-VN') === bundledGiftDefaults.name
-      && String(product?.promotionProductValue || '').trim().toLocaleLowerCase('vi-VN') === bundledGiftDefaults.value
-      && String(product?.promotionProductImage || '').trim() === bundledGiftDefaults.image
-      && (!product?.promoName || String(product.promoName).trim().toLocaleLowerCase('vi-VN') === bundledGiftDefaults.name)
-      && (!product?.promoValue || String(product.promoValue).trim().toLocaleLowerCase('vi-VN') === bundledGiftDefaults.value)
-      && (!product?.promoImage || String(product.promoImage).trim() === bundledGiftDefaults.image);
-    if (!isBundledExample) return product;
-    changed = true;
-    return {...product, promotionProductName:'', promotionProductValue:'', promotionProductImage:'', promoName:'', promoValue:'', promoImage:''};
-  });
-  if (changed) state['aeon-products'] = nextProducts;
-  return changed;
+async function readLiveState() {
+  const url = new URL(liveStateUrl);
+  if (url.protocol !== 'https:' && !['localhost', '127.0.0.1'].includes(url.hostname)) {
+    throw new Error('URL sao lưu danh mục phải dùng HTTPS.');
+  }
+  const response = await fetch(url, {headers:{Accept:'application/json'}, signal:AbortSignal.timeout(15000), redirect:'error'});
+  if (!response.ok) throw new Error(`Không lấy được danh mục đang chạy (HTTP ${response.status}).`);
+  const state = await response.json();
+  if (!Array.isArray(state?.['aeon-products'])
+    || !state?.['aeon-ui'] || typeof state['aeon-ui'] !== 'object'
+    || !state?.['aeon-layout'] || typeof state['aeon-layout'] !== 'object') {
+    throw new Error('Website đang chạy không trả về đủ danh mục và cài đặt.');
+  }
+  return Object.fromEntries(['aeon-products', 'aeon-ui', 'aeon-layout', 'aeon-brands']
+    .filter(key => Object.hasOwn(state, key)).map(key => [key, state[key]]));
 }
 
-// Cloud state is authoritative when configured. AEON_DATA_DIR provides a
-// persistent local copy for hosts with a mounted data directory.
-// Also remove only the exact gift values from the original bundled demo item.
-const stateReady = readCloudState()
-  .then(async cloudState => {
-    const state = {...readState(), ...(cloudState || {})};
-    const products = state['aeon-products'];
-    const legacyDefaultProducts = Array.isArray(products)
-      && products.length === 73
-      && productTombstones(state).size === 0
-      && stableStateDigest(products) === legacyDefaultProductDigest;
-    if (legacyDefaultProducts) {
-      const seed = JSON.parse(fs.readFileSync(seedStatePath, 'utf8'));
-      if (Array.isArray(seed['aeon-products']) && seed['aeon-products'].length > products.length) {
-        state['aeon-products'] = seed['aeon-products'];
-      }
+// Vibe Host replaces the release files on deploy. When no saved runtime state
+// travels with the release, copy the catalog from the still-live version before
+// opening the new listener. An unavailable source stops this release safely.
+async function initialiseState() {
+  const localState = fs.existsSync(statePath) ? readState() : null;
+  if (Array.isArray(localState?.['aeon-products'])) {
+    return;
+  }
+  if (allowSampleData) {
+    writeLocalState(readState({allowSeed:true}));
+    return;
+  }
+  const imported = await readLiveState();
+  let privateState = {};
+  try {
+    const cloudState = await readCloudState();
+    for (const key of ['aeon-customers', 'aeon-orders', productTombstoneStateKey]) {
+      if (Object.hasOwn(cloudState || {}, key)) privateState[key] = cloudState[key];
     }
-    const productsMigrated = state['aeon-products'] !== products;
-    const giftDefaultsCleared = clearBundledGiftDefaults(state);
-    const missingCloudKeys = cloudStateKeys.filter(key =>
-      Object.hasOwn(state, key) && !Object.hasOwn(cloudState || {}, key));
-    if (cloudState || productsMigrated || giftDefaultsCleared || (supabaseUrl && supabaseStateKey)) writeLocalState(state);
-    if (missingCloudKeys.length || productsMigrated) {
-      await writeCloudState(state, [...new Set([...missingCloudKeys, ...(productsMigrated ? ['aeon-products'] : [])])]);
-    }
-    if (giftDefaultsCleared) await writeCloudState(state, ['aeon-products']);
-  })
-  .catch(error => console.warn(`AEON state initialization failed: ${error.message}`));
+  } catch (error) {
+    console.warn(`Không đọc được dữ liệu riêng trên Supabase: ${error.message}`);
+  }
+  const state = {...(localState || {}), ...privateState, ...imported};
+  writeLocalState(state);
+}
+
+const stateReady = initialiseState();
 
 async function writeState(state, changedKeys = []) {
   writeLocalState(state);
@@ -2309,7 +2291,7 @@ async function handleOutlookOrderConfirmation(request, response, orderCode) {
   }
 }
 
-http.createServer(async (request, response) => {
+const server = http.createServer(async (request, response) => {
   let pathname;
   try { pathname = decodeURIComponent(new URL(request.url, `http://${request.headers.host}`).pathname); }
   catch { response.writeHead(400); return response.end('Bad request'); }
@@ -2802,4 +2784,10 @@ http.createServer(async (request, response) => {
     response.writeHead(200, {'Content-Type':types[path.extname(filePath).toLowerCase()] || 'application/octet-stream', ...noCacheHeaders});
     response.end(content);
   });
-}).listen(port, host, () => console.log(`AEON BlackFriday is available on http://${host}:${port}`));
+});
+stateReady
+  .then(() => server.listen(port, host, () => console.log(`AEON BlackFriday is available on http://${host}:${port}`)))
+  .catch(error => {
+    console.error(`AEON state initialization failed: ${error.message}`);
+    process.exitCode = 1;
+  });

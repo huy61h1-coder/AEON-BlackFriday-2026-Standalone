@@ -33,6 +33,7 @@ build/
 .aeon-store.json.tmp
 .aeon-outlook.json
 .aeon-outlook.json.tmp
+backups/
 .codex-sheet/
 
 # Runtime uploads and generated artifacts

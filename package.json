@@ -5,7 +5,8 @@
   "description": "Website danh mục và đặt hàng AEON BlackFriday 2026.",
   "scripts": {
     "start": "node server.js",
-    "check": "node --check server.js && node --check storefront-state.js && node --check data.js && node --check app.js && node --check admin.js && node --check product-import.js && node scripts/check-storefront-regressions.js"
+    "check": "node --check server.js && node --check storefront-state.js && node --check data.js && node --check app.js && node --check admin.js && node --check product-import.js && node scripts/check-storefront-regressions.js",
+    "check:persistence": "node scripts/check-persistent-state.js && node scripts/check-live-deploy.js"
   },
   "engines": {
     "node": ">=20"
