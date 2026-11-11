@@ -51,7 +51,7 @@ function publicSupabaseConfig() {
 // bundled migration; deployment environments can override either value.
 const bundledSupabaseConfig = publicSupabaseConfig();
 const supabaseUrl = String(process.env.SUPABASE_URL || bundledSupabaseConfig.url).replace(/\/+$/, '');
-const supabaseAnonKey = String(process.env.SUPABASE_ANON_KEY || bundledSupabaseConfig.key).trim();
+const supabaseAnonKey = String(process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || bundledSupabaseConfig.key).trim();
 const supabaseServerKey = String(process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
 const supabaseStateKey = supabaseServerKey || supabaseAnonKey;
 const outlookStorage = String(process.env.AEON_OUTLOOK_STORAGE || (supabaseUrl || process.env.NODE_ENV === 'production' ? 'supabase' : 'file')).trim().toLowerCase();
@@ -288,7 +288,7 @@ function writeLocalState(state) {
 function cloudHeaders(prefer = '') {
   return {
     apikey: supabaseStateKey,
-    Authorization: `Bearer ${supabaseStateKey}`,
+    ...(!supabaseStateKey.startsWith('sb_') ? {Authorization: `Bearer ${supabaseStateKey}`} : {}),
     ...(prefer ? {Prefer: prefer} : {})
   };
 }
