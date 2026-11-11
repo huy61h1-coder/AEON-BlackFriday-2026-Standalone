@@ -15,11 +15,11 @@ const checks = [
   ['data.js', "'giaKhuyenMai', 'giaKM'", 'Thiếu nhận diện các cột giá khuyến mãi khi nhập dữ liệu.'],
   ['product-import.js', 'nhan hieu', 'File nhập sản phẩm phải nhận diện cột Nhãn hiệu.'],
   ['server.js', 'aeon-product-tombstones', 'Thiếu khóa chống khôi phục sản phẩm đã xóa.']
-  ,['app.js', "document.body.classList.remove('admin-preview')", 'Trang công khai không được bật lại giao diện quản trị cũ.']
+  ,['app.js', "document.body.classList.toggle('admin-preview', authenticated)", 'Trang công khai không được bật lại giao diện quản trị cũ.']
   ,['app.js', "grid.classList.remove('storefront-admin-grid')", 'Lưới sản phẩm công khai không được quay lại bố cục quản trị.']
-  ,['storefront-public-lock.css', 'body .storefront-product-admin-actions', 'Thiếu lớp khóa nút sửa/xóa trên trang công khai.']
+  ,['storefront-public-lock.css', 'body:not(.admin-preview) .storefront-product-admin-actions', 'Thiếu lớp khóa nút sửa/xóa trên trang công khai.']
   ,['netlify.toml', 'Netlify-CDN-Cache-Control = "no-store"', 'Netlify phải tắt cache HTML để không trộn giao diện cũ và mới.']
-  ,['index.html', 'app.js?v=20261105-blackfriday-v8', 'App công khai phải dùng fingerprint giao diện mới.']
+  ,['index.html', 'app.js?v=20261111-preserve-storefront-data-v87', 'App công khai phải dùng fingerprint giao diện mới.']
   ,['index.html', 'id="public-storefront-critical-lock"', 'HTML phải có khóa giao diện công khai nội tuyến để chống tài nguyên cache cũ.']
   ,['admin.js', "assetPanel(panel, {logo: true, hero: false});", 'Logo phải được quản lý riêng cùng danh mục sản phẩm.']
   ,['admin.js', "await saveShared('aeon-layout', {...layout, ...values});", 'Lưu giao diện phải chỉ ghi khóa bố cục, không ghi danh mục sản phẩm.']

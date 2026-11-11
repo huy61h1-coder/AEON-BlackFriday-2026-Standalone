@@ -68,10 +68,8 @@ async function hydrateAdminState() {
     localStorage.removeItem('aeon-customers');
     localStorage.removeItem('aeon-orders');
   }
-  // The deployed UI is only the fallback. Always hydrate a current-revision
-  // saved UI from the server so admin settings survive reloads and re-entry.
-  // aeonStore.pull still rejects legacy UI revisions that could restore the
-  // retired storefront.
+  // Reload saved settings from the server on every admin entry. The deployed
+  // UI only supplies defaults for fields that have never been saved.
   return aeonStore.pull();
 }
 

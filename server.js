@@ -11,18 +11,22 @@ const PDFDocument = require('pdfkit');
 
 const host = process.env.HOST || '0.0.0.0';
 const port = Number(process.env.PORT || 8080);
-const root = path.resolve(process.cwd());
-const uploadDir = path.join(root, 'assets', 'uploads');
+const root = __dirname;
+// Mount AEON_DATA_DIR outside the release directory to keep runtime data when
+// a deploy replaces the application files.
+const dataDir = String(process.env.AEON_DATA_DIR || '').trim()
+  ? path.resolve(process.env.AEON_DATA_DIR.trim()) : root;
+const uploadDir = dataDir === root ? path.join(root, 'assets', 'uploads') : path.join(dataDir, 'uploads');
 const quoteUploadDir = path.join(uploadDir, 'quotes');
-const statePath = path.join(root, '.aeon-store.json');
+const statePath = path.join(dataDir, '.aeon-store.json');
 const seedStatePath = path.join(root, '.aeon-store.seed.json');
 const maxUploadBytes = 10 * 1024 * 1024;
 const maxImportBytes = 15 * 1024 * 1024;
 const maxQuoteUploadBytes = 20 * 1024 * 1024;
 const adminUsername = String(process.env.ADMIN_USERNAME || '').trim();
 const adminPassword = String(process.env.ADMIN_PASSWORD || '');
-// When enabled, stale UI/layout state falls back to the committed shell. Saves
-// from this release carry the current revision and remain editable/public.
+// When enabled, the committed shell supplies defaults while saved UI and layout
+// fields remain authoritative, even when their revision is older.
 const lockPublicStorefront = /^(?:1|true|yes|on)$/i.test(String(process.env.AEON_LOCK_STOREFRONT || '').trim());
 const googleSheetWebAppUrl = String(process.env.GOOGLE_SHEET_WEB_APP_URL || '').trim();
 const microsoftClientId = String(process.env.MICROSOFT_CLIENT_ID || '').trim();
@@ -30,7 +34,7 @@ const microsoftClientSecret = String(process.env.MICROSOFT_CLIENT_SECRET || '').
 const microsoftTenantId = String(process.env.MICROSOFT_TENANT_ID || 'common').trim() || 'common';
 const microsoftRedirectUri = String(process.env.MICROSOFT_REDIRECT_URI || '').trim();
 const outlookTokenEncryptionSecret = String(process.env.AEON_OUTLOOK_TOKEN_KEY || '');
-const outlookTokenPath = path.join(root, '.aeon-outlook.json');
+const outlookTokenPath = path.join(dataDir, '.aeon-outlook.json');
 function publicSupabaseConfig() {
   try {
     const source = fs.readFileSync(path.join(root, 'supabase-config.js'), 'utf8');
@@ -49,6 +53,7 @@ const bundledSupabaseConfig = publicSupabaseConfig();
 const supabaseUrl = String(process.env.SUPABASE_URL || bundledSupabaseConfig.url).replace(/\/+$/, '');
 const supabaseAnonKey = String(process.env.SUPABASE_ANON_KEY || bundledSupabaseConfig.key).trim();
 const supabaseServerKey = String(process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
+const supabaseStateKey = supabaseServerKey || supabaseAnonKey;
 const outlookStorage = String(process.env.AEON_OUTLOOK_STORAGE || (supabaseUrl || process.env.NODE_ENV === 'production' ? 'supabase' : 'file')).trim().toLowerCase();
 const productTombstoneStateKey = 'aeon-product-tombstones';
 const cloudStateKeys = ['aeon-products', productTombstoneStateKey, 'aeon-ui', 'aeon-layout', 'aeon-brands', 'aeon-customers', 'aeon-orders'];
@@ -71,7 +76,7 @@ const types = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charse
 // Bump this whenever the storefront shell changes. It fingerprints every
 // local CSS/JS URL emitted by the Node deployment, so a CDN cannot revive an
 // obsolete interface after a new release.
-const storefrontBuild = '20261111-outlook-persistent-connection-v86';
+const storefrontBuild = '20261111-preserve-storefront-data-v87';
 const productImageFitCss = '\n/* Server-enforced product commerce lock. */\n.product-media{position:relative!important;overflow:hidden!important;background:#fff!important}.product-media:has(.product-image-placeholder:not([hidden])),.product-media:has(.product-image-placeholder:not([hidden])):before,.product-media .product-image-placeholder:not([hidden]){background:#fff!important}.product-media img.product-official-image{display:block!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;margin:0!important;padding:0!important;object-fit:contain!important;object-position:center center!important}.product-price-stack .price,.product-price-stack .regular-price,.product-discount-badge{visibility:visible!important;opacity:1!important}\n';
 const noCacheHeaders = {
   'Cache-Control':'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0',
@@ -83,8 +88,18 @@ const noCacheHeaders = {
 };
 const imageExtensions = {'image/png':'.png','image/jpeg':'.jpg','image/webp':'.webp','image/gif':'.gif','image/svg+xml':'.svg'};
 const uploadImageTypes = new Set(Object.keys(imageExtensions));
+fs.mkdirSync(dataDir, {recursive:true});
 fs.mkdirSync(uploadDir, {recursive:true});
 fs.mkdirSync(quoteUploadDir, {recursive:true});
+if (dataDir !== root) {
+  for (const name of ['.aeon-store.json', '.aeon-outlook.json']) {
+    const legacy = path.join(root, name);
+    const persistent = path.join(dataDir, name);
+    if (!fs.existsSync(persistent) && fs.existsSync(legacy)) fs.copyFileSync(legacy, persistent);
+  }
+  const legacyUploads = path.join(root, 'assets', 'uploads');
+  if (fs.existsSync(legacyUploads)) fs.cpSync(legacyUploads, uploadDir, {recursive:true, force:false});
+}
 
 function json(response, status, body) { response.writeHead(status, {'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'}); response.end(JSON.stringify(body)); }
 function readBody(request, maxBytes = maxUploadBytes) { return new Promise((resolve, reject) => { let size = 0; const chunks = []; const maxRequestBytes = Math.ceil(maxBytes * 1.38) + 65536; request.on('data', chunk => { size += chunk.length; if (size > maxRequestBytes) { reject(new Error(`Tệp vượt quá dung lượng cho phép (${Math.round(maxBytes / 1024 / 1024)} MB).`)); request.destroy(); return; } chunks.push(chunk); }); request.on('end', () => resolve(Buffer.concat(chunks))); request.on('error', reject); }); }
@@ -259,15 +274,10 @@ function requireOwner(request, response) {
   return principal;
 }
 function readState() {
-  try {
-    return JSON.parse(fs.readFileSync(statePath, 'utf8'));
-  } catch {
-    try {
-      return JSON.parse(fs.readFileSync(seedStatePath, 'utf8'));
-    } catch {
-      return {};
-    }
-  }
+  // A corrupt runtime file must not be silently replaced with the seed.
+  if (fs.existsSync(statePath)) return JSON.parse(fs.readFileSync(statePath, 'utf8'));
+  if (fs.existsSync(seedStatePath)) return JSON.parse(fs.readFileSync(seedStatePath, 'utf8'));
+  return {};
 }
 function writeLocalState(state) {
   const temporary = `${statePath}.tmp`;
@@ -277,14 +287,14 @@ function writeLocalState(state) {
 
 function cloudHeaders(prefer = '') {
   return {
-    apikey: supabaseAnonKey,
-    Authorization: `Bearer ${supabaseAnonKey}`,
+    apikey: supabaseStateKey,
+    Authorization: `Bearer ${supabaseStateKey}`,
     ...(prefer ? {Prefer: prefer} : {})
   };
 }
 
 async function readCloudState() {
-  if (!supabaseUrl || !supabaseAnonKey) return null;
+  if (!supabaseUrl || !supabaseStateKey) return null;
   const response = await fetch(`${supabaseUrl}/rest/v1/aeon_state?select=key,value`, {
     headers: cloudHeaders()
   });
@@ -299,7 +309,7 @@ async function readCloudState() {
 }
 
 async function writeCloudState(state, changedKeys = cloudStateKeys) {
-  if (!supabaseUrl || !supabaseAnonKey) return;
+  if (!supabaseUrl || !supabaseStateKey) return;
   const requestedKeys = Array.isArray(changedKeys) ? changedKeys : cloudStateKeys;
   const rows = cloudStateKeys
     // Persist only the key requested by the caller. Writing a UI/layout change
@@ -341,18 +351,17 @@ function clearBundledGiftDefaults(state) {
   return changed;
 }
 
-// The local file is only a working copy. Cloud state is authoritative so a
-// container restart or a deploy cannot restore an obsolete storefront layout.
+// Cloud state is authoritative when configured. AEON_DATA_DIR provides a
+// persistent local copy for hosts with a mounted data directory.
 // Also remove only the exact gift values from the original bundled demo item.
 const stateReady = readCloudState()
-  .catch(error => {
-    console.warn(`AEON cloud state unavailable: ${error.message}`);
-    return null;
-  })
   .then(async cloudState => {
     const state = {...readState(), ...(cloudState || {})};
     const giftDefaultsCleared = clearBundledGiftDefaults(state);
-    if (cloudState || giftDefaultsCleared) writeLocalState(state);
+    const missingCloudKeys = cloudStateKeys.filter(key =>
+      Object.hasOwn(state, key) && !Object.hasOwn(cloudState || {}, key));
+    if (cloudState || giftDefaultsCleared || (supabaseUrl && supabaseStateKey)) writeLocalState(state);
+    if (missingCloudKeys.length) await writeCloudState(state, missingCloudKeys);
     if (giftDefaultsCleared) await writeCloudState(state, ['aeon-products']);
   })
   .catch(error => console.warn(`AEON state initialization failed: ${error.message}`));
@@ -368,15 +377,8 @@ function publicStorefrontState(state, useCanonicalShell = lockPublicStorefront) 
     if (Object.hasOwn(state || {}, key)) visible[key] = state[key];
   });
   if (useCanonicalShell) {
-    const storedUi = state?.['aeon-ui'];
-    const storedLayout = state?.['aeon-layout'];
-    const currentRevision = canonicalStorefrontState['aeon-ui']?.storefrontRevision;
-    visible['aeon-ui'] = storedUi?.storefrontRevision === currentRevision
-      ? storedUi
-      : canonicalStorefrontState['aeon-ui'];
-    visible['aeon-layout'] = storedLayout?.storefrontRevision === canonicalLayout.storefrontRevision
-      ? publicLayoutForState(state)
-      : canonicalLayout;
+    visible['aeon-ui'] = {...canonicalStorefrontState['aeon-ui'], ...(state?.['aeon-ui'] || {})};
+    visible['aeon-layout'] = publicLayoutForState(state);
   } else {
     if (Object.hasOwn(state || {}, 'aeon-ui')) visible['aeon-ui'] = state['aeon-ui'];
     visible['aeon-layout'] = publicLayoutForState(state);
@@ -390,6 +392,7 @@ function publicLayoutForState(state) {
   const mobileColumns = Number(saved.productColumnsMobile);
   return {
     ...canonicalLayout,
+    ...saved,
     productColumns: [0, 1, 2, 3, 4, 5, 6].includes(desktopColumns) ? desktopColumns : canonicalLayout.productColumns,
     productColumnsMobile: [0, 1, 2].includes(mobileColumns) ? mobileColumns : canonicalLayout.productColumnsMobile
   };
@@ -457,10 +460,19 @@ function requestOrigin(request) {
   }
 }
 
+function localAssetPath(source) {
+  if (source.startsWith('/assets/uploads/')) {
+    const file = path.resolve(uploadDir, source.slice('/assets/uploads/'.length));
+    return file.startsWith(`${uploadDir}${path.sep}`) ? file : null;
+  }
+  const file = path.resolve(root, `.${source}`);
+  return file.startsWith(`${root}${path.sep}`) ? file : null;
+}
+
 function socialPreviewVersion(imagePath) {
   if (imagePath.startsWith('/')) {
-    const localPath = path.resolve(root, `.${imagePath}`);
-    if (localPath.startsWith(`${root}${path.sep}`)) {
+    const localPath = localAssetPath(imagePath);
+    if (localPath) {
       try { return Math.round(fs.statSync(localPath).mtimeMs).toString(36); }
       catch { /* Use the image path below when the local file has not been created yet. */ }
     }
@@ -730,8 +742,8 @@ async function orderImageBuffer(value) {
   const source = String(value || '').trim();
   if (!source) return null;
   if (source.startsWith('/')) {
-    const imagePath = path.resolve(root, `.${source}`);
-    if (imagePath === root || !imagePath.startsWith(`${root}${path.sep}`)) return null;
+    const imagePath = localAssetPath(source);
+    if (!imagePath) return null;
     if (!/\.(?:png|jpe?g)$/i.test(imagePath)) return null;
     try {
       const content = await fs.promises.readFile(imagePath);
@@ -1601,9 +1613,10 @@ async function catalogImageBuffer(value) {
   if (!source) return null;
 
   if (source.startsWith('/')) {
-    const imagePath = path.resolve(root, `.${source}`);
+    const imagePath = localAssetPath(source);
     const assetsRoot = path.join(root, 'assets');
-    if (!imagePath.startsWith(`${assetsRoot}${path.sep}`)) return null;
+    if (!imagePath || (!imagePath.startsWith(`${assetsRoot}${path.sep}`)
+      && !imagePath.startsWith(`${uploadDir}${path.sep}`))) return null;
     try {
       const buffer = await fs.promises.readFile(imagePath);
       return buffer.length <= 2 * 1024 * 1024 && imageDimensions(buffer) ? buffer : null;
@@ -2615,8 +2628,11 @@ http.createServer(async (request, response) => {
         const mobileColumns = Number(requested.productColumnsMobile);
         state[key] = {
           ...canonicalLayout,
+          ...current,
+          ...requested,
           productColumns: [0, 1, 2, 3, 4, 5, 6].includes(desktopColumns) ? desktopColumns : current.productColumns,
-          productColumnsMobile: [0, 1, 2].includes(mobileColumns) ? mobileColumns : current.productColumnsMobile
+          productColumnsMobile: [0, 1, 2].includes(mobileColumns) ? mobileColumns : current.productColumnsMobile,
+          storefrontRevision: canonicalLayout.storefrontRevision
         };
       }
       if (key === 'aeon-brands' && !requirePermission(request, response, 'brands')) return;
@@ -2648,11 +2664,12 @@ http.createServer(async (request, response) => {
         state[key] = products;
       } else if (key === 'aeon-ui') {
         const requested = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
-        state[key] = {...requested, storefrontRevision:canonicalStorefrontState['aeon-ui'].storefrontRevision};
+        state[key] = {...canonicalStorefrontState['aeon-ui'], ...(state[key] || {}), ...requested,
+          storefrontRevision:canonicalStorefrontState['aeon-ui'].storefrontRevision};
       } else if (key !== 'aeon-layout') {
         state[key] = value;
       }
-      await writeState(state, [key]);
+      await writeState(state, key === 'aeon-products' ? [key, productTombstoneStateKey] : [key]);
       return json(response, 200, {ok:true});
     } catch (error) { return json(response, 400, {error:error.message || 'Không thể lưu dữ liệu.'}); }
   }
@@ -2733,8 +2750,8 @@ http.createServer(async (request, response) => {
 
   const requested = pathname === '/' ? '/index.html' : pathname;
   if (['/.aeon-store.json','/.aeon-outlook.json','/.env'].some(hiddenFile => requested === hiddenFile || requested.startsWith(`${hiddenFile}.`))) { response.writeHead(403); return response.end('Forbidden'); }
-  const filePath = path.resolve(root, `.${requested}`);
-  if (filePath !== root && !filePath.startsWith(`${root}${path.sep}`)) { response.writeHead(403); return response.end('Forbidden'); }
+  const filePath = localAssetPath(requested);
+  if (!filePath) { response.writeHead(403); return response.end('Forbidden'); }
   if (request.method === 'GET' && requested === '/index.html') {
     try {
       const content = storefrontHtml(request);

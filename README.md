@@ -1,6 +1,6 @@
 # AEON Black Friday 2026
 
-Ứng dụng danh mục, báo giá và đặt hàng dành cho AEON Black Friday 2026. Bản bàn giao có danh mục hiện tại gồm 73 sản phẩm để giao diện local và bản deploy bắt đầu từ cùng dữ liệu.
+Ứng dụng danh mục, báo giá và đặt hàng dành cho AEON Black Friday 2026. Bản bàn giao có bản sao danh mục 91 sản phẩm và cài đặt giao diện đang hiển thị trên website ngày 11/11/2026.
 
 ## Chức năng
 
@@ -33,7 +33,7 @@ dụng, ví dụ `http://192.168.1.64:8080/`.
 
 ## Triển khai có quản trị
 
-Để tiếp tục sửa sản phẩm, ảnh banner và logo sau khi deploy, hãy chạy ứng dụng bằng Node.js (`npm install`, sau đó `npm start`) thay vì chỉ phát hành thư mục tĩnh. Máy chủ cần lưu bền vững `.aeon-store.json` và `assets/uploads/`; đặt `ADMIN_USERNAME`, `ADMIN_PASSWORD` và `AEON_LOCK_STOREFRONT=true` trong biến môi trường của máy chủ. `netlify.toml` hiện chỉ phát hành file tĩnh và hàm nhập Excel, nên không cung cấp đầy đủ API lưu sản phẩm, giao diện và ảnh.
+Để tiếp tục sửa sản phẩm, ảnh banner và logo sau khi deploy, hãy chạy ứng dụng bằng Node.js (`npm install`, sau đó `npm start`) thay vì chỉ phát hành thư mục tĩnh. Đặt `AEON_DATA_DIR` trỏ tới một thư mục/volume bền vững nằm ngoài thư mục release (ví dụ `/var/lib/aeon-blackfriday`), rồi giữ nguyên đường dẫn và volume đó ở mọi lần deploy. Máy chủ tự sao chép `.aeon-store.json`, `.aeon-outlook.json` và `assets/uploads/` cũ vào thư mục này ở lần chạy đầu. Nếu dùng Supabase cho dữ liệu, đặt `SUPABASE_URL` cùng `SUPABASE_SECRET_KEY` hoặc `SUPABASE_ANON_KEY`; máy chủ đọc và ghi bảng `aeon_state`. Đặt `ADMIN_USERNAME`, `ADMIN_PASSWORD` và `AEON_LOCK_STOREFRONT=true` trong biến môi trường của máy chủ. `netlify.toml` hiện chỉ phát hành file tĩnh và hàm nhập Excel, nên không cung cấp đầy đủ API lưu sản phẩm, giao diện và ảnh.
 ## Cấu hình
 
 Máy chủ hỗ trợ các biến môi trường:
@@ -42,7 +42,9 @@ Máy chủ hỗ trợ các biến môi trường:
 - `PORT`: cổng chạy ứng dụng, mặc định `8080`.
 - `ADMIN_USERNAME`: tài khoản đăng nhập trang quản trị, bắt buộc.
 - `ADMIN_PASSWORD`: mật khẩu quản trị, bắt buộc.
-- `AEON_LOCK_STOREFRONT`: đặt `true` trên máy chủ production để giao diện public dùng `storefront-state.js` khi cấu hình lưu/cloud mang phiên bản cũ. Banner, logo, nội dung và bố cục được quản trị viên lưu bằng bản mới sẽ tiếp tục hiển thị; danh sách sản phẩm không bị khóa.
+- `AEON_DATA_DIR`: đường dẫn tuyệt đối đến thư mục/volume bền vững, nằm ngoài thư mục release. Giữ nguyên giá trị này qua các lần deploy để bảo toàn danh mục, cài đặt, ảnh và file đã tải lên.
+- `AEON_LOCK_STOREFRONT`: đặt `true` trên máy chủ production để dùng giao diện Black Friday làm mặc định cho trường còn thiếu; các giá trị đã lưu vẫn được ưu tiên bất kể phiên bản.
+- `SUPABASE_URL` và `SUPABASE_SECRET_KEY` hoặc `SUPABASE_ANON_KEY`: nếu cấu hình bảng `aeon_state`, ứng dụng đồng bộ danh mục và cài đặt lên Supabase để giữ qua các lần deploy. Khóa secret chỉ đặt trên máy chủ.
 - `GOOGLE_SHEET_WEB_APP_URL`: URL Web App của Google Apps Script, bắt buộc
   nếu dùng chức năng đồng bộ đơn hàng.
 - `MICROSOFT_CLIENT_ID`: ID ứng dụng Microsoft Entra đăng ký cho web.
@@ -60,6 +62,7 @@ Ví dụ trên PowerShell:
 $env:ADMIN_USERNAME='ten-quan-tri'
 $env:ADMIN_PASSWORD='mat-khau-manh'
 $env:AEON_LOCK_STOREFRONT='true'
+$env:AEON_DATA_DIR='C:\persistent\aeon-blackfriday'
 $env:GOOGLE_SHEET_WEB_APP_URL='https://script.google.com/macros/s/DEPLOYMENT_ID/exec'
 # Chỉ cấu hình các giá trị OAuth này ở môi trường máy chủ, không ghi vào mã nguồn.
 $env:MICROSOFT_CLIENT_ID='APPLICATION_CLIENT_ID'
@@ -109,9 +112,12 @@ nhóm quyền: sản phẩm & giá, nội dung/giao diện/banner, file báo gi�
 hiệu, hoặc khách hàng & đơn hàng. Chỉ tài khoản chính mới có thể tạo, sửa,
 tạm khóa tài khoản và phân quyền; mật khẩu tài khoản con được lưu dạng băm.
 
-Tệp `.aeon-store.seed.json` chỉ chứa danh mục và cấu hình giao diện mẫu. Dữ
-liệu khách hàng, đơn hàng và tệp tải lên được lưu cục bộ, đã bị loại khỏi Git
-để không xuất hiện trong repository công khai.
+Tệp `.aeon-store.seed.json` là bản sao công khai của 91 sản phẩm và cài đặt giao
+diện ngày 11/11/2026. Ứng dụng chỉ dùng tệp này khi chưa có dữ liệu đã lưu.
+Dữ liệu khách hàng, đơn hàng, tài khoản con và tệp tải lên không nằm trong Git.
+Để giữ các chỉnh sửa về sau, cần cấu hình `AEON_DATA_DIR` trên volume bền vững
+hoặc Supabase trước khi deploy. Với ảnh/file tải lên bằng ứng dụng, cần giữ
+`AEON_DATA_DIR`; đường dẫn ảnh ngoài (ví dụ Cloudinary) không phụ thuộc volume.
 
 ## Quy trình sử dụng nhanh
 
