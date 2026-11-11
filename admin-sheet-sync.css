@@ -54,3 +54,5 @@
     grid-template-columns: 1fr;
   }
 }
+.sheet-sync-error{flex-basis:100%;color:var(--red);font-size:12px;line-height:1.5;overflow-wrap:anywhere}
+.customer-order-actions .order-sheet-retry{margin:0}

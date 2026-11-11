@@ -54,6 +54,9 @@ const supabaseUrl = String(process.env.SUPABASE_URL || bundledSupabaseConfig.url
 const supabaseAnonKey = String(process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || bundledSupabaseConfig.key).trim();
 const supabaseServerKey = String(process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
 const supabaseStateKey = supabaseServerKey || supabaseAnonKey;
+// Supabase may be configured solely for encrypted Outlook tokens. Catalog
+// sync is opt-in so missing aeon_state tables cannot block product edits.
+const stateStorage = String(process.env.AEON_STATE_STORAGE || 'local').trim().toLowerCase();
 const liveStateUrl = String(process.env.AEON_BOOTSTRAP_PUBLIC_URL || 'https://blackfriday.tinhgon.xyz/api/state').trim();
 const allowSampleData = /^(?:1|true|yes|on)$/i.test(String(process.env.AEON_ALLOW_SAMPLE_DATA || '').trim());
 const outlookStorage = String(process.env.AEON_OUTLOOK_STORAGE || (supabaseUrl || process.env.NODE_ENV === 'production' ? 'supabase' : 'file')).trim().toLowerCase();
@@ -64,6 +67,7 @@ const adminSessionTtlSeconds = 12 * 60 * 60;
 const adminSessions = new Map();
 const outlookOAuthAttempts = new Map();
 const outlookOrderSends = new Set();
+const googleSheetOrderSends = new Set();
 let outlookRefreshInFlight = null;
 const adminAccountsStateKey = 'aeon-admin-users';
 const adminPermissionDefinitions = [
@@ -78,7 +82,7 @@ const types = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charse
 // Bump this whenever the storefront shell changes. It fingerprints every
 // local CSS/JS URL emitted by the Node deployment, so a CDN cannot revive an
 // obsolete interface after a new release.
-const storefrontBuild = '20261111-preserve-live-catalog-v89';
+const storefrontBuild = '20261111-google-sheet-retry-v90';
 const productImageFitCss = '\n/* Server-enforced product commerce lock. */\n.product-media{position:relative!important;overflow:hidden!important;background:#fff!important}.product-media:has(.product-image-placeholder:not([hidden])),.product-media:has(.product-image-placeholder:not([hidden])):before,.product-media .product-image-placeholder:not([hidden]){background:#fff!important}.product-media img.product-official-image{display:block!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;margin:0!important;padding:0!important;object-fit:contain!important;object-position:center center!important}.product-price-stack .price,.product-price-stack .regular-price,.product-discount-badge{visibility:visible!important;opacity:1!important}\n';
 const noCacheHeaders = {
   'Cache-Control':'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0',
@@ -296,7 +300,7 @@ function cloudHeaders(prefer = '') {
 }
 
 async function readCloudState() {
-  if (!supabaseUrl || !supabaseStateKey) return null;
+  if (stateStorage !== 'supabase' || !supabaseUrl || !supabaseStateKey) return null;
   const response = await fetch(`${supabaseUrl}/rest/v1/aeon_state?select=key,value`, {
     headers: cloudHeaders()
   });
@@ -311,7 +315,7 @@ async function readCloudState() {
 }
 
 async function writeCloudState(state, changedKeys = cloudStateKeys) {
-  if (!supabaseUrl || !supabaseStateKey) return;
+  if (stateStorage !== 'supabase' || !supabaseUrl || !supabaseStateKey) return;
   const requestedKeys = Array.isArray(changedKeys) ? changedKeys : cloudStateKeys;
   const rows = cloudStateKeys
     // Persist only the key requested by the caller. Writing a UI/layout change
@@ -1958,6 +1962,41 @@ async function sendOrderToGoogleSheet(payload) {
   }
 }
 
+async function retryOrderGoogleSheetSync(request, response, orderCode) {
+  if (!requirePermission(request, response, 'customers')) return;
+  if (googleSheetOrderSends.has(orderCode)) return json(response, 409, {error:'Đơn này đang được đồng bộ.'});
+  googleSheetOrderSends.add(orderCode);
+  try {
+    const state = readState();
+    const orders = Array.isArray(state['aeon-orders']) ? state['aeon-orders'].map(order => ({...order})) : [];
+    const index = orders.findIndex(order => String(order?.code || '') === orderCode);
+    if (index < 0) return json(response, 404, {error:'Không tìm thấy đơn hàng.'});
+    const order = orders[index];
+    const customer = (Array.isArray(state['aeon-customers']) ? state['aeon-customers'] : [])
+      .find(item => String(item?.id ?? '') === String(order.customerId ?? ''));
+    if (!customer) return json(response, 404, {error:'Không tìm thấy thông tin khách hàng của đơn.'});
+    try {
+      const result = await sendOrderToGoogleSheet(googleSheetOrderPayload({customer, order}));
+      order.googleSheetSync = {status:'synced', syncedAt:new Date().toISOString()};
+      orders[index] = order;
+      state['aeon-orders'] = orders;
+      await writeState(state, ['aeon-orders']);
+      return json(response, 200, {ok:true, orderCode, googleSheet:result});
+    } catch (error) {
+      const message = String(error.message || 'Không thể đồng bộ Google Sheet.').slice(0, 300);
+      order.googleSheetSync = {status:'failed', failedAt:new Date().toISOString(), message};
+      orders[index] = order;
+      state['aeon-orders'] = orders;
+      try { await writeState(state, ['aeon-orders']); } catch {}
+      return json(response, 502, {ok:false, error:message});
+    }
+  } catch (error) {
+    return json(response, 500, {ok:false, error:error.message || 'Không thể đọc đơn hàng để đồng bộ Google Sheet.'});
+  } finally {
+    googleSheetOrderSends.delete(orderCode);
+  }
+}
+
 function outlookConfigurationStatus() {
   const missing = [];
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(microsoftClientId)) missing.push('MICROSOFT_CLIENT_ID');
@@ -2449,6 +2488,12 @@ const server = http.createServer(async (request, response) => {
     : null;
   if (outlookOrderConfirmationMatch) {
     return handleOutlookOrderConfirmation(request, response, outlookOrderConfirmationMatch[1]);
+  }
+  const googleSheetRetryMatch = request.method === 'POST'
+    ? /^\/api\/admin\/orders\/([^/]+)\/sync-google-sheet$/.exec(pathname)
+    : null;
+  if (googleSheetRetryMatch) {
+    return retryOrderGoogleSheetSync(request, response, googleSheetRetryMatch[1]);
   }
 
   if (request.method === 'GET' && pathname === '/api/admin/accounts') {

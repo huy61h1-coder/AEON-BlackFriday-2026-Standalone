@@ -2203,6 +2203,8 @@ function customersPanel(panel) {
           <div class="customer-order-total"><span>TỔNG THANH TOÁN</span><strong>${money(order.total)}</strong><small class="order-sync-status ${escapeHtml(syncStatus)}">${syncLabel}</small></div>
         </div>
         <div class="customer-order-actions">
+          ${syncStatus === 'failed' && order.googleSheetSync?.message ? `<span class="sheet-sync-error">Google Sheet: ${escapeHtml(order.googleSheetSync.message)}</span>` : ''}
+          ${syncStatus !== 'synced' ? `<button type="button" class="secondary-button order-sheet-retry" data-retry-sheet="${escapeHtml(order.code)}">Gửi lại Google Sheet</button>` : ''}
           <span class="order-email-status ${escapeHtml(emailStatus)}">${escapeHtml(emailLabels[emailStatus] || 'Chưa xác nhận')}${order.emailConfirmation?.recipient ? ` · ${escapeHtml(order.emailConfirmation.recipient)}` : ''}</span>
           ${customer.email ? `<button type="button" class="order-confirm-email-button" data-confirm-order-email="${escapeHtml(order.code)}" data-email-status="${escapeHtml(emailStatus)}" disabled>${emailActionLabel}</button>` : '<span class="order-email-missing">Thiếu email khách hàng</span>'}
           <a class="order-pdf-button" href="/api/orders/${encodeURIComponent(order.code)}.pdf" download="don-hang-${escapeHtml(order.code)}.pdf" title="Tải PDF đơn hàng ${escapeHtml(order.code)}"><span>PDF</span>Tải đơn hàng <b>↓</b></a>
@@ -2224,6 +2226,23 @@ function customersPanel(panel) {
   action.innerHTML = '<div><h2>Thông tin khách hàng</h2><p>Xuất Excel tổng hợp hoặc tải PDF đẹp riêng cho từng đơn hàng bên dưới.</p></div><button class="secondary-button" id="downloadCustomerExcel" type="button">Xuất Excel</button>';
   heading.replaceWith(action);
   action.querySelector('#downloadCustomerExcel').onclick = () => downloadCustomerExcel(action.querySelector('#downloadCustomerExcel'));
+  panel.querySelectorAll('[data-retry-sheet]').forEach(button => {
+    button.onclick = async () => {
+      button.disabled = true;
+      button.textContent = 'Đang gửi…';
+      try {
+        const response = await fetch(`/api/admin/orders/${encodeURIComponent(button.dataset.retrySheet)}/sync-google-sheet`, {method:'POST'});
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || !result.ok) throw new Error(result.error || 'Không thể gửi đơn sang Google Sheet.');
+        toastAdmin(`Đơn ${result.orderCode} đã được đồng bộ Google Sheet.`);
+      } catch (error) {
+        toastAdmin(error.message || 'Không thể gửi đơn sang Google Sheet.');
+      } finally {
+        await aeonStore.pull();
+        render();
+      }
+    };
+  });
   panel.insertAdjacentHTML('afterbegin', `
     <section class="admin-card outlook-mail-settings" id="outlookMailSettings" aria-labelledby="outlookMailTitle">
       <div class="panel-action"><div><p class="eyebrow">EMAIL XÁC NHẬN ĐƠN</p><h2 id="outlookMailTitle">Kết nối hộp thư Outlook</h2><p id="outlookMailDescription">Sau khi kết nối, quản trị viên có thể xác nhận đơn và gửi email xác nhận cho khách.</p></div><span class="outlook-mail-state" id="outlookMailState">Đang kiểm tra kết nối…</span></div>

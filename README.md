@@ -38,6 +38,8 @@ Chạy ứng dụng bằng Node.js (`npm install`, sau đó `npm start`). Khi m�
 Cơ chế này giữ **danh mục, banner, logo và cài đặt giao diện công khai** qua lần thay bản khi Vibe Host còn phục vụ phiên bản cũ trong lúc bản mới khởi động. Dữ liệu riêng như khách hàng, đơn hàng, tài khoản phụ, file tải trực tiếp lên máy chủ và phiên Outlook cần ổ lưu trữ bền vững nếu muốn giữ qua mọi lần deploy. Nếu Vibe Host thay bản cũ trước khi bản mới đọc được URL, bản mới sẽ dừng và có thể rollback; không tự thay danh mục bằng dữ liệu cũ.
 
 Nếu có volume bền vững, đặt `AEON_DATA_DIR` ngoài thư mục release để giữ toàn bộ tệp runtime. Nếu đang dùng Supabase, ứng dụng vẫn hỗ trợ đồng bộ qua bảng `aeon_state`. Đặt `ADMIN_USERNAME`, `ADMIN_PASSWORD` và `AEON_LOCK_STOREFRONT=true` trên máy chủ. `netlify.toml` chỉ phát hành file tĩnh và hàm nhập Excel nên không cung cấp đầy đủ API quản trị.
+
+Với yêu cầu **không dùng database cho danh mục**, giữ `AEON_STATE_STORAGE=local` (mặc định). Có thể cấu hình `SUPABASE_URL` và `SUPABASE_SECRET_KEY` riêng cho `AEON_OUTLOOK_STORAGE=supabase`; việc này không tự chuyển danh mục sang Supabase. Chỉ đặt `AEON_STATE_STORAGE=supabase` nếu muốn dùng bảng `aeon_state` để lưu danh mục.
 ## Cấu hình
 
 Máy chủ hỗ trợ các biến môi trường:
@@ -48,6 +50,7 @@ Máy chủ hỗ trợ các biến môi trường:
 - `ADMIN_PASSWORD`: mật khẩu quản trị, bắt buộc.
 - `AEON_BOOTSTRAP_PUBLIC_URL`: URL của `/api/state` trên website đang chạy; mặc định là `https://blackfriday.tinhgon.xyz/api/state`. Dùng khi bản mới chưa có tệp runtime.
 - `AEON_ALLOW_SAMPLE_DATA`: chỉ đặt `true` để xem thử dữ liệu mẫu ở máy cá nhân khi không có website đang chạy. Không bật trên Vibe Host.
+- `AEON_STATE_STORAGE`: mặc định `local` để giữ danh mục theo bản đang chạy; đặt `supabase` chỉ khi muốn đồng bộ danh mục vào bảng `aeon_state`.
 - `AEON_DATA_DIR`: đường dẫn tuyệt đối đến thư mục/volume bền vững, nằm ngoài thư mục release. Giữ nguyên giá trị này qua các lần deploy để bảo toàn danh mục, cài đặt, ảnh và file đã tải lên.
 - `AEON_LOCK_STOREFRONT`: đặt `true` trên máy chủ production để dùng giao diện Black Friday làm mặc định cho trường còn thiếu; các giá trị đã lưu vẫn được ưu tiên bất kể phiên bản.
 - `SUPABASE_URL` và `SUPABASE_SECRET_KEY`, `SUPABASE_PUBLISHABLE_KEY` hoặc `SUPABASE_ANON_KEY`: nếu cấu hình bảng `aeon_state`, ứng dụng đồng bộ danh mục và cài đặt lên Supabase để giữ qua các lần deploy. Khóa secret chỉ đặt trên máy chủ.
