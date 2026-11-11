@@ -52,7 +52,7 @@ Máy chủ hỗ trợ các biến môi trường:
   `https://blackfriday.tinhgon.xyz/api/admin/outlook/callback`.
 - `AEON_OUTLOOK_TOKEN_KEY`: khóa ngẫu nhiên dài tối thiểu 32 ký tự để mã hóa token Outlook đã cấp.
 - `AEON_OUTLOOK_STORAGE`: đặt `supabase` trên bản deploy để giữ kết nối sau khi khởi động lại; đặt `file` khi chạy local hoặc có ổ đĩa bền vững.
-- `SUPABASE_SERVICE_ROLE_KEY`: khóa Supabase chỉ đặt trên máy chủ, cần khi `AEON_OUTLOOK_STORAGE=supabase`. Không dùng khóa `anon` và không đưa khóa này vào `supabase-config.js`.
+- `SUPABASE_SECRET_KEY`: khóa secret Supabase mới, chỉ đặt trên máy chủ khi `AEON_OUTLOOK_STORAGE=supabase`. Có thể dùng `SUPABASE_SERVICE_ROLE_KEY` cũ nếu dự án chưa tạo khóa mới. Không dùng khóa `anon` và không đưa khóa bí mật vào `supabase-config.js`.
 
 Ví dụ trên PowerShell:
 
@@ -68,7 +68,8 @@ $env:MICROSOFT_TENANT_ID='common'
 $env:MICROSOFT_REDIRECT_URI='https://blackfriday.tinhgon.xyz/api/admin/outlook/callback'
 $env:AEON_OUTLOOK_TOKEN_KEY='REPLACE_WITH_A_RANDOM_SECRET_AT_LEAST_32_CHARACTERS'
 $env:AEON_OUTLOOK_STORAGE='supabase'
-$env:SUPABASE_SERVICE_ROLE_KEY='SUPABASE_SERVICE_ROLE_KEY_FROM_PROJECT_SETTINGS'
+$env:SUPABASE_URL='https://PROJECT_REF.supabase.co'
+$env:SUPABASE_SECRET_KEY='sb_secret_KEY_FROM_PROJECT_SETTINGS'
 npm start
 ```
 
@@ -82,7 +83,8 @@ Tạo `AEON_OUTLOOK_TOKEN_KEY` ngẫu nhiên (ví dụ `node -e
 và giữ nguyên khóa này khi cập nhật để máy chủ tiếp tục giải mã kết nối. Trước
 khi kết nối Outlook trên bản deploy, áp dụng migration
 `supabase/migrations/20261110000000_private_outlook_credentials.sql` trong
-Supabase và đặt `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
+Supabase và đặt `SUPABASE_URL`, `SUPABASE_SECRET_KEY` (hoặc
+`SUPABASE_SERVICE_ROLE_KEY` cũ),
 `AEON_OUTLOOK_STORAGE=supabase` trong biến môi trường máy chủ. Token được mã hóa
 trước khi lưu vào bảng riêng; bảng này không cấp quyền đọc hoặc ghi cho trình
 duyệt. Nếu trước đây đã kết nối Outlook trên ổ đĩa bền vững, máy chủ tự chuyển

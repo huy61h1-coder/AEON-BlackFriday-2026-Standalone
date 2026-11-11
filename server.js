@@ -48,7 +48,7 @@ function publicSupabaseConfig() {
 const bundledSupabaseConfig = publicSupabaseConfig();
 const supabaseUrl = String(process.env.SUPABASE_URL || bundledSupabaseConfig.url).replace(/\/+$/, '');
 const supabaseAnonKey = String(process.env.SUPABASE_ANON_KEY || bundledSupabaseConfig.key).trim();
-const supabaseServiceRoleKey = String(process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
+const supabaseServerKey = String(process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
 const outlookStorage = String(process.env.AEON_OUTLOOK_STORAGE || (supabaseUrl || process.env.NODE_ENV === 'production' ? 'supabase' : 'file')).trim().toLowerCase();
 const productTombstoneStateKey = 'aeon-product-tombstones';
 const cloudStateKeys = ['aeon-products', productTombstoneStateKey, 'aeon-ui', 'aeon-layout', 'aeon-brands', 'aeon-customers', 'aeon-orders'];
@@ -71,7 +71,7 @@ const types = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charse
 // Bump this whenever the storefront shell changes. It fingerprints every
 // local CSS/JS URL emitted by the Node deployment, so a CDN cannot revive an
 // obsolete interface after a new release.
-const storefrontBuild = '20261110-outlook-persistent-connection-v85';
+const storefrontBuild = '20261111-outlook-persistent-connection-v86';
 const productImageFitCss = '\n/* Server-enforced product commerce lock. */\n.product-media{position:relative!important;overflow:hidden!important;background:#fff!important}.product-media:has(.product-image-placeholder:not([hidden])),.product-media:has(.product-image-placeholder:not([hidden])):before,.product-media .product-image-placeholder:not([hidden]){background:#fff!important}.product-media img.product-official-image{display:block!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;margin:0!important;padding:0!important;object-fit:contain!important;object-position:center center!important}.product-price-stack .price,.product-price-stack .regular-price,.product-discount-badge{visibility:visible!important;opacity:1!important}\n';
 const noCacheHeaders = {
   'Cache-Control':'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0',
@@ -1947,7 +1947,7 @@ function outlookConfigurationStatus() {
   if (outlookTokenEncryptionSecret.length < 32) missing.push('AEON_OUTLOOK_TOKEN_KEY');
   if (!['file', 'supabase'].includes(outlookStorage)) missing.push('AEON_OUTLOOK_STORAGE (không hợp lệ)');
   if (outlookStorage === 'supabase' && !supabaseUrl) missing.push('SUPABASE_URL');
-  if (outlookStorage === 'supabase' && !supabaseServiceRoleKey) missing.push('SUPABASE_SERVICE_ROLE_KEY');
+  if (outlookStorage === 'supabase' && !supabaseServerKey) missing.push('SUPABASE_SECRET_KEY hoặc SUPABASE_SERVICE_ROLE_KEY');
   if (microsoftRedirectUri) {
     try {
       const redirect = new URL(microsoftRedirectUri);
@@ -1993,8 +1993,9 @@ function encryptOutlookTokens(tokens) {
 
 function outlookCloudHeaders(prefer = '') {
   return {
-    apikey:supabaseServiceRoleKey,
-    Authorization:`Bearer ${supabaseServiceRoleKey}`,
+    apikey:supabaseServerKey,
+    // New sb_secret keys are not JWTs. Legacy service_role keys still use Bearer.
+    ...(!supabaseServerKey.startsWith('sb_secret_') ? {Authorization:`Bearer ${supabaseServerKey}`} : {}),
     ...(prefer ? {Prefer:prefer} : {})
   };
 }
@@ -2012,7 +2013,7 @@ async function outlookCloudRequest(url, options = {}) {
 
 async function readOutlookTokens() {
   if (outlookStorage === 'supabase') {
-    if (!supabaseUrl || !supabaseServiceRoleKey) throw new Error('Máy chủ chưa cấu hình kho kết nối Outlook trên Supabase.');
+    if (!supabaseUrl || !supabaseServerKey) throw new Error('Máy chủ chưa cấu hình kho kết nối Outlook trên Supabase.');
     const response = await outlookCloudRequest('?id=eq.primary&select=payload');
     const rows = await response.json();
     if (rows?.length) return decryptOutlookTokens(rows[0].payload);
