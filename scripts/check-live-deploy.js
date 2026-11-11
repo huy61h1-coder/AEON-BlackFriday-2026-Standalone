@@ -56,9 +56,8 @@ async function run() {
     const port = 18000 + Math.floor(Math.random() * 4000);
     let base = await start(port, sourcePort);
     let state = await (await fetch(`${base}/api/state`)).json();
-    assert.equal(state['aeon-products'].length, 73);
-    assert.equal(state['aeon-ui'].campaignSchedule, 'CURRENT_LIVE_VERSION');
-    assert.equal(state['aeon-layout'].accentColor, '#123456');
+    assert.equal(state['aeon-products'].length, 90);
+    assert.deepEqual(state['aeon-products'], seed['aeon-products']);
 
     const login = await fetch(`${base}/api/admin/login`, {method:'POST',
       headers:{'Content-Type':'application/json'},
@@ -67,18 +66,28 @@ async function run() {
     const cookie = login.headers.get('set-cookie').split(';')[0];
     const response = await fetch(`${base}/api/state`, {method:'POST',
       headers:{'Content-Type':'application/json', Cookie:cookie},
-      body:JSON.stringify({key:'aeon-products', value:state['aeon-products'].slice(0, 72)})});
+      body:JSON.stringify({key:'aeon-products', value:state['aeon-products'].slice(0, 89)})});
     assert.equal(response.status, 200);
     liveState = await (await fetch(`${base}/api/state`)).json();
-    assert.equal(liveState['aeon-products'].length, 72);
+    assert.equal(liveState['aeon-products'].length, 89);
     await stop();
 
-    // A new Vibe Host release has no runtime JSON from the preceding release.
-    fs.rmSync(path.join(dataDir, '.aeon-store.json'));
     base = await start(port, sourcePort);
     state = await (await fetch(`${base}/api/state`)).json();
-    assert.equal(state['aeon-products'].length, 72);
-    assert.equal(state['aeon-ui'].campaignSchedule, 'CURRENT_LIVE_VERSION');
+    assert.equal(state['aeon-products'].length, 89);
+    await stop();
+
+    // An existing release with the old catalog is migrated once, retaining
+    // private customer and order data along with its saved appearance.
+    const oldState = {...seed, 'aeon-products':seed['aeon-products'].slice(0, 73),
+      'aeon-customers':[{id:'customer-fixture'}], 'aeon-orders':[{code:'order-fixture'}]};
+    fs.writeFileSync(path.join(dataDir, '.aeon-store.json'), JSON.stringify(oldState));
+    base = await start(port, sourcePort);
+    state = await (await fetch(`${base}/api/state`, {headers:{Cookie:cookie}})).json();
+    assert.equal(state['aeon-products'].length, 90);
+    const saved = JSON.parse(fs.readFileSync(path.join(dataDir, '.aeon-store.json'), 'utf8'));
+    assert.equal(saved['aeon-customers'][0].id, 'customer-fixture');
+    assert.equal(saved['aeon-orders'][0].code, 'order-fixture');
     await stop();
 
     fs.rmSync(path.join(dataDir, '.aeon-store.json'));
@@ -90,7 +99,7 @@ async function run() {
     assert.deepEqual(state['aeon-products'], packaged['aeon-products']);
     assert.deepEqual(state['aeon-ui'], packaged['aeon-ui']);
     await stop();
-    console.log('Live deploy check passed: current catalog loads when available; packaged public snapshot starts the app when the live domain returns 502.');
+    console.log('Standard catalog check passed: 90 Excel products load without the live domain; existing private data and later product edits survive restart.');
   } finally {
     await stop();
     await new Promise(resolve => fixture.close(resolve));

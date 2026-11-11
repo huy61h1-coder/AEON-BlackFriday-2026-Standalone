@@ -10,7 +10,7 @@ const seed = JSON.parse(fs.readFileSync(path.join(root, '.aeon-store.seed.json')
 const initial = process.env.AEON_LEGACY_SEED_PATH
   ? JSON.parse(fs.readFileSync(process.env.AEON_LEGACY_SEED_PATH, 'utf8'))
   : structuredClone(seed);
-const expectedProducts = initial['aeon-products'].length;
+const expectedProducts = seed['aeon-products'].length;
 initial['aeon-ui'].storefrontRevision = 'older-release';
 initial['aeon-ui'].campaignSchedule = 'SAVED_BEFORE_DEPLOY';
 initial['aeon-layout'].storefrontRevision = 'older-release';

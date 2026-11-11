@@ -1,6 +1,6 @@
 # AEON Black Friday 2026
 
-Ứng dụng danh mục, báo giá và đặt hàng dành cho AEON Black Friday 2026. Khi deploy lên Vibe Host, phiên bản mới lấy danh mục sản phẩm và cài đặt giao diện từ phiên bản đang chạy trước khi nhận truy cập.
+Ứng dụng danh mục, báo giá và đặt hàng dành cho AEON Black Friday 2026. Danh mục chuẩn của bản này gồm 90 sản phẩm được nhập từ `catalog-standard.xlsx` theo thứ tự trong sheet **Danh mục**.
 
 ## Chức năng
 
@@ -33,9 +33,9 @@ dụng, ví dụ `http://192.168.1.64:8080/`.
 
 ## Triển khai có quản trị
 
-Chạy ứng dụng bằng Node.js (`npm install`, sau đó `npm start`). Khi một bản Vibe Host mới không có tệp dữ liệu của bản trước, máy chủ lấy danh mục và cài đặt công khai từ `https://blackfriday.tinhgon.xyz/api/state`, ghi vào tệp runtime mới, rồi mới mở cổng phục vụ. Danh mục đã thêm, sửa hoặc xóa trên bản đang chạy được giữ nguyên, không phụ thuộc số lượng sản phẩm. Nếu website cũ không truy cập được, bản mới dừng khởi động thay vì hiện danh mục mẫu trong mã nguồn. Có thể đổi URL nguồn bằng `AEON_BOOTSTRAP_PUBLIC_URL`; không cần tạo database.
+Chạy ứng dụng bằng Node.js (`npm install`, sau đó `npm start`). Bản deploy mang theo danh mục chuẩn trong `.aeon-public-bootstrap.json` nên không phải gọi lại tên miền khi khởi động. Nếu đã có tệp runtime, ứng dụng thay danh mục cũ bằng bản Excel này đúng một lần; đơn hàng, khách hàng và giao diện đã lưu được giữ lại. Các lần khởi động tiếp theo giữ những chỉnh sửa sản phẩm được lưu trên cùng volume.
 
-Cơ chế này giữ **danh mục, banner, logo và cài đặt giao diện công khai** qua lần thay bản khi Vibe Host còn phục vụ phiên bản cũ trong lúc bản mới khởi động. Dữ liệu riêng như khách hàng, đơn hàng, tài khoản phụ, file tải trực tiếp lên máy chủ và phiên Outlook cần ổ lưu trữ bền vững nếu muốn giữ qua mọi lần deploy. Nếu Vibe Host thay bản cũ trước khi bản mới đọc được URL, bản mới sẽ dừng và có thể rollback; không tự thay danh mục bằng dữ liệu cũ.
+Nếu Vibe Host thay cả tệp runtime mỗi lần deploy, các chỉnh sửa sau bản Excel này sẽ không thể giữ qua lần deploy tiếp theo nếu không có volume bền vững hoặc kho dữ liệu khác.
 
 Nếu có volume bền vững, đặt `AEON_DATA_DIR` ngoài thư mục release để giữ toàn bộ tệp runtime. Nếu đang dùng Supabase, ứng dụng vẫn hỗ trợ đồng bộ qua bảng `aeon_state`. Đặt `ADMIN_USERNAME`, `ADMIN_PASSWORD` và `AEON_LOCK_STOREFRONT=true` trên máy chủ. `netlify.toml` chỉ phát hành file tĩnh và hàm nhập Excel nên không cung cấp đầy đủ API quản trị.
 
@@ -48,8 +48,7 @@ Máy chủ hỗ trợ các biến môi trường:
 - `PORT`: cổng chạy ứng dụng, mặc định `8080`.
 - `ADMIN_USERNAME`: tài khoản đăng nhập trang quản trị, bắt buộc.
 - `ADMIN_PASSWORD`: mật khẩu quản trị, bắt buộc.
-- `AEON_BOOTSTRAP_PUBLIC_URL`: URL của `/api/state` trên website đang chạy; mặc định là `https://blackfriday.tinhgon.xyz/api/state`. Dùng khi bản mới chưa có tệp runtime.
-- `AEON_ALLOW_SAMPLE_DATA`: chỉ đặt `true` để xem thử dữ liệu mẫu ở máy cá nhân khi không có website đang chạy. Không bật trên Vibe Host.
+- `AEON_ALLOW_SAMPLE_DATA`: dùng tệp seed khi không có tệp runtime; seed của bản này cũng chứa danh mục Excel chuẩn.
 - `AEON_STATE_STORAGE`: mặc định `local` để giữ danh mục theo bản đang chạy; đặt `supabase` chỉ khi muốn đồng bộ danh mục vào bảng `aeon_state`.
 - `AEON_DATA_DIR`: đường dẫn tuyệt đối đến thư mục/volume bền vững, nằm ngoài thư mục release. Giữ nguyên giá trị này qua các lần deploy để bảo toàn danh mục, cài đặt, ảnh và file đã tải lên.
 - `AEON_LOCK_STOREFRONT`: đặt `true` trên máy chủ production để dùng giao diện Black Friday làm mặc định cho trường còn thiếu; các giá trị đã lưu vẫn được ưu tiên bất kể phiên bản.
@@ -121,8 +120,7 @@ nhóm quyền: sản phẩm & giá, nội dung/giao diện/banner, file báo gi�
 hiệu, hoặc khách hàng & đơn hàng. Chỉ tài khoản chính mới có thể tạo, sửa,
 tạm khóa tài khoản và phân quyền; mật khẩu tài khoản con được lưu dạng băm.
 
-Tệp `.aeon-store.seed.json` là dữ liệu mẫu cho môi trường local. Bản deploy
-không dùng tệp này để thay danh mục đang bán và không tự đổi 73 thành 91 sản phẩm.
+Tệp `.aeon-store.seed.json` và `.aeon-public-bootstrap.json` đều chứa 90 sản phẩm từ `catalog-standard.xlsx`.
 Dữ liệu khách hàng, đơn hàng, tài khoản con và tệp tải lên không nằm trong Git.
 Để giữ các chỉnh sửa về sau, cần cấu hình `AEON_DATA_DIR` trên volume bền vững
 hoặc Supabase trước khi deploy. Với ảnh/file tải lên bằng ứng dụng, cần giữ

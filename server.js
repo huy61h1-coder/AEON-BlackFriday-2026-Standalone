@@ -58,7 +58,7 @@ const supabaseStateKey = supabaseServerKey || supabaseAnonKey;
 // Supabase may be configured solely for encrypted Outlook tokens. Catalog
 // sync is opt-in so missing aeon_state tables cannot block product edits.
 const stateStorage = String(process.env.AEON_STATE_STORAGE || 'local').trim().toLowerCase();
-const liveStateUrl = String(process.env.AEON_BOOTSTRAP_PUBLIC_URL || 'https://blackfriday.tinhgon.xyz/api/state').trim();
+const standardCatalogVersion = 'catalog-standard-20261111-9';
 const allowSampleData = /^(?:1|true|yes|on)$/i.test(String(process.env.AEON_ALLOW_SAMPLE_DATA || '').trim());
 const outlookStorage = String(process.env.AEON_OUTLOOK_STORAGE || (supabaseUrl || process.env.NODE_ENV === 'production' ? 'supabase' : 'file')).trim().toLowerCase();
 const productTombstoneStateKey = 'aeon-product-tombstones';
@@ -83,7 +83,7 @@ const types = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charse
 // Bump this whenever the storefront shell changes. It fingerprints every
 // local CSS/JS URL emitted by the Node deployment, so a CDN cannot revive an
 // obsolete interface after a new release.
-const storefrontBuild = '20261111-bootstrap-recovery-v91';
+const storefrontBuild = '20261111-standard-catalog-v92';
 const productImageFitCss = '\n/* Server-enforced product commerce lock. */\n.product-media{position:relative!important;overflow:hidden!important;background:#fff!important}.product-media:has(.product-image-placeholder:not([hidden])),.product-media:has(.product-image-placeholder:not([hidden])):before,.product-media .product-image-placeholder:not([hidden]){background:#fff!important}.product-media img.product-official-image{display:block!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;margin:0!important;padding:0!important;object-fit:contain!important;object-position:center center!important}.product-price-stack .price,.product-price-stack .regular-price,.product-discount-badge{visibility:visible!important;opacity:1!important}\n';
 const noCacheHeaders = {
   'Cache-Control':'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0',
@@ -333,23 +333,6 @@ async function writeCloudState(state, changedKeys = cloudStateKeys) {
   if (!response.ok) throw new Error(`Không thể lưu dữ liệu cloud (HTTP ${response.status}).`);
 }
 
-async function readLiveState() {
-  const url = new URL(liveStateUrl);
-  if (url.protocol !== 'https:' && !['localhost', '127.0.0.1'].includes(url.hostname)) {
-    throw new Error('URL sao lưu danh mục phải dùng HTTPS.');
-  }
-  const response = await fetch(url, {headers:{Accept:'application/json'}, signal:AbortSignal.timeout(15000), redirect:'error'});
-  if (!response.ok) throw new Error(`Không lấy được danh mục đang chạy (HTTP ${response.status}).`);
-  const state = await response.json();
-  if (!Array.isArray(state?.['aeon-products'])
-    || !state?.['aeon-ui'] || typeof state['aeon-ui'] !== 'object'
-    || !state?.['aeon-layout'] || typeof state['aeon-layout'] !== 'object') {
-    throw new Error('Website đang chạy không trả về đủ danh mục và cài đặt.');
-  }
-  return Object.fromEntries(['aeon-products', 'aeon-ui', 'aeon-layout', 'aeon-brands']
-    .filter(key => Object.hasOwn(state, key)).map(key => [key, state[key]]));
-}
-
 function readPackagedPublicState() {
   const state = JSON.parse(fs.readFileSync(publicBootstrapPath, 'utf8'));
   if (!Array.isArray(state?.['aeon-products']) || !state['aeon-products'].length
@@ -360,25 +343,23 @@ function readPackagedPublicState() {
     .filter(key => Object.hasOwn(state, key)).map(key => [key, state[key]]));
 }
 
-// Vibe Host replaces the release files on deploy. When no saved runtime state
-// travels with the release, copy the catalog from the still-live version before
-// opening the new listener. An unavailable source stops this release safely.
+// Import the user-approved Excel catalog once per persistent state. Later
+// product edits remain in that state until a different catalog version ships.
 async function initialiseState() {
   const localState = fs.existsSync(statePath) ? readState() : null;
   if (Array.isArray(localState?.['aeon-products'])) {
+    if (localState['aeon-catalog-source-version'] !== standardCatalogVersion) {
+      localState['aeon-products'] = readPackagedPublicState()['aeon-products'];
+      localState['aeon-catalog-source-version'] = standardCatalogVersion;
+      writeLocalState(localState);
+    }
     return;
   }
   if (allowSampleData) {
-    writeLocalState(readState({allowSeed:true}));
+    writeLocalState({...readState({allowSeed:true}), 'aeon-catalog-source-version':standardCatalogVersion});
     return;
   }
-  let imported;
-  try {
-    imported = await readLiveState();
-  } catch (error) {
-    console.warn(`Không lấy được danh mục đang chạy: ${error.message} Dùng bản sao công khai đi kèm.`);
-    imported = readPackagedPublicState();
-  }
+  const imported = readPackagedPublicState();
   let privateState = {};
   try {
     const cloudState = await readCloudState();
@@ -388,7 +369,8 @@ async function initialiseState() {
   } catch (error) {
     console.warn(`Không đọc được dữ liệu riêng trên Supabase: ${error.message}`);
   }
-  const state = {...(localState || {}), ...privateState, ...imported};
+  const state = {...(localState || {}), ...privateState, ...imported,
+    'aeon-catalog-source-version':standardCatalogVersion};
   writeLocalState(state);
 }
 
