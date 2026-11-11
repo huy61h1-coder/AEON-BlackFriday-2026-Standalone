@@ -54,5 +54,5 @@
     grid-template-columns: 1fr;
   }
 }
-.sheet-sync-error{flex-basis:100%;color:var(--red);font-size:12px;line-height:1.5;overflow-wrap:anywhere}
+.sheet-sync-error{display:block;flex:1 0 100%;min-width:0;max-width:100%;box-sizing:border-box;padding:8px 10px;border-left:3px solid var(--red);background:rgba(226,29,63,.08);color:var(--red);font-size:12px;line-height:1.5;white-space:normal;overflow-wrap:anywhere;word-break:break-word}
 .customer-order-actions .order-sheet-retry{margin:0}

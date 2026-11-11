@@ -83,7 +83,7 @@ const types = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charse
 // Bump this whenever the storefront shell changes. It fingerprints every
 // local CSS/JS URL emitted by the Node deployment, so a CDN cannot revive an
 // obsolete interface after a new release.
-const storefrontBuild = '20261111-standard-catalog-v92';
+const storefrontBuild = '20261111-google-sheet-safe-errors-v93';
 const productImageFitCss = '\n/* Server-enforced product commerce lock. */\n.product-media{position:relative!important;overflow:hidden!important;background:#fff!important}.product-media:has(.product-image-placeholder:not([hidden])),.product-media:has(.product-image-placeholder:not([hidden])):before,.product-media .product-image-placeholder:not([hidden]){background:#fff!important}.product-media img.product-official-image{display:block!important;position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;margin:0!important;padding:0!important;object-fit:contain!important;object-position:center center!important}.product-price-stack .price,.product-price-stack .regular-price,.product-discount-badge{visibility:visible!important;opacity:1!important}\n';
 const noCacheHeaders = {
   'Cache-Control':'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0',
@@ -1919,6 +1919,12 @@ function googleSheetOrderPayload(input = {}) {
 
 async function sendOrderToGoogleSheet(payload) {
   if (!googleSheetWebAppUrl) throw new Error('Máy chủ chưa cấu hình GOOGLE_SHEET_WEB_APP_URL.');
+  let endpoint;
+  try { endpoint = new URL(googleSheetWebAppUrl); }
+  catch { throw new Error('GOOGLE_SHEET_WEB_APP_URL không hợp lệ. Hãy dùng URL Web App kết thúc bằng /exec.'); }
+  if (endpoint.protocol !== 'https:' || !/\/exec\/?$/.test(endpoint.pathname)) {
+    throw new Error('GOOGLE_SHEET_WEB_APP_URL phải là URL Web App HTTPS kết thúc bằng /exec.');
+  }
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 12000);
   try {
@@ -1934,23 +1940,20 @@ async function sendOrderToGoogleSheet(payload) {
     const loginRequired = /accounts\.google\.com|ServiceLogin/i.test(finalUrl + '\n' + text.slice(0, 1000));
     if (loginRequired) throw new Error('Apps Script đang yêu cầu đăng nhập Google. Hãy triển khai Web App với quyền truy cập Anyone.');
     if (!response.ok) throw new Error(`Google Apps Script phản hồi HTTP ${response.status}.`);
-    if (/<title>\s*(?:Lỗi|Error)\s*<\/title>|Không tìm thấy hàm tập lệnh|class=["']errorMessage["']/i.test(text)) {
-      const plainText = text
-        .replace(/<style[\s\S]*?<\/style>/gi, ' ')
-        .replace(/<[^>]+>/g, ' ')
-        .replace(/&nbsp;/gi, ' ')
-        .replace(/&quot;/gi, '"')
-        .replace(/&#39;|&apos;/gi, "'")
-        .replace(/&amp;/gi, '&')
-        .replace(/\s+/g, ' ')
-        .trim();
-      throw new Error(plainText.slice(0, 300) || 'Google Apps Script trả về trang lỗi.');
+    if (!response.ok) throw new Error(`Google Apps Script phản hồi HTTP ${response.status}. Kiểm tra URL Web App hiện hành trong GOOGLE_SHEET_WEB_APP_URL.`);
+    let result;
+    try { result = JSON.parse(text); }
+    catch {
+      const htmlResponse = /<!doctype html|<html|<script|<title/i.test(text);
+      throw new Error(htmlResponse
+        ? 'Google Apps Script trả trang HTML thay vì xác nhận JSON. Hãy kiểm tra deployment Web App và URL /exec.'
+        : 'Google Apps Script không trả phản hồi JSON hợp lệ.');
     }
-
-    let result = null;
-    try { result = JSON.parse(text); } catch { result = {message:text.slice(0, 300)}; }
-    if (result && (result.ok === false || String(result.status || '').toLowerCase() === 'error')) {
-      throw new Error(sheetText(result.message || result.error || 'Google Sheet từ chối dữ liệu.', 300));
+    if (!result || result.ok !== true) {
+      throw new Error(sheetText(result?.message || result?.error || 'Google Sheet từ chối dữ liệu.', 300));
+    }
+    if (String(result.orderCode || '') !== String(payload.orderCode || '')) {
+      throw new Error('Google Apps Script chưa xác nhận đúng mã đơn hàng.');
     }
     return {ok:true, status:response.status, result};
   } catch (error) {
