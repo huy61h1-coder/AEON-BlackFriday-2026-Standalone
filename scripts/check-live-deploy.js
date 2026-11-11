@@ -18,7 +18,7 @@ let sourceAvailable = true;
 let app;
 
 const fixture = http.createServer((request, response) => {
-  if (!sourceAvailable) { response.writeHead(503); response.end('Unavailable'); return; }
+  if (!sourceAvailable) { response.writeHead(502); response.end('Unavailable'); return; }
   response.writeHead(200, {'Content-Type':'application/json'});
   response.end(JSON.stringify(liveState));
 });
@@ -30,7 +30,7 @@ async function start(port, sourcePort) {
       AEON_BOOTSTRAP_PUBLIC_URL:`http://127.0.0.1:${sourcePort}/api/state`,
       AEON_ALLOW_SAMPLE_DATA:'false', ADMIN_USERNAME:'deploy-check', ADMIN_PASSWORD:'local-test-only',
       SUPABASE_URL:'', SUPABASE_ANON_KEY:'', SUPABASE_SECRET_KEY:'', SUPABASE_SERVICE_ROLE_KEY:''},
-    stdio:'ignore'
+    stdio:'inherit'
   });
   const base = `http://127.0.0.1:${port}`;
   for (let attempt = 0; attempt < 100; attempt++) {
@@ -83,17 +83,14 @@ async function run() {
 
     fs.rmSync(path.join(dataDir, '.aeon-store.json'));
     sourceAvailable = false;
-    app = spawn(process.execPath, ['server.js'], {
-      cwd:root,
-      env:{...process.env, HOST:'127.0.0.1', PORT:String(port), AEON_DATA_DIR:dataDir,
-        AEON_BOOTSTRAP_PUBLIC_URL:`http://127.0.0.1:${sourcePort}/api/state`,
-        AEON_ALLOW_SAMPLE_DATA:'false', SUPABASE_URL:'', SUPABASE_ANON_KEY:''},
-      stdio:'ignore'
-    });
-    const exitCode = await new Promise(resolve => app.once('exit', resolve));
-    assert.equal(exitCode, 1);
-    assert.equal(fs.existsSync(path.join(dataDir, '.aeon-store.json')), false);
-    console.log('Live deploy check passed: current catalog survives replacement; unavailable source cannot fall back to old seed.');
+    base = await start(port, sourcePort);
+    state = await (await fetch(`${base}/api/state`)).json();
+    const packaged = JSON.parse(fs.readFileSync(path.join(root, '.aeon-public-bootstrap.json'), 'utf8'));
+    assert.equal(state['aeon-products'].length, packaged['aeon-products'].length);
+    assert.deepEqual(state['aeon-products'], packaged['aeon-products']);
+    assert.deepEqual(state['aeon-ui'], packaged['aeon-ui']);
+    await stop();
+    console.log('Live deploy check passed: current catalog loads when available; packaged public snapshot starts the app when the live domain returns 502.');
   } finally {
     await stop();
     await new Promise(resolve => fixture.close(resolve));
